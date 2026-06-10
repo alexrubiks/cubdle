@@ -1,7 +1,0 @@
-
-# scraper leur genre
-
-# importer nouvelles compets (sauf si trop récente (<7 jours))
-# scraper nb participants
-
-# importer finales CDFs
