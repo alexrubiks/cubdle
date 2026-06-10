@@ -1,0 +1,82 @@
+from django.core.management.base import BaseCommand
+from datetime import date
+import re
+import requests
+from core.models import Competition, Event
+
+MONTHS_FR = {
+    1: "janvier", 2: "février", 3: "mars", 4: "avril",
+    5: "mai", 6: "juin", 7: "juillet", 8: "août",
+    9: "septembre", 10: "octobre", 11: "novembre", 12: "décembre"
+}
+
+class Command(BaseCommand):
+    help = "Importe toutes les compétitions WCA FR"
+
+    def handle(self, *args, **kwargs):
+        self.events = {e.slug: e for e in Event.objects.all()}
+
+        self.stdout.write("Récupération des compétitions FR...")
+        response = requests.get(
+            "https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/refs/heads/v1/competitions/FR.json"
+        )
+        data = response.json()
+        competitions = data["items"]
+        self.stdout.write(f"{len(competitions)} compétitions trouvées, import en cours...")
+
+        for comp in competitions:
+            self._import_competition(comp)
+
+        self.stdout.write(self.style.SUCCESS("Import terminé !"))
+
+    def _import_competition(self, comp):
+        date_from_str = comp["date"]["from"]
+        date_till_str = comp["date"]["till"]
+
+        month_str, year_str = self._format_month_year(date_from_str, date_till_str)
+        parsed_date_from = date.fromisoformat(date_from_str)
+
+        organizers = [o["name"] for o in comp["organisers"]]
+        delegates = [d["name"] for d in comp["wcaDelegates"]]
+        coords = comp["venue"]["coordinates"]
+
+        competition, _ = Competition.objects.update_or_create(
+            wca_id=comp["id"],
+            defaults={
+                "name": comp["name"],
+                "month": month_str,
+                "year": year_str,
+                "date_from": parsed_date_from,
+                "day_count": comp["date"]["numberOfDays"],
+                "latitude": coords["latitude"],
+                "longitude": coords["longitude"],
+                "organizers": organizers,
+                "delegates": delegates,
+                "participant_count": -1,
+                "is_championship": self._is_championship(comp["id"]),
+            }
+        )
+
+        event_objects = [
+            self.events[slug]
+            for slug in comp["events"]
+            if slug in self.events
+        ]
+        competition.events.set(event_objects)
+
+    def _format_month_year(self, date_from, date_till):
+        year_from, month_from, _ = date_from.split("-")
+        year_till, month_till, _ = date_till.split("-")
+
+        month_from_str = MONTHS_FR[int(month_from)]
+        month_till_str = MONTHS_FR[int(month_till)]
+
+        if year_from != year_till:
+            return f"{month_from_str}-{month_till_str}", f"{year_from}-{year_till}"
+        elif month_from != month_till:
+            return f"{month_from_str}-{month_till_str}", year_from
+        else:
+            return month_from_str, year_from
+
+    def _is_championship(self, wca_id):
+        return bool(re.match(r'^(France|FrenchChampionship|FrenchFMCChampionship)\d{4}', wca_id))

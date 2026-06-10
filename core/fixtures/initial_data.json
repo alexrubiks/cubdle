@@ -1,0 +1,25 @@
+[
+  {"model": "core.event", "pk": 1, "fields": {"slug": "333", "name": "3x3x3 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 2, "fields": {"slug": "222", "name": "2x2x2 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 3, "fields": {"slug": "444", "name": "4x4x4 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 4, "fields": {"slug": "555", "name": "5x5x5 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 5, "fields": {"slug": "666", "name": "6x6x6 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 6, "fields": {"slug": "777", "name": "7x7x7 Cube", "has_avg": true}},
+  {"model": "core.event", "pk": 7, "fields": {"slug": "333bf", "name": "3x3x3 Blindfolded", "has_avg": true}},
+  {"model": "core.event", "pk": 8, "fields": {"slug": "333fm", "name": "3x3x3 Fewest Moves", "has_avg": true}},
+  {"model": "core.event", "pk": 9, "fields": {"slug": "333oh", "name": "3x3x3 One-Handed", "has_avg": true}},
+  {"model": "core.event", "pk": 10, "fields": {"slug": "clock", "name": "Clock", "has_avg": true}},
+  {"model": "core.event", "pk": 11, "fields": {"slug": "minx", "name": "Megaminx", "has_avg": true}},
+  {"model": "core.event", "pk": 12, "fields": {"slug": "pyram", "name": "Pyraminx", "has_avg": true}},
+  {"model": "core.event", "pk": 13, "fields": {"slug": "skewb", "name": "Skewb", "has_avg": true}},
+  {"model": "core.event", "pk": 14, "fields": {"slug": "sq1", "name": "Square-1", "has_avg": true}},
+  {"model": "core.event", "pk": 15, "fields": {"slug": "444bf", "name": "4x4x4 Blindfolded", "has_avg": true}},
+  {"model": "core.event", "pk": 16, "fields": {"slug": "555bf", "name": "5x5x5 Blindfolded", "has_avg": true}},
+  {"model": "core.event", "pk": 17, "fields": {"slug": "333mbf", "name": "3x3x3 Multi-Blind", "has_avg": false}},
+
+  {"model": "core.game", "pk": 1, "fields": {"slug": "cubeur", "name": "Devine le cubeur"}},
+  {"model": "core.game", "pk": 2, "fields": {"slug": "compet", "name": "Devine la compet"}},
+  {"model": "core.game", "pk": 3, "fields": {"slug": "ranking", "name": "Devine le classement"}},
+  {"model": "core.game", "pk": 4, "fields": {"slug": "podium", "name": "Devine le podium"}},
+  {"model": "core.game", "pk": 5, "fields": {"slug": "location", "name": "Devine la localisation"}}
+]
