@@ -92,17 +92,17 @@ class Command(BaseCommand):
             use_single = event.slug in SINGLE_ONLY_EVENTS
 
             finalists = [
-                (r["personId"], r["best"] if use_single else r["average"])
+                (r["personId"], r["best"], r["average"])
                 for r in data["items"]
                 if r["round"] == "Final"
             ]
 
             fr_finalists = [
-                (person_id, score) for person_id, score in finalists
+                (person_id, best, average) for person_id, best, average in finalists
                 if self._is_fr(person_id, competition_year)
             ]
 
-            for new_position, (person_id, score) in enumerate(fr_finalists, start=1):
+            for new_position, (person_id, best, average) in enumerate(fr_finalists, start=1):
                 cubeur = self._get_or_create_cubeur(person_id)
                 if cubeur is None:
                     continue
@@ -111,11 +111,15 @@ class Command(BaseCommand):
                     competition=competition,
                     cubeur=cubeur,
                     event=self.events[event.slug],
-                    defaults={"position": new_position, "score": score}
+                    defaults={
+                        "position": new_position,
+                        "best": best,
+                        "average": average,
+                    }
                 )
 
                 self.stdout.write(
-                    f"{cubeur.first_name} {cubeur.last_name} : {new_position} au {self.events[event.slug].slug} à {competition_year} ({score})"
+                    f"{cubeur.first_name} {cubeur.last_name} : {new_position} au {self.events[event.slug].slug} à {competition_year} ({best}, {average})"
                 )
 
     def _get_or_create_cubeur(self, wca_id):

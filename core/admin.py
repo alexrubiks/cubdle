@@ -113,7 +113,7 @@ class CompetitionAdmin(admin.ModelAdmin):
 
 @admin.register(ChampionshipResult)
 class ChampionshipResultAdmin(admin.ModelAdmin):
-    list_display = ("competition", "cubeur", "event", "position", "score")
+    list_display = ("competition", "cubeur", "event", "position", "best", "average")
     list_filter = ("event", "competition")
     search_fields = ("cubeur__wca_id", "cubeur__first_name", "competition__name")
     autocomplete_fields = ("competition", "cubeur", "event")

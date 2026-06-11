@@ -91,7 +91,8 @@ class ChampionshipResult(models.Model):
     cubeur = models.ForeignKey(Cubeur, on_delete=models.CASCADE)
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     position = models.IntegerField()
-    score = models.IntegerField(default=-1)
+    best = models.IntegerField(default=-1)
+    average = models.IntegerField(default=-1)  # -1 si pas de moyenne
 
     class Meta:
         unique_together = ('competition', 'cubeur', 'event')
