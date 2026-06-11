@@ -2,18 +2,25 @@ from django.core.management.base import BaseCommand
 import requests
 from core.models import Cubeur, CubeurRanking, Event
 
-
+# environ 120 cubeurs importés / minute
 class Command(BaseCommand):
-    help = "Importe les cubeurs FR top 100 par event"
+    help = "Importe les cubeurs FR top 80 par event"
 
     def handle(self, *args, **kwargs):
         self.events = {e.slug: e for e in Event.objects.all()}
         self.stdout.write("Récupération des WCA IDs...")
         cubers_id = self._fetch_cubers_ids()
 
+        total = len(cubers_id)
         self.stdout.write(f"{len(cubers_id)} cubeurs trouvés, import en cours...")
-        for wca_id in cubers_id:
+        for i, wca_id in enumerate(cubers_id, start=1):
             self._import_cubeur(wca_id)
+            self.stdout.write(
+                f"\rImport cubeurs : {i}/{total}",
+                ending=""
+            )
+            self.stdout.flush()
+        self.stdout.write("")
 
         Cubeur.objects.filter(wca_id__in=cubers_id).update(is_active=True)
         Cubeur.objects.exclude(wca_id__in=cubers_id).update(is_active=False)
@@ -31,7 +38,7 @@ class Command(BaseCommand):
                 )
                 data = response.json()
                 for person in data["items"]:
-                    if person["rank"]["country"] <= 100:
+                    if person["rank"]["country"] <= 80:
                         cubers_id.add(person["personId"])
         return cubers_id
 

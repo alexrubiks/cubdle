@@ -1,5 +1,4 @@
 from django.core.management.base import BaseCommand
-from datetime import date
 import re
 import requests
 from core.models import Competition, Event
@@ -10,6 +9,7 @@ MONTHS_FR = {
     9: "septembre", 10: "octobre", 11: "novembre", 12: "décembre"
 }
 
+# importe 500 comps en quelques secondes
 class Command(BaseCommand):
     help = "Importe toutes les compétitions WCA FR"
 
@@ -22,10 +22,19 @@ class Command(BaseCommand):
         )
         data = response.json()
         competitions = data["items"]
+
+        total = len(competitions)
         self.stdout.write(f"{len(competitions)} compétitions trouvées, import en cours...")
 
-        for comp in competitions:
+        for i, comp in enumerate(competitions, start=1):
             self._import_competition(comp)
+
+            self.stdout.write(
+                f"\rImport compétitions : {i}/{total}",
+                ending=""
+            )
+            self.stdout.flush()
+        self.stdout.write("")
 
         self.stdout.write(self.style.SUCCESS("Import terminé !"))
 
@@ -34,7 +43,6 @@ class Command(BaseCommand):
         date_till_str = comp["date"]["till"]
 
         month_str, year_str = self._format_month_year(date_from_str, date_till_str)
-        parsed_date_from = date.fromisoformat(date_from_str)
 
         organizers = [o["name"] for o in comp["organisers"]]
         delegates = [d["name"] for d in comp["wcaDelegates"]]
@@ -46,7 +54,6 @@ class Command(BaseCommand):
                 "name": comp["name"],
                 "month": month_str,
                 "year": year_str,
-                "date_from": parsed_date_from,
                 "day_count": comp["date"]["numberOfDays"],
                 "latitude": coords["latitude"],
                 "longitude": coords["longitude"],
