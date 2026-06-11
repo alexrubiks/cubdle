@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 import re
 import requests
+from datetime import date, timedelta
 from core.models import Competition, Event
 
 MONTHS_FR = {
@@ -41,6 +42,11 @@ class Command(BaseCommand):
     def _import_competition(self, comp):
         date_from_str = comp["date"]["from"]
         date_till_str = comp["date"]["till"]
+        parsed_date_from = date.fromisoformat(date_from_str)
+        
+        cutoff = date.today() - timedelta(days=7)
+        if parsed_date_from > cutoff:
+            return
 
         month_str, year_str = self._format_month_year(date_from_str, date_till_str)
 
@@ -52,6 +58,7 @@ class Command(BaseCommand):
             wca_id=comp["id"],
             defaults={
                 "name": comp["name"],
+                "date_from": parsed_date_from,
                 "month": month_str,
                 "year": year_str,
                 "day_count": comp["date"]["numberOfDays"],

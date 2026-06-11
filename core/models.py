@@ -63,6 +63,9 @@ class CubeurRanking(models.Model):
 
     class Meta:
         unique_together = ('cubeur', 'event', 'result_type')
+        indexes = [
+            models.Index(fields=['cubeur', 'event', 'result_type']),
+        ]
 
     def __str__(self):
         return f"{self.cubeur} est classé {self.national_rank} au {self.event}"
@@ -71,6 +74,7 @@ class CubeurRanking(models.Model):
 class Competition(models.Model):
     wca_id = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=200)
+    date_from = models.DateField(null=True)
     month = models.CharField(max_length=20)
     year = models.CharField(max_length=20)
     day_count = models.IntegerField()
@@ -96,6 +100,9 @@ class ChampionshipResult(models.Model):
 
     class Meta:
         unique_together = ('competition', 'cubeur', 'event')
+        indexes = [
+            models.Index(fields=['competition', 'event']),
+        ]
 
     def __str__(self):
         return f"{self.cubeur} a terminé en {self.position} position au {self.event} à la compétition {self.competition}"
@@ -113,3 +120,27 @@ class CubeurNationalityException(models.Model):
 
     def __str__(self):
         return f"{self.cubeur} a été {self.country} de {self.year_from if self.year_from else 'ses débuts'} à {self.year_until if self.year_until else 'aujourd\'hui'}"
+    
+
+class DailyChallenge(models.Model):
+    date = models.DateField(primary_key=True)
+    
+    # Jeu 1 - Devine le cubeur
+    cubeur = models.ForeignKey(Cubeur, on_delete=models.SET_NULL, null=True, related_name='daily_cubeur')
+    
+    # Jeu 2 - Devine la compet
+    competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_competition')
+    
+    # Jeu 3 - Devine le classement
+    ranking_cubeur = models.ForeignKey(Cubeur, on_delete=models.SET_NULL, null=True, related_name='daily_ranking')
+    ranking_event = models.ForeignKey(Event, on_delete=models.SET_NULL, null=True)
+    
+    # Jeu 4 - Devine le podium
+    podium_competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_podium')
+    podium_event = models.ForeignKey(Event, on_delete=models.SET_NULL, null=True, related_name='daily_podium_event')
+    
+    # Jeu 5 - Devine la localisation
+    location_competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_location')
+
+    def __str__(self):
+        return f"Défis du {self.date}"
