@@ -192,3 +192,69 @@ def _compare_list(guessed_list, target_list):
         status = "wrong"
 
     return {"status": status, "value": guessed_list}
+
+
+@api_view(['POST'])
+def guess_ranking(request):
+    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    if challenge is None or challenge.ranking_cubeur is None:
+        return Response({"error": "Aucun défi disponible"}, status=404)
+
+    guessed_rank = request.data.get('rank')
+    if guessed_rank is None:
+        return Response({"error": "rank requis"}, status=400)
+
+    try:
+        guessed_rank = int(guessed_rank)
+    except (TypeError, ValueError):
+        return Response({"error": "rank doit être un entier"}, status=400)
+
+    if not (1 <= guessed_rank <= 100):
+        return Response({"error": "rank doit être entre 1 et 100"}, status=400)
+
+    target_ranking = CubeurRanking.objects.get(
+        cubeur=challenge.ranking_cubeur,
+        event=challenge.ranking_event,
+        result_type=challenge.ranking_result_type,
+    )
+    target_rank = target_ranking.national_rank
+
+    if guessed_rank == target_rank:
+        return Response({"correct": True})
+
+    direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
+
+    persons_at_rank = _get_persons_at_rank(
+        challenge.ranking_event, challenge.ranking_result_type, guessed_rank
+    )
+
+    return Response({
+        "correct": False,
+        "direction": direction,
+        "persons_at_rank": persons_at_rank,
+    })
+
+
+def _get_persons_at_rank(event, result_type, guessed_rank):
+    """Trouve les personnes au rang demandé, en gérant les ex-aequo
+    qui créent des trous dans le classement (ex: deux 37e -> pas de 38e)"""
+    rank = guessed_rank
+    while rank >= 1:
+        rankings = CubeurRanking.objects.filter(
+            event=event,
+            result_type=result_type,
+            national_rank=rank,
+        ).select_related('cubeur')
+
+        if rankings.exists():
+            return [
+                {
+                    "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
+                    "score": r.score,
+                    "rank": r.national_rank,
+                }
+                for r in rankings
+            ]
+        rank -= 1
+
+    return []
