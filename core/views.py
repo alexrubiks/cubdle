@@ -1,9 +1,22 @@
+import math
+from datetime import date
+
+from django.db.models import Q
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.db.models import Q
-from datetime import date
-from core.models import DailyChallenge, Cubeur, CubeurRanking, Competition, ChampionshipResult
-from core.serializers import DailyChallengeSerializer, CubeurSearchSerializer, CompetitionSearchSerializer
+
+from core.models import (
+    ChampionshipResult,
+    Competition,
+    Cubeur,
+    CubeurRanking,
+    DailyChallenge,
+)
+from core.serializers import (
+    CompetitionSearchSerializer,
+    CubeurSearchSerializer,
+    DailyChallengeSerializer,
+)
 
 
 @api_view(['GET'])
@@ -297,3 +310,45 @@ def guess_podium(request):
         "position": result.position,
         "score": result.average if result.average > 0 else result.best,
     })
+
+
+@api_view(['POST'])
+def guess_location(request):
+    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    if challenge is None or challenge.location_competition is None:
+        return Response({"error": "Aucun défi disponible"}, status=404)
+
+    try:
+        guessed_lat = float(request.data.get('latitude'))
+        guessed_lng = float(request.data.get('longitude'))
+    except (TypeError, ValueError):
+        return Response({"error": "latitude et longitude requis"}, status=400)
+
+    target = challenge.location_competition
+    distance_km = _haversine(guessed_lat, guessed_lng, target.latitude, target.longitude)
+    score = _location_score(distance_km)
+
+    return Response({
+        "distance_km": round(distance_km, 1),
+        "score": score,
+        "correct_location": {
+            "latitude": target.latitude,
+            "longitude": target.longitude,
+            "name": target.name,
+        },
+    })
+
+
+def _haversine(lat1, lon1, lat2, lon2):
+    """Distance en km entre deux points GPS"""
+    R = 6371
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    return 2 * R * math.asin(math.sqrt(a))
+
+
+def _location_score(distance_km, max_score=5000, scale=100):
+    """Score décroissance exponentielle, calibré pour la France (~1000km de diagonale)"""
+    return round(max_score * math.exp(-distance_km / scale))

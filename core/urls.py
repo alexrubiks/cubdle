@@ -8,6 +8,7 @@ urlpatterns = [
     path('guess/compet/', views.guess_compet),
     path('guess/ranking/', views.guess_ranking),
     path('guess/podium/', views.guess_podium),
+    path('guess/location/', views.guess_location),
 
     path('cubeurs/search/', views.cubeur_search),
     path('competitions/search/', views.competition_search),
