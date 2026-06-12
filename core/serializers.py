@@ -1,5 +1,3 @@
-# core/serializers.py
-
 from rest_framework import serializers
 from core.models import Cubeur, CubeurRanking, Competition, Event, ChampionshipResult, DailyChallenge
 
@@ -51,36 +49,32 @@ class ChampionshipResultSerializer(serializers.ModelSerializer):
 
 class DailyChallengeSerializer(serializers.ModelSerializer):
     """Serializer public — ne spoile pas les réponses"""
-    ranking_event = EventSerializer()
-    podium_event = EventSerializer()
+    ranking_event = EventSerializer(read_only=True)
+    podium_event = EventSerializer(read_only=True)
     podium_year = serializers.SerializerMethodField()
+    location_competition_name = serializers.SerializerMethodField()
+    ranking_cubeur = serializers.SerializerMethodField()
 
     class Meta:
         model = DailyChallenge
         fields = [
             'date',
-            # Jeu 1 - pas d'info, juste l'existence
-            # Jeu 2 - pas d'info
-            # Jeu 3
             'ranking_cubeur', 'ranking_event',
-            # Jeu 4
             'podium_year', 'podium_event',
-            # Jeu 5
             'location_competition_name',
         ]
 
     def get_podium_year(self, obj):
         return obj.podium_competition.year if obj.podium_competition else None
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        # Jeu 3 - on expose le nom du cubeur mais pas son classement
-        if instance.ranking_cubeur:
-            data['ranking_cubeur'] = {
-                'name': f"{instance.ranking_cubeur.first_name} {instance.ranking_cubeur.last_name}",
-                'wca_id': instance.ranking_cubeur.wca_id,
-            }
-        # Jeu 5 - juste le nom de la compet
-        if instance.location_competition:
-            data['location_competition_name'] = instance.location_competition.name
-        return data
+    def get_location_competition_name(self, obj):
+        return obj.location_competition.name if obj.location_competition else None
+
+    def get_ranking_cubeur(self, obj):
+        if not obj.ranking_cubeur:
+            return None
+        return {
+            'name': f"{obj.ranking_cubeur.first_name} {obj.ranking_cubeur.last_name}",
+            'wca_id': obj.ranking_cubeur.wca_id,
+            'avatar_url': obj.ranking_cubeur.avatar_url,
+        }
