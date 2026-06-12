@@ -6,6 +6,7 @@ urlpatterns = [
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/compet/', views.guess_compet),
+    path('guess/ranking/', views.guess_ranking),
 
     path('cubeurs/search/', views.cubeur_search),
     path('competitions/search/', views.competition_search),
