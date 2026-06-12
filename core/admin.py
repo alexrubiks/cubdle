@@ -45,6 +45,7 @@ class CubeurAdmin(admin.ModelAdmin):
         "gold_count",
         "silver_count",
         "bronze_count",
+        "avatar_url",
     )
 
     list_filter = ("is_active", "gender", "wca_year")

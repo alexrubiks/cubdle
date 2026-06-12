@@ -50,6 +50,7 @@ class Cubeur(models.Model):
     gold_count = models.IntegerField(default=0)
     silver_count = models.IntegerField(default=0)
     bronze_count = models.IntegerField(default=0)
+    avatar_url = models.URLField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

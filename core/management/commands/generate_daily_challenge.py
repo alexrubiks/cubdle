@@ -1,6 +1,8 @@
 from django.core.management.base import BaseCommand
 from datetime import date, timedelta
 import random
+import requests
+from bs4 import BeautifulSoup
 from core.models import DailyChallenge, Cubeur, Competition, CubeurRanking, Event, ChampionshipResult
 
 EVENT_GROUPS = {
@@ -30,8 +32,10 @@ class Command(BaseCommand):
             return
 
         cubeur = self._pick_cubeur()
+        self._get_avatar_url(cubeur)
         competition = self._pick_competition()
         ranking_cubeur, ranking_event = self._pick_ranking()
+        self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_competition()
 
@@ -53,6 +57,23 @@ class Command(BaseCommand):
         self.stdout.write(f"  Podium     : {podium_competition.name} / {podium_event.name}")
         self.stdout.write(f"  Location   : {location_competition.name}")
 
+
+    def _get_avatar_url(self, cubeur):
+        if cubeur.avatar_url:
+            return cubeur.avatar_url
+
+        response = requests.get(f"https://www.worldcubeassociation.org/persons/{cubeur.wca_id}")
+        if response.status_code != 200:
+            return None
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        img = soup.find("img", class_="avatar")
+        if img and img.get("src"):
+            cubeur.avatar_url = img["src"]
+            cubeur.save(update_fields=["avatar_url"])
+            return cubeur.avatar_url
+        return None
+
     def _pick_cubeur(self):
         # Exclure les cubeurs tirés dans les 6 derniers mois
         recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('cubeur_id', flat=True)
@@ -61,6 +82,7 @@ class Command(BaseCommand):
             cubeurs = list(Cubeur.objects.filter(is_active=True))
         weights = [self._cubeur_weight(c) for c in cubeurs]
         return random.choices(cubeurs, weights=weights, k=1)[0]
+    
 
     def _pick_competition(self):
         recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True)
