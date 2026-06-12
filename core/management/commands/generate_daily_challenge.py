@@ -20,6 +20,10 @@ EVENT_GROUPS = {
     "sq1": ["sq1"],
 }
 CUTOFF = date.today() - timedelta(days=50)
+SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+
+def _get_ranking_result_type(event_slug):
+    return "single" if event_slug in SINGLE_ONLY_EVENTS else "average"
 
 class Command(BaseCommand):
     help = "Génère le défi quotidien"
@@ -35,6 +39,7 @@ class Command(BaseCommand):
         self._get_avatar_url(cubeur)
         competition = self._pick_competition()
         ranking_cubeur, ranking_event = self._pick_ranking()
+        ranking_result_type = _get_ranking_result_type(ranking_event.slug)
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_competition()
@@ -56,7 +61,6 @@ class Command(BaseCommand):
         self.stdout.write(f"  Classement : {ranking_cubeur.first_name} {ranking_cubeur.last_name} / {ranking_event.name}")
         self.stdout.write(f"  Podium     : {podium_competition.name} / {podium_event.name}")
         self.stdout.write(f"  Location   : {location_competition.name}")
-
 
     def _get_avatar_url(self, cubeur):
         if cubeur.avatar_url:
@@ -83,7 +87,6 @@ class Command(BaseCommand):
         weights = [self._cubeur_weight(c) for c in cubeurs]
         return random.choices(cubeurs, weights=weights, k=1)[0]
     
-
     def _pick_competition(self):
         recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True)
         competitions = list(Competition.objects.filter(participant_count__gt=0).exclude(id__in=recent))

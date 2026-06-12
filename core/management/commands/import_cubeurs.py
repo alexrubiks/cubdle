@@ -2,6 +2,8 @@ from django.core.management.base import BaseCommand
 import requests
 from core.models import Cubeur, CubeurRanking, Event
 
+SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+
 # environ 120 cubeurs importés / minute
 class Command(BaseCommand):
     help = "Importe les cubeurs FR top 80 par event"
@@ -70,23 +72,27 @@ class Command(BaseCommand):
             event = self.events.get(item["eventId"])
             if event is None:
                 continue
-
             CubeurRanking.objects.update_or_create(
                 cubeur=cubeur,
                 event=event,
                 result_type="single",
-                defaults={"national_rank": item["rank"]["country"]}
+                defaults={
+                    "national_rank": item["rank"]["country"],
+                    "score": item["best"],
+                }
             )
-
         for item in person["rank"]["averages"]:
             event = self.events.get(item["eventId"])
             if event is None:
                 continue
-
             CubeurRanking.objects.update_or_create(
                 cubeur=cubeur,
                 event=event,
                 result_type="average",
-                defaults={"national_rank": item["rank"]["country"]}
+                defaults={
+                    "national_rank": item["rank"]["country"],
+                    "score": item["best"],
+                }
             )
+
     

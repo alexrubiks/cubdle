@@ -1,16 +1,19 @@
 from rest_framework import serializers
 from core.models import Cubeur, CubeurRanking, Competition, Event, ChampionshipResult, DailyChallenge
 
+
 class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = ['slug', 'name', 'has_avg']
+
 
 class CubeurRankingSerializer(serializers.ModelSerializer):
     event = EventSerializer()
     class Meta:
         model = CubeurRanking
         fields = ['event', 'result_type', 'national_rank']
+
 
 class CubeurSerializer(serializers.ModelSerializer):
     rankings = CubeurRankingSerializer(many=True, read_only=True)
@@ -23,11 +26,13 @@ class CubeurSerializer(serializers.ModelSerializer):
             'is_active', 'rankings'
         ]
 
+
 class CubeurSearchSerializer(serializers.ModelSerializer):
     """Serializer léger pour l'autocomplete"""
     class Meta:
         model = Cubeur
         fields = ['id', 'wca_id', 'first_name', 'last_name']
+
 
 class CompetitionSerializer(serializers.ModelSerializer):
     events = EventSerializer(many=True, read_only=True)
@@ -40,12 +45,20 @@ class CompetitionSerializer(serializers.ModelSerializer):
             'is_championship'
         ]
 
+
+class CompetitionSearchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Competition
+        fields = ['id', 'wca_id', 'name']
+
+
 class ChampionshipResultSerializer(serializers.ModelSerializer):
     cubeur = CubeurSearchSerializer()
     event = EventSerializer()
     class Meta:
         model = ChampionshipResult
         fields = ['cubeur', 'event', 'position', 'best', 'average']
+
 
 class DailyChallengeSerializer(serializers.ModelSerializer):
     """Serializer public — ne spoile pas les réponses"""

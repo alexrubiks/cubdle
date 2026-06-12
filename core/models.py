@@ -60,6 +60,7 @@ class CubeurRanking(models.Model):
     cubeur = models.ForeignKey(Cubeur, on_delete=models.CASCADE, related_name='rankings')
     event = models.ForeignKey(Event, on_delete=models.CASCADE)
     result_type = models.CharField(choices=[('single', 'Single'), ('average', 'Average')])
+    score = models.IntegerField(default=-1)
     national_rank = models.IntegerField(null=True, blank=True)
 
     class Meta:
@@ -135,6 +136,7 @@ class DailyChallenge(models.Model):
     # Jeu 3 - Devine le classement
     ranking_cubeur = models.ForeignKey(Cubeur, on_delete=models.SET_NULL, null=True, related_name='daily_ranking')
     ranking_event = models.ForeignKey(Event, on_delete=models.SET_NULL, null=True)
+    ranking_result_type = models.CharField(max_length=10, default="average")
     
     # Jeu 4 - Devine le podium
     podium_competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_podium')
