@@ -2,7 +2,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.db.models import Q
 from datetime import date
-from core.models import DailyChallenge, Cubeur, CubeurRanking, Competition
+from core.models import DailyChallenge, Cubeur, CubeurRanking, Competition, ChampionshipResult
 from core.serializers import DailyChallengeSerializer, CubeurSearchSerializer, CompetitionSearchSerializer
 
 
@@ -258,3 +258,42 @@ def _get_persons_at_rank(event, result_type, guessed_rank):
         rank -= 1
 
     return []
+
+
+@api_view(['POST'])
+def guess_podium(request):
+    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    if challenge is None or challenge.podium_competition is None:
+        return Response({"error": "Aucun défi disponible"}, status=404)
+
+    guessed_id = request.data.get('cubeur_id')
+    if guessed_id is None:
+        return Response({"error": "cubeur_id requis"}, status=400)
+
+    try:
+        guessed = Cubeur.objects.get(id=guessed_id)
+    except Cubeur.DoesNotExist:
+        return Response({"error": "Cubeur introuvable"}, status=404)
+
+    result = ChampionshipResult.objects.filter(
+        competition=challenge.podium_competition,
+        event=challenge.podium_event,
+        cubeur=guessed,
+    ).first()
+
+    if result is None:
+        return Response({
+            "correct": False,
+            "in_final": False,
+            "name": f"{guessed.first_name} {guessed.last_name}",
+        })
+
+    correct = result.position <= 3
+
+    return Response({
+        "correct": correct,
+        "in_final": True,
+        "name": f"{guessed.first_name} {guessed.last_name}",
+        "position": result.position,
+        "score": result.average if result.average > 0 else result.best,
+    })
