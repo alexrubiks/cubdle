@@ -92,19 +92,16 @@ def guess_cubeur(request):
 
 def _compare_categorical(guessed_value, target_value):
     return {
-        "status": "correct" if guessed_value == target_value else "wrong",
         "value": guessed_value,
+        "target": target_value,
     }
 
 
 def _compare_numeric(guessed_value, target_value):
-    if guessed_value == target_value:
-        status = "correct"
-    elif guessed_value < target_value:
-        status = "needs_higher"
-    else:
-        status = "needs_lower"
-    return {"status": status, "value": guessed_value}
+    return {
+        "value": guessed_value,
+        "target": target_value,
+    }
 
 
 def _compare_rankings(guessed, target):
@@ -112,30 +109,38 @@ def _compare_rankings(guessed, target):
         (r.event.slug, r.result_type): r.national_rank
         for r in CubeurRanking.objects.filter(cubeur=guessed).select_related('event')
     }
+
     target_rankings = {
         (r.event.slug, r.result_type): r.national_rank
         for r in CubeurRanking.objects.filter(cubeur=target).select_related('event')
     }
 
     result = {}
-    all_keys = set(guessed_rankings) | set(target_rankings)
+    all_keys = set(guessed_rankings.keys()) | set(target_rankings.keys())
 
-    for event_slug, result_type in all_keys:
+    for (event_slug, result_type) in all_keys:
+        key = f"{event_slug}_{result_type}"
+
         guessed_rank = guessed_rankings.get((event_slug, result_type))
         target_rank = target_rankings.get((event_slug, result_type))
 
-        key = f"{event_slug}_{result_type}"
-
         if guessed_rank is None and target_rank is None:
-            result[key] = {"status": "correct", "value": None}
+            result[key] = {
+                "value": None,
+                "target": None,
+            }
+
         elif guessed_rank is None or target_rank is None:
-            result[key] = {"status": "wrong", "value": guessed_rank}
-        elif guessed_rank == target_rank:
-            result[key] = {"status": "correct", "value": guessed_rank}
-        elif guessed_rank < target_rank:
-            result[key] = {"status": "needs_higher", "value": guessed_rank}
+            result[key] = {
+                "value": guessed_rank,
+                "target": target_rank,
+            }
+
         else:
-            result[key] = {"status": "needs_lower", "value": guessed_rank}
+            result[key] = {
+                "value": guessed_rank,
+                "target": target_rank,
+            }
 
     return result
 
