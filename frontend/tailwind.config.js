@@ -14,6 +14,13 @@ export default {
           green: '#7BD45A',
           blue: '#57def6',
           background: '#0088f7',
+        },
+        tile: {
+          correct: '#7BD45A',
+          near: '#F2D24D',
+          partial: '#F4924D',
+          wrong: '#F0455A',
+          none: '#a8a8a8',
         }
       }
     }

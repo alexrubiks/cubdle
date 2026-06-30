@@ -3,9 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { API_URLS } from '../../utils';
 
-/* ================================
-   CONSTANTES ÉVÉNEMENTS
-================================ */
 const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);
 
 const EVENTS_ORDER = [
@@ -22,9 +19,6 @@ const EVENT_LABEL = {
   '333mbf': 'MBLD',
 };
 
-/* ================================
-   LOGIQUE COULEURS
-================================ */
 function compareValues(userValue, targetValue, isYear = false) {
   const emptyUser   = userValue  === null || userValue  === undefined || userValue  === '';
   const emptyTarget = targetValue === null || targetValue === undefined || targetValue === '';
@@ -44,9 +38,6 @@ function compareValues(userValue, targetValue, isYear = false) {
   return 'rubik-lo';
 }
 
-/* ================================
-   CELLULE STICKER
-================================ */
 function RubikCell({ color, children }) {
   return (
     <div className={`rubik-base ${color}`}>
@@ -57,9 +48,6 @@ function RubikCell({ color, children }) {
   );
 }
 
-/* ================================
-   CELLULE N/A (pas de sticker)
-================================ */
 function RubikNA() {
   return (
     <div className="rubik-base rubik-na">
@@ -68,9 +56,6 @@ function RubikNA() {
   );
 }
 
-/* ================================
-   HELPERS
-================================ */
 function genderLabel(v) {
   if (v === 'm') return '♂';
   if (v === 'f') return '♀';
@@ -86,9 +71,6 @@ function initials(name = '') {
     .toUpperCase();
 }
 
-/* ================================
-   HEADER DE COLONNES (sticky)
-================================ */
 function GridHeader() {
   return (
     <div className="guess-row guess-header">
@@ -130,9 +112,6 @@ function GridHeader() {
   );
 }
 
-/* ================================
-   LIGNE DE GUESS
-================================ */
 function GuessRow({ guess }) {
   const c = guess.comparison;
 
@@ -206,9 +185,6 @@ function GuessRow({ guess }) {
   );
 }
 
-/* ================================
-   COMPOSANT PRINCIPAL
-================================ */
 function GuessCubeur() {
   const [query,   setQuery]   = useState('');
   const [results, setResults] = useState([]);
