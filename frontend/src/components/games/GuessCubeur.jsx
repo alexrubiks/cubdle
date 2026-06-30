@@ -1,3 +1,5 @@
+// utiliser le hook daily.js
+
 import { useState, useEffect, useRef } from 'react';
 import { API_URLS } from '../../utils';
 
