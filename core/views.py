@@ -167,7 +167,7 @@ def guess_compet(request):
         "month": _compare_set_string(guessed.month, target.month),
         "year": _compare_set_string(guessed.year, target.year),
         "participant_count": _compare_numeric(guessed.participant_count, target.participant_count),
-        "events": _compare_list(
+        "events": _compare_events(
             [e.slug for e in guessed.events.all()],
             [e.slug for e in target.events.all()],
         ),
@@ -181,6 +181,18 @@ def guess_compet(request):
         "comparison": comparison,
     })
 
+def _compare_events(guessed_events, target_events):
+    guessed_set = set(guessed_events)
+    target_set  = set(target_events)
+    per_slug = {}
+    for slug in target_set | guessed_set:
+        g_has = slug in guessed_set
+        t_has = slug in target_set
+        per_slug[slug] = {
+            "value":  g_has,
+            "status": "correct" if g_has == t_has else "wrong",
+        }
+    return per_slug
 
 def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""

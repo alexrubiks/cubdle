@@ -9,6 +9,6 @@ export const API_URLS = {
   guessLocation: `${API_BASE}/guess/location/`,
   guessCompet: `${API_BASE}/guess/competition/`,
   cubeurs: `${API_BASE}/cubeurs/`,
-  competitions: `${API_BASE}/cubeurs/`,
+  competitions: `${API_BASE}/competitions/`,
   daily: `${API_BASE}/daily/`,
 };

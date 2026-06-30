@@ -5,7 +5,7 @@ urlpatterns = [
     path('daily/', views.daily_challenge),
 
     path('guess/cubeur/', views.guess_cubeur),
-    path('guess/compet/', views.guess_compet),
+    path('guess/competition/', views.guess_compet),
     path('guess/ranking/', views.guess_ranking),
     path('guess/podium/', views.guess_podium),
     path('guess/location/', views.guess_location),
