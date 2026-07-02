@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { API_URLS } from "../../utils";
+import { API_URLS } from "../utils";
 
 function GuessPodium({ daily }) {
   const [query, setQuery] = useState('');

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { API_URLS } from "../../utils";
+import { API_URLS } from "../utils";
 
 function GuessLocation({ daily }) {
   const [lat, setLat] = useState('');

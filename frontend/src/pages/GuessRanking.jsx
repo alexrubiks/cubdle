@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API_URLS } from "../../utils";
+import { API_URLS } from "../utils";
 
 function GuessRanking({ daily }) {
   const [rank, setRank] = useState('');
