@@ -57,3 +57,23 @@ export function compareValues(userValue, targetValue, isYear = false) {
   if (diff <= threshold) return 'tile-near';
   return 'tile-partial';
 }
+
+
+// valeur normale : plus grand = flèche haut
+export function getDirection(userValue, targetValue) {
+  const u = Number(userValue);
+  const t = Number(targetValue);
+  if (Number.isNaN(u) || Number.isNaN(t)) return null;
+  if (u === t) return null;
+  return t > u ? 'up' : 'down';
+}
+
+// classement : plus petit = meilleur = flèche haut
+export function getRankingDirection(userValue, targetValue) {
+  const u = Number(userValue);
+  const t = Number(targetValue);
+  if (Number.isNaN(u) || Number.isNaN(t)) return null;
+  if (userValue === null || targetValue === null) return null;
+  if (u === t) return null;
+  return t < u ? 'up' : 'down';
+}

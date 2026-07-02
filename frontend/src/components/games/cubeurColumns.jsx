@@ -1,5 +1,5 @@
 import { RubikCell, NameCell } from '../ui/RubikCell';
-import { compareValues } from '../../utils';
+import { compareValues, getDirection, getRankingDirection } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
 
@@ -21,7 +21,7 @@ const EVENT_LABEL = {
 
 const SEPARATOR = {
   key: 'sep-events',
-  width: '8px',
+  width: '2px',
   header: null,
   renderCell: () => null,
 };
@@ -44,14 +44,16 @@ const eventColumns = EVENTS_ORDER.map(slug => {
       const r  = guess.comparison.rankings?.[`${slug}_${rt}`];
 
       if (!r || r.value === null) {
-        // l'event est absent chez le guess — est-il absent chez la cible aussi ?
-        return r?.target === null
+        return r?.target == null
           ? <RubikCell color="tile-correct">—</RubikCell>
           : <RubikCell color="tile-wrong">—</RubikCell>;
       }
 
       return (
-        <RubikCell color={compareValues(r.value, r.target)}>
+        <RubikCell
+          color={compareValues(r.value, r.target)}
+          direction={getRankingDirection(r.value, r.target)}
+        >
           {r.value}
         </RubikCell>
       );
@@ -63,11 +65,7 @@ export const cubeurColumns = [
   {
     key: 'nom',
     width: '160px',
-    header: (
-      <span className="font-body text-[9px] uppercase tracking-wide text-black/40 self-start">
-        Cubeur
-      </span>
-    ),
+    header: <HeaderCell icon="👤" label="Nom" />,
     renderCell: (guess) => <NameCell>{guess.name}</NameCell>,
   },
   {
@@ -90,7 +88,10 @@ export const cubeurColumns = [
     renderCell: (guess) => {
       const { value, target } = guess.comparison.wca_year;
       return (
-        <RubikCell color={compareValues(value, target, true)}>
+        <RubikCell
+          color={compareValues(value, target, true)}
+          direction={getDirection(value, target)}
+        >
           {value}
         </RubikCell>
       );
@@ -103,7 +104,10 @@ export const cubeurColumns = [
     renderCell: (guess) => {
       const { value, target } = guess.comparison.competition_count;
       return (
-        <RubikCell color={compareValues(value, target)}>
+        <RubikCell
+          color={compareValues(value, target)}
+          direction={getDirection(value, target)}
+        >
           {value}
         </RubikCell>
       );
@@ -116,7 +120,12 @@ export const cubeurColumns = [
     header: <HeaderCell icon="🥇" label="" />,
     renderCell: (guess) => {
       const { value, target } = guess.comparison.gold_count;
-      return <RubikCell color={compareValues(value, target)}>{value}</RubikCell>;
+      return <RubikCell
+        color={compareValues(value, target)}
+        direction={getDirection(value, target)}
+      >
+        {value}
+      </RubikCell>;
     },
   },
   {
@@ -125,7 +134,12 @@ export const cubeurColumns = [
     header: <HeaderCell icon="🥈" label="" />,
     renderCell: (guess) => {
       const { value, target } = guess.comparison.silver_count;
-      return <RubikCell color={compareValues(value, target)}>{value}</RubikCell>;
+      return <RubikCell
+        color={compareValues(value, target)}
+        direction={getDirection(value, target)}
+      >
+        {value}
+      </RubikCell>;
     },
   },
   {
@@ -134,7 +148,12 @@ export const cubeurColumns = [
     header: <HeaderCell icon="🥉" label="" />,
     renderCell: (guess) => {
       const { value, target } = guess.comparison.bronze_count;
-      return <RubikCell color={compareValues(value, target)}>{value}</RubikCell>;
+      return <RubikCell
+        color={compareValues(value, target)}
+        direction={getDirection(value, target)}
+      >
+        {value}
+      </RubikCell>;
     },
   },
   SEPARATOR,

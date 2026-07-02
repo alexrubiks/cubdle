@@ -66,7 +66,7 @@ function GuessCubeur() {
 
   return (
     <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5">
-      <div className="w-1/3 min-w-[320px] flex flex-col gap-4">
+      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
         {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8 pb-4">

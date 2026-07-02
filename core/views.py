@@ -1,7 +1,8 @@
 import math
 from datetime import date
 
-from django.db.models import Q
+
+import unicodedata
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
@@ -29,17 +30,31 @@ def daily_challenge(request):
     return Response(serializer.data)
 
 
+def normalize(s):
+    return ''.join(
+        c for c in unicodedata.normalize('NFD', s)
+        if unicodedata.category(c) != 'Mn'
+    ).lower()
+
 @api_view(['GET'])
 def cubeur_search(request):
     query = request.query_params.get('q', '').strip()
     if len(query) < 2:
         return Response([])
-    
-    cubeurs = Cubeur.objects.filter(
-        Q(first_name__icontains=query) | Q(last_name__icontains=query)
-    )[:10]
-    
-    serializer = CubeurSearchSerializer(cubeurs, many=True)
+
+    terms = [normalize(t) for t in query.split()]
+
+    # Récupère plus de résultats pour filtrer ensuite en Python
+    cubeurs = Cubeur.objects.all()
+
+    # Filtre en Python avec normalisation
+    def matches(cubeur):
+        full = normalize(f"{cubeur.first_name} {cubeur.last_name}")
+        return all(term in full for term in terms)
+
+    results = [c for c in cubeurs if matches(c)][:10]
+
+    serializer = CubeurSearchSerializer(results, many=True)
     return Response(serializer.data)
 
 

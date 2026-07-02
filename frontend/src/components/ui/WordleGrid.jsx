@@ -12,7 +12,7 @@ export default function WordleGrid({ columns, guesses }) {
         {columns.map(col => (
           <div
             key={col.key}
-            className="flex flex-col items-center justify-end gap-1 pb-2 border-b-2 border-black"
+            className="flex flex-col items-center justify-center"
           >
             {col.header}
           </div>
