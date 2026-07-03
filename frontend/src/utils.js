@@ -13,6 +13,21 @@ export const API_URLS = {
   daily: `${API_BASE}/daily/`,
 };
 
+export const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);
+
+export const EVENTS_ORDER = [
+  '333', '222', '444', '555', '666', '777',
+  '333bf', '333fm', '333oh', 'clock', 'minx',
+  'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf',
+];
+
+export const EVENT_LABEL = {
+  '333': '3x3', '222': '2x2', '444': '4x4', '555': '5x5',
+  '666': '6x6', '777': '7x7', '333bf': '3BLD', '333fm': 'FMC',
+  '333oh': 'OH', 'clock': 'Clock', 'minx': 'Mega', 'pyram': 'Pyra',
+  'skewb': 'Skewb', 'sq1': 'SQ1', '444bf': '4BLD', '555bf': '5BLD',
+  '333mbf': 'MBLD',
+};
 
 export function compareList(userList, targetList) {
   if (!userList?.length && !targetList?.length) return 'tile-correct';

@@ -1,23 +1,7 @@
 import { RubikCell, NameCell } from '../ui/RubikCell';
-import { compareValues, getDirection, getRankingDirection } from '../../utils';
+import { compareValues, getDirection, getRankingDirection, EVENTS_ORDER, EVENTS_SINGLE, EVENT_LABEL } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
-
-const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);
-
-const EVENTS_ORDER = [
-  '333', '222', '444', '555', '666', '777',
-  '333bf', '333fm', '333oh', 'clock', 'minx',
-  'pyram', 'skewb', 'sq1', '444bf', '555bf', '333mbf',
-];
-
-const EVENT_LABEL = {
-  '333': '3x3', '222': '2x2', '444': '4x4', '555': '5x5',
-  '666': '6x6', '777': '7x7', '333bf': '3BLD', '333fm': 'FMC',
-  '333oh': 'OH', 'clock': 'Clock', 'minx': 'Mega', 'pyram': 'Pyra',
-  'skewb': 'Skewb', 'sq1': 'SQ1', '444bf': '4BLD', '555bf': '5BLD',
-  '333mbf': 'MBLD',
-};
 
 const SEPARATOR = {
   key: 'sep-events',
@@ -100,7 +84,7 @@ export const cubeurColumns = [
   {
     key: 'comps',
     width: '48px',
-    header: <HeaderCell icon="#" label="Compét." />,
+    header: <HeaderCell icon="#" label="Compets" />,
     renderCell: (guess) => {
       const { value, target } = guess.comparison.competition_count;
       return (

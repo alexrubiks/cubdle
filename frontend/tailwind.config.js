@@ -9,7 +9,7 @@ export default {
       colors: {
         cubdle: {
           red: '#F0455A',
-          orange: '#F4924D',
+          orange: '#FA9C59',
           yellow: '#F2D24D',
           green: '#7BD45A',
           blue: '#57def6',
@@ -18,7 +18,7 @@ export default {
         tile: {
           correct: '#7BD45A',
           near: '#F2D24D',
-          partial: '#F4924D',
+          partial: '#FA9C59',
           wrong: '#F0455A',
           none: '#a8a8a8',
         }
