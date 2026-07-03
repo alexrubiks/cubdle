@@ -3,7 +3,8 @@ from .models import (
     User, Game, Score,
     Event, Cubeur, CubeurRanking,
     Competition, ChampionshipResult,
-    CubeurNationalityException
+    CubeurNationalityException,
+    DailyChallenge
 )
 
 @admin.register(User)
@@ -123,3 +124,7 @@ class ChampionshipResultAdmin(admin.ModelAdmin):
 @admin.register(CubeurNationalityException)
 class CubeurNationalityExceptionAdmin(admin.ModelAdmin):
     list_display = ("cubeur", "country", "year_from", "year_until")
+
+@admin.register(DailyChallenge)
+class DailyChallengeAdmin(admin.ModelAdmin):
+    list_display = ("date", "cubeur", "competition", "ranking_cubeur", "ranking_event", "ranking_result_type", "podium_competition", "podium_event", "location_competition")

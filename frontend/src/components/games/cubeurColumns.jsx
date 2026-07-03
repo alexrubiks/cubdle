@@ -1,14 +1,21 @@
 import { RubikCell, NameCell } from '../ui/RubikCell';
-import { compareValues, getDirection, getRankingDirection, EVENTS_ORDER, EVENTS_SINGLE, EVENT_LABEL } from '../../utils';
+import { getRankingDirection, getDirection, EVENTS_ORDER, EVENTS_SINGLE, EVENT_LABEL } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
 
-const SEPARATOR = {
-  key: 'sep-events',
+const STATUS_COLOR = {
+  'correct': 'tile-correct',
+  'near':    'tile-near',
+  'partial': 'tile-partial',
+  'wrong':   'tile-wrong',
+};
+
+const separator = (key) => ({
+  key,
   width: '2px',
   header: null,
   renderCell: () => null,
-};
+});
 
 function genderLabel(v) {
   if (v === 'm') return 'H';
@@ -17,49 +24,47 @@ function genderLabel(v) {
   return '?';
 }
 
+const eventColumns = EVENTS_ORDER.map(slug => ({
+  key: `event-${slug}`,
+  width: '48px',
+  header: <EventHeaderCell slug={slug} label={EVENT_LABEL[slug]} />,
+  renderCell: (guess) => {
+    const rt = EVENTS_SINGLE.has(slug) ? 'single' : 'average';
+    const r  = guess.comparison.rankings?.[`${slug}_${rt}`];
 
-const eventColumns = EVENTS_ORDER.map(slug => {
-  return {
-    key: `event-${slug}`,
-    width: '48px',
-    header: <EventHeaderCell slug={slug} label={EVENT_LABEL[slug]} />,
-    renderCell: (guess) => {
-      const rt = EVENTS_SINGLE.has(slug) ? 'single' : 'average';
-      const r  = guess.comparison.rankings?.[`${slug}_${rt}`];
+    if (!r || r.value === null) {
+      return r?.status === 'correct'
+        ? <RubikCell color="tile-correct">—</RubikCell>
+        : <RubikCell color="tile-wrong">—</RubikCell>;
+    }
 
-      if (!r || r.value === null) {
-        return r?.target == null
-          ? <RubikCell color="tile-correct">—</RubikCell>
-          : <RubikCell color="tile-wrong">—</RubikCell>;
-      }
-
-      return (
-        <RubikCell
-          color={compareValues(r.value, r.target)}
-          direction={getRankingDirection(r.value, r.target)}
-        >
-          {r.value}
-        </RubikCell>
-      );
-    },
-  };
-});
+    return (
+      <RubikCell
+        color={STATUS_COLOR[r.status] ?? 'tile-wrong'}
+        direction={getRankingDirection(r.value, r.target)}
+      >
+        {r.value}
+      </RubikCell>
+    );
+  },
+}));
 
 export const cubeurColumns = [
   {
     key: 'nom',
     width: '160px',
-    header: <HeaderCell icon="👤" label="Nom" />,
+    header: <HeaderCell icon="👤" label="Cubeur" />,
     renderCell: (guess) => <NameCell>{guess.name}</NameCell>,
   },
+  separator('sep-nom'),
   {
     key: 'genre',
     width: '48px',
     header: <HeaderCell icon="⚥" label="Genre" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.gender;
+      const { value, status } = guess.comparison.gender;
       return (
-        <RubikCell color={compareValues(value, target)}>
+        <RubikCell color={STATUS_COLOR[status] ?? 'tile-wrong'}>
           {genderLabel(value)}
         </RubikCell>
       );
@@ -70,10 +75,10 @@ export const cubeurColumns = [
     width: '48px',
     header: <HeaderCell icon="📅" label="Début" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.wca_year;
+      const { value, target, status } = guess.comparison.wca_year;
       return (
         <RubikCell
-          color={compareValues(value, target, true)}
+          color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={getDirection(value, target)}
         >
           {value}
@@ -86,10 +91,10 @@ export const cubeurColumns = [
     width: '48px',
     header: <HeaderCell icon="#" label="Compets" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.competition_count;
+      const { value, target, status } = guess.comparison.competition_count;
       return (
         <RubikCell
-          color={compareValues(value, target)}
+          color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={getDirection(value, target)}
         >
           {value}
@@ -97,19 +102,21 @@ export const cubeurColumns = [
       );
     },
   },
-  SEPARATOR,
+  separator('sep-infos'),
   {
     key: 'gold',
     width: '48px',
     header: <HeaderCell icon="🥇" label="" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.gold_count;
-      return <RubikCell
-        color={compareValues(value, target)}
-        direction={getDirection(value, target)}
-      >
-        {value}
-      </RubikCell>;
+      const { value, target, status } = guess.comparison.gold_count;
+      return (
+        <RubikCell
+          color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          direction={getDirection(value, target)}
+        >
+          {value}
+        </RubikCell>
+      );
     },
   },
   {
@@ -117,13 +124,15 @@ export const cubeurColumns = [
     width: '48px',
     header: <HeaderCell icon="🥈" label="" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.silver_count;
-      return <RubikCell
-        color={compareValues(value, target)}
-        direction={getDirection(value, target)}
-      >
-        {value}
-      </RubikCell>;
+      const { value, target, status } = guess.comparison.silver_count;
+      return (
+        <RubikCell
+          color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          direction={getDirection(value, target)}
+        >
+          {value}
+        </RubikCell>
+      );
     },
   },
   {
@@ -131,15 +140,17 @@ export const cubeurColumns = [
     width: '48px',
     header: <HeaderCell icon="🥉" label="" />,
     renderCell: (guess) => {
-      const { value, target } = guess.comparison.bronze_count;
-      return <RubikCell
-        color={compareValues(value, target)}
-        direction={getDirection(value, target)}
-      >
-        {value}
-      </RubikCell>;
+      const { value, target, status } = guess.comparison.bronze_count;
+      return (
+        <RubikCell
+          color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          direction={getDirection(value, target)}
+        >
+          {value}
+        </RubikCell>
+      );
     },
   },
-  SEPARATOR,
+  separator('sep-podiums'),
   ...eventColumns,
 ];

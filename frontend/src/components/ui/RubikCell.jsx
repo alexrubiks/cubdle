@@ -18,9 +18,12 @@ const ChevronDown = () => (
   </svg>
 );
 
-export function RubikCell({ color = 'tile-none', direction = null, children }) {
+export function RubikCell({ color = 'tile-none', direction = null, width = null, children }) {
   return (
-    <div className="w-12 h-12 bg-black rounded-xl p-1 flex items-center justify-center shrink-0">
+    <div
+      className="h-12 bg-black rounded-xl p-1 flex items-center justify-center shrink-0"
+      style={{ width: width ?? '48px' }}
+    >
       <div className={`w-full h-full rounded-lg ${COLOR_MAP[color] ?? 'bg-[#d4d4d4]'} flex flex-col items-center justify-center font-title font-bold text-xs leading-none tabular-nums`}>
         <div className="h-[10px] flex items-center justify-center">
           {direction === 'up' ? <ChevronUp /> : null}
@@ -34,9 +37,12 @@ export function RubikCell({ color = 'tile-none', direction = null, children }) {
   );
 }
 
-export function NameCell({ children }) {
+export function NameCell({ children, width = '160px' }) {
   return (
-    <div className="h-12 min-w-[160px] bg-white border-4 border-black rounded-xl px-3 flex items-center min-w-0">
+    <div
+      className="h-12 bg-white border-4 border-black rounded-xl px-3 flex items-center min-w-0"
+      style={{ width: width }}
+    >
       <span className="font-body font-medium text-xs text-black truncate">
         {children}
       </span>

@@ -29,10 +29,6 @@ function YesterdayCompet() {
   );
 }
 
-function initials(name = '') {
-  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-}
-
 export default function GuessCompet() {
   const [query,         setQuery]         = useState('');
   const [results,       setResults]       = useState([]);
@@ -46,10 +42,10 @@ export default function GuessCompet() {
 
   useEffect(() => {
     if (query.length < 2) { setResults([]); return; }
-    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}`)
-      .then(r => r.json())
-      .then(data => setResults(data.filter(c => !guesses.find(g => g.id === c.id))));
-  }, [query, guesses]);
+      fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`)
+        .then(r => r.json())
+        .then(data => setResults(data.filter(c => !guesses.find(g => g.id === c.id)).slice(0, 10)));
+    }, [query, guesses]);
 
   useEffect(() => {
     setSelectedIndex(-1);
@@ -125,7 +121,7 @@ export default function GuessCompet() {
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Ex : Cube en Seine 2024…"
+                placeholder="Ex : Chevry Miel 2025…"
                 autoComplete="off"
                 spellCheck={false}
                 onKeyDown={e => {
@@ -158,9 +154,6 @@ export default function GuessCompet() {
                       className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
                         ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
                     >
-                      <span className="w-7 h-7 rounded-full bg-black/5 flex items-center justify-center font-title font-bold text-[10px] text-black/40 shrink-0">
-                        {initials(c.name)}
-                      </span>
                       <span className="font-body text-sm font-medium flex-1 text-black">
                         {c.name}
                       </span>

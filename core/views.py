@@ -78,9 +78,9 @@ def competition_search(request):
     query = request.query_params.get('q', '').strip()
     if len(query) < 2:
         return Response([])
-
-    competitions = Competition.objects.filter(name__icontains=query)[:10]
-
+    already_guessed = int(request.query_params.get('exclude_count', 0))
+    limit = 10 + already_guessed
+    competitions = Competition.objects.filter(name__icontains=query)[:limit]
     serializer = CompetitionSearchSerializer(competitions, many=True)
     return Response(serializer.data)
 
@@ -104,13 +104,13 @@ def guess_cubeur(request):
     correct = guessed.id == target.id
 
     comparison = {
-        "gender": _compare_categorical(guessed.gender, target.gender),
-        "wca_year": _compare_numeric(guessed.wca_year, target.wca_year),
+        "gender":            _compare_categorical(guessed.gender, target.gender),
+        "wca_year":          _compare_numeric(guessed.wca_year, target.wca_year, threshold=1),
         "competition_count": _compare_numeric(guessed.competition_count, target.competition_count),
-        "gold_count": _compare_numeric(guessed.gold_count, target.gold_count),
-        "silver_count": _compare_numeric(guessed.silver_count, target.silver_count),
-        "bronze_count": _compare_numeric(guessed.bronze_count, target.bronze_count),
-        "rankings": _compare_rankings(guessed, target),
+        "gold_count":        _compare_numeric(guessed.gold_count, target.gold_count),
+        "silver_count":      _compare_numeric(guessed.silver_count, target.silver_count),
+        "bronze_count":      _compare_numeric(guessed.bronze_count, target.bronze_count),
+        "rankings":          _compare_rankings(guessed, target),
     }
 
     return Response({
@@ -123,14 +123,25 @@ def guess_cubeur(request):
 def _compare_categorical(guessed_value, target_value):
     return {
         "value": guessed_value,
-        "target": target_value,
+        "status": "correct" if guessed_value == target_value else "wrong",
     }
 
 
-def _compare_numeric(guessed_value, target_value):
+def _compare_numeric(guessed_value, target_value, threshold=5):
+    if guessed_value is None and target_value is None:
+        return {"value": None, "status": "correct"}
+    if guessed_value is None or target_value is None:
+        return {"value": guessed_value, "status": "wrong"}
+    if guessed_value == target_value:
+        status = "correct"
+    elif abs(guessed_value - target_value) <= threshold:
+        status = "near"
+    else:
+        status = "wrong"
     return {
         "value": guessed_value,
-        "target": target_value,
+        "target": target_value,  # gardé pour les chevrons côté frontend
+        "status": status,
     }
 
 
@@ -139,39 +150,33 @@ def _compare_rankings(guessed, target):
         (r.event.slug, r.result_type): r.national_rank
         for r in CubeurRanking.objects.filter(cubeur=guessed).select_related('event')
     }
-
     target_rankings = {
         (r.event.slug, r.result_type): r.national_rank
         for r in CubeurRanking.objects.filter(cubeur=target).select_related('event')
     }
-
     result = {}
     all_keys = set(guessed_rankings.keys()) | set(target_rankings.keys())
-
     for (event_slug, result_type) in all_keys:
         key = f"{event_slug}_{result_type}"
-
         guessed_rank = guessed_rankings.get((event_slug, result_type))
-        target_rank = target_rankings.get((event_slug, result_type))
+        target_rank  = target_rankings.get((event_slug, result_type))
 
         if guessed_rank is None and target_rank is None:
-            result[key] = {
-                "value": None,
-                "target": None,
-            }
-
+            status = "correct"
         elif guessed_rank is None or target_rank is None:
-            result[key] = {
-                "value": guessed_rank,
-                "target": target_rank,
-            }
-
+            status = "wrong"
+        elif guessed_rank == target_rank:
+            status = "correct"
+        elif abs(guessed_rank - target_rank) <= 5:
+            status = "near"
         else:
-            result[key] = {
-                "value": guessed_rank,
-                "target": target_rank,
-            }
+            status = "partial"
 
+        result[key] = {
+            "value":  guessed_rank,
+            "target": target_rank,  # gardé pour les chevrons
+            "status": status,
+        }
     return result
 
 
@@ -180,19 +185,15 @@ def guess_compet(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
     if challenge is None or challenge.competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
-
     guessed_id = request.data.get('competition_id')
     if guessed_id is None:
         return Response({"error": "competition_id requis"}, status=400)
-
     try:
         guessed = Competition.objects.get(id=guessed_id)
     except Competition.DoesNotExist:
         return Response({"error": "Compétition introuvable"}, status=404)
-
     target = challenge.competition
     correct = guessed.id == target.id
-
     comparison = {
         "month": _compare_set_string(guessed.month, target.month),
         "year": _compare_set_string(guessed.year, target.year),
@@ -204,7 +205,6 @@ def guess_compet(request):
         "organizers": _compare_list(guessed.organizers, target.organizers),
         "delegates": _compare_list(guessed.delegates, target.delegates),
     }
-
     return Response({
         "correct": correct,
         "guessed_name": guessed.name,
@@ -221,7 +221,7 @@ def _compare_events(guessed_events, target_events):
         t_has = slug in target_set
         per_slug[slug] = {
             "value":  g_has,
-            "status": "correct" if g_has == t_has else "wrong",
+            "status": g_has == t_has,
         }
     return per_slug
 
@@ -230,7 +230,6 @@ def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""
     guessed_set = set(guessed_value.split("-"))
     target_set = set(target_value.split("-"))
-
     if guessed_set == target_set:
         status = "correct"
     elif guessed_set & target_set:
@@ -238,21 +237,49 @@ def _compare_set_string(guessed_value, target_value):
     else:
         status = "wrong"
 
-    return {"status": status, "value": guessed_value}
+    months = {
+        "janvier":1,
+        "février":2,
+        "mars":3,
+        "avril":4,
+        "mai":5,
+        "juin":6,
+        "juillet":7,
+        "août":8,
+        "septembre":9,
+        "octobre":10,
+        "novembre":11,
+        "décembre":12,
+    }
+
+    direction = None
+    guessed_set = list(guessed_set)
+    target_set = list(target_set)
+    try:
+        if int(guessed_set[0]) < int(target_set[0]):
+            direction = "up"
+        elif int(guessed_set[0]) > int(target_set[0]):
+            direction = "down"
+    except Exception:
+        if months[guessed_set[0]] < months[target_set[0]]:
+            direction = "down"
+        elif months[guessed_set[0]] > months[target_set[0]]:
+            direction = "up"
+
+    return {"status": status, "direction": direction, "value": guessed_value}
+
 
 
 def _compare_list(guessed_list, target_list):
     """Compare deux listes (events, organizers, delegates)"""
     guessed_set = set(guessed_list)
     target_set = set(target_list)
-
     if guessed_set == target_set:
         status = "correct"
     elif guessed_set & target_set:
         status = "partial"
     else:
         status = "wrong"
-
     return {"status": status, "value": guessed_list}
 
 

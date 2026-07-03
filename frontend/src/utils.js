@@ -30,30 +30,6 @@ export const EVENT_LABEL = {
   '333mbf': 'MBLD',
 };
 
-export function compareList(userList, targetList) {
-  if (!userList?.length && !targetList?.length) return 'tile-correct';
-  if (!userList?.length || !targetList?.length)  return 'tile-wrong';
-
-  const userSet   = new Set(userList.map(s => s.trim().toLowerCase()));
-  const targetSet = new Set(targetList.map(s => s.trim().toLowerCase()));
-
-  if (
-    userSet.size === targetSet.size &&
-    [...userSet].every(v => targetSet.has(v))
-  ) return 'tile-correct';
-
-  const hasCommon = [...userSet].some(v => targetSet.has(v));
-  return hasCommon ? 'tile-partial' : 'tile-wrong';
-}
-
-
-export function compareMonth(userMonth, targetMonth) {
-  return compareList(
-    userMonth?.split('-'),
-    targetMonth?.split('-'),
-  );
-}
-
 
 export function compareValues(userValue, targetValue, isYear = false) {
   const emptyUser   = userValue  === null || userValue  === undefined || userValue  === '';

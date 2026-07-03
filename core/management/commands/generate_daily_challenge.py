@@ -39,7 +39,6 @@ class Command(BaseCommand):
         self._get_avatar_url(cubeur)
         competition = self._pick_competition()
         ranking_cubeur, ranking_event = self._pick_ranking()
-        ranking_result_type = _get_ranking_result_type(ranking_event.slug)
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_competition()
