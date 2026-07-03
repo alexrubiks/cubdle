@@ -1,4 +1,5 @@
 import MenuButton from '../components/ui/MenuButton';
+import CubdleLogo from '../components/ui/CubdleLogo';
 
 const MENU_ITEMS = [
   {
@@ -40,13 +41,20 @@ const MENU_ITEMS = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-5">
-      <h1 className="text-3xl font-title font-extrabold mb-6 text-center">Cubdle</h1>
+    <div className="min-h-screen bg-cubdle-background flex flex-col items-center p-5">
+      
+      {/* ── LOGO ── */}
+      <div className="flex items-center justify-center py-8">
+        <CubdleLogo size="xl" />
+      </div>
+
+      {/* ── MENU ── */}
       <div className="flex flex-col gap-3 items-center w-full max-w-md">
         {MENU_ITEMS.map((item) => (
           <MenuButton key={item.to} {...item} />
         ))}
       </div>
+
     </div>
   );
 }

@@ -30,11 +30,26 @@ def daily_challenge(request):
     return Response(serializer.data)
 
 
+@api_view(['GET'])
+def yesterday_challenge(request):
+    from datetime import date, timedelta
+    yesterday = date.today() - timedelta(days=1)
+    challenge = DailyChallenge.objects.filter(date=yesterday).first()
+    if not challenge:
+        return Response({"cubeur": None, "competition": None})
+    
+    return Response({
+        "cubeur": f"{challenge.cubeur.first_name} {challenge.cubeur.last_name}" if challenge.cubeur else None,
+        "competition": challenge.competition.name if challenge.competition else None,
+    })
+
+
 def normalize(s):
     return ''.join(
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     ).lower()
+
 
 @api_view(['GET'])
 def cubeur_search(request):
@@ -196,6 +211,7 @@ def guess_compet(request):
         "comparison": comparison,
     })
 
+
 def _compare_events(guessed_events, target_events):
     guessed_set = set(guessed_events)
     target_set  = set(target_events)
@@ -208,6 +224,7 @@ def _compare_events(guessed_events, target_events):
             "status": "correct" if g_has == t_has else "wrong",
         }
     return per_slug
+
 
 def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""

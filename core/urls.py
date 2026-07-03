@@ -3,6 +3,7 @@ from core import views
 
 urlpatterns = [
     path('daily/', views.daily_challenge),
+    path('yesterday/', views.yesterday_challenge),
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/competition/', views.guess_compet),

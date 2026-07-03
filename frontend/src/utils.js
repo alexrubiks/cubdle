@@ -1,16 +1,17 @@
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://localhost:8000/api/';
 
 // const API_BASE = "https://api.cubdle.alexrubiks.fr";
 
 export const API_URLS = {
-  guessCubeur: `${API_BASE}/guess/cubeur/`,
-  guessRanking: `${API_BASE}/guess/ranking/`,
-  guessPodium: `${API_BASE}/guess/podium/`,
-  guessLocation: `${API_BASE}/guess/location/`,
-  guessCompet: `${API_BASE}/guess/competition/`,
-  cubeurs: `${API_BASE}/cubeurs/`,
-  competitions: `${API_BASE}/competitions/`,
-  daily: `${API_BASE}/daily/`,
+  guessCubeur: `${API_BASE}guess/cubeur/`,
+  guessRanking: `${API_BASE}guess/ranking/`,
+  guessPodium: `${API_BASE}guess/podium/`,
+  guessLocation: `${API_BASE}guess/location/`,
+  guessCompet: `${API_BASE}guess/competition/`,
+  cubeurs: `${API_BASE}cubeurs/`,
+  competitions: `${API_BASE}competitions/`,
+  daily: `${API_BASE}daily/`,
+  yesterday: `${API_BASE}yesterday/`,
 };
 
 export const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);

@@ -3,7 +3,31 @@ import { API_URLS } from '../utils';
 import WordleGrid from '../components/ui/WordleGrid';
 import { cubeurColumns } from '../components/games/cubeurColumns';
 import VictoryCard from '../components/ui/VictoryCard';
+import CubdleLogo from '../components/ui/CubdleLogo';
 
+function YesterdayCubeur() {
+  const [name, setName] = useState(undefined); // undefined = pas encore chargé
+
+  useEffect(() => {
+    fetch(API_URLS.yesterday)
+      .then(r => r.json())
+      .then(data => setName(data.cubeur));
+  }, []);
+
+  if (name === undefined) return null; // chargement
+  if (!name) return null;              // pas de données
+
+  return (
+    <div className="flex flex-col items-center gap-1 h-[160px]">
+      <span className="font-body font-bold text-xs text-black uppercase tracking-wide">
+        Le cubeur d'hier était
+      </span>
+      <span className="font-title font-extrabold text-lg text-cubdle-green">
+        {name}
+      </span>
+    </div>
+  );
+}
 
 function initials(name = '') {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
@@ -75,10 +99,14 @@ function GuessCubeur() {
     <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5">
       <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
+        
+        
         {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8 pb-4">
-          <h1 className="font-title font-extrabold text-4xl text-white">Cubdle</h1>
-          <span className="font-body text-sm text-white/60 mt-1">Devine le cubeur</span>
+        <div className="flex flex-col items-center pt-8">
+          <div className="flex items-center justify-center py-2">
+            <CubdleLogo size="lg" />
+          </div>
+          <span className="font-body text-2xl text-white/60 mt-1">Devine le cubeur</span>
         </div>
 
         {/* ── VICTORY ── */}
@@ -93,8 +121,8 @@ function GuessCubeur() {
 
         {/* ── INPUT ── */}
         {!done && (
-          <div className="px-5 py-4">
-            <div className="relative" ref={dropdownRef}>
+          <div className="px-5 py-4 flex justify-center">
+            <div className="w-1/2 relative" ref={dropdownRef}>
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
                 🔍
               </span>
@@ -160,13 +188,9 @@ function GuessCubeur() {
             <WordleGrid columns={cubeurColumns} guesses={guesses} />
           </div>
         )}
-
-        {/* ── ÉTAT VIDE ── */}
-        {guesses.length === 0 && !done && (
-          <div className="flex-1 flex items-center justify-center font-body text-sm text-white/40">
-            Cherche un cubeur pour commencer !
-          </div>
-        )}
+        
+        {/* ── CUBEUR D'HIER ── */}
+        <YesterdayCubeur />
       </div>
     </div>
   );
