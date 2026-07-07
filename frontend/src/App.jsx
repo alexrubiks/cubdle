@@ -5,13 +5,14 @@ import GuessPodium from './pages/GuessPodium';
 import GuessRanking from './pages/GuessRanking';
 import GuessLocation from './pages/GuessLocation';
 import GuessCompet from './pages/GuessCompet';
-import CornerBlocks from './components/ui/CornerBlocks';
+import SideBlocks from './components/ui/SideBlocks';
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-cubdle-background">
-      <CornerBlocks position="top-left" />
-      <CornerBlocks position="bottom-right" />
+    <div className="relative min-h-screen bg-cubdle-background">
+      <SideBlocks position="left" />
+      <SideBlocks position="right" />
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/cubeur" element={<GuessCubeur />} />
