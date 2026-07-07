@@ -65,6 +65,7 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
     ranking_event = EventSerializer(read_only=True)
     podium_event = EventSerializer(read_only=True)
     podium_year = serializers.SerializerMethodField()
+    podium_competition_name = serializers.SerializerMethodField()
     location_competition_name = serializers.SerializerMethodField()
     ranking_cubeur = serializers.SerializerMethodField()
 
@@ -75,6 +76,7 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
             'ranking_cubeur', 'ranking_event',
             'ranking_result_type',
             'podium_year', 'podium_event',
+            'podium_competition_name',
             'location_competition_name',
         ]
 
@@ -92,3 +94,6 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
             'wca_id': obj.ranking_cubeur.wca_id,
             'avatar_url': obj.ranking_cubeur.avatar_url,
         }
+    
+    def get_podium_competition_name(self, obj):
+        return obj.podium_competition.name if obj.podium_competition else None

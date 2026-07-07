@@ -2,12 +2,26 @@ import { useEffect, useRef, useState } from 'react';
 import { API_URLS } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
+import { formatRankingScore } from '../utils';
 
+function buildShareTextPodium(guesses, challenge) {
+  return [
+    '🎯 Cubdle — Devine le Podium 🥇🥈🏅',
+    `${challenge.podium_competition_name} - ${challenge.podium_event?.name}`,
+        '',
+    `Trouvé en ${guesses.length - 3} erreur${guesses.length - 3 > 1 ? 's' : ''} !`,
+    '',
+    'https://cubdle.alexrubiks.fr',
+  ].join('\n');
+}
 
-function PodiumRow({ medal, cubeur }) {
+function PodiumRow({ medal, cubeur, eventSlug, color }) {
   return (
-    <div className="grid grid-cols-3 items-center border-b border-black/10 font-body text-sm">
-
+    <div
+      className={`grid grid-cols-3 items-center border-b border-black/10 font-body text-sm ${
+        cubeur ? color : ''
+      }`}
+    >
       <div className="px-3 py-3 text-center text-xl">
         {medal}
       </div>
@@ -17,7 +31,9 @@ function PodiumRow({ medal, cubeur }) {
       </div>
 
       <div className="px-3 py-3 text-center font-bold">
-        {cubeur ? cubeur.score : "??"}
+        {cubeur
+          ? formatRankingScore(cubeur.score, eventSlug)
+          : "??"}
       </div>
 
     </div>
@@ -25,12 +41,14 @@ function PodiumRow({ medal, cubeur }) {
 }
 
 
-function GuessRow({ guess }) {
+function GuessRow({ guess, eventSlug }) {
   return (
     <div className="grid grid-cols-3 items-center border-b border-black/10 font-body text-sm bg-cubdle-red/75">
 
       <div className="px-3 py-2 text-center font-bold">
-        ❌
+        {guess.in_final
+          ? `${guess.position}e`
+          : "❌"}
       </div>
 
       <div className="px-3 py-2 font-bold">
@@ -38,9 +56,9 @@ function GuessRow({ guess }) {
       </div>
 
       <div className="px-3 py-2 text-center">
-        {guess.in_final
-          ? `Finale : ${guess.position}e`
-          : "Pas en finale"}
+        {guess.score
+          ? formatRankingScore(guess.score, eventSlug)
+          : "—"}
       </div>
 
     </div>
@@ -48,7 +66,7 @@ function GuessRow({ guess }) {
 }
 
 
-function PodiumTable({ podium, guesses }) {
+function PodiumTable({ podium, guesses, eventSlug }) {
   return (
     <div className="border-2 border-black rounded-xl overflow-hidden bg-white mb-6">
 
@@ -70,17 +88,33 @@ function PodiumTable({ podium, guesses }) {
       </div>
 
       {/* PODIUM */}
-      <PodiumRow medal="🥇" cubeur={podium[1]} />
-      <PodiumRow medal="🥈" cubeur={podium[2]} />
-      <PodiumRow medal="🥉" cubeur={podium[3]} />
+      <PodiumRow medal="🥇" cubeur={podium[1]} eventSlug={eventSlug} color="bg-yellow-300/50" />
+      <PodiumRow medal="🥈" cubeur={podium[2]} eventSlug={eventSlug} color="bg-gray-300/70" />
+      <PodiumRow medal="🥉" cubeur={podium[3]} eventSlug={eventSlug} color="bg-orange-300/50" />
 
       {/* MAUVAISES REPONSES */}
-      {guesses.map((guess, index) => (
-        <GuessRow
-          key={index}
-          guess={guess}
-        />
-      ))}
+      {[...guesses]
+        .filter(guess => !guess.correct)
+        .sort((a, b) => {
+          // Ceux qui ont un classement passent avant
+          if (a.position && !b.position) return -1;
+          if (!a.position && b.position) return 1;
+
+          // Si les deux ont un classement, tri croissant
+          if (a.position && b.position) {
+            return a.position - b.position;
+          }
+
+          // Les deux sans classement restent à la fin
+          return 0;
+        })
+        .map((guess, index) => (
+          <GuessRow
+            key={index}
+            guess={guess}
+            eventSlug={eventSlug}
+          />
+        ))}
 
     </div>
   );
@@ -88,7 +122,6 @@ function PodiumTable({ podium, guesses }) {
 
 
 function GuessPodium() {
-
   const [challenge, setChallenge] = useState(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -103,6 +136,7 @@ function GuessPodium() {
   const [victory, setVictory] = useState(null);
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
 
   // CHALLENGE
   useEffect(() => {
@@ -171,55 +205,51 @@ function GuessPodium() {
 
     setQuery('');
     setResults([]);
+    setSelectedIndex(-1);
+
+    setGuesses(prev => [
+      {
+        name: data.name,
+        correct: data.correct,
+        position: data.position ?? null,
+        score: data.score ?? null,
+        in_final: data.in_final,
+      },
+      ...prev,
+    ]);
+
+    setFoundIds(prev => [
+      ...prev,
+      cubeur.id,
+    ]);
 
     if (data.correct) {
 
-      setPodium(prev => ({
-        ...prev,
+      setPodium(prev => {
 
-        [data.position]: {
-          name: data.name,
-          score: data.score,
-        },
+        const updated = {
+          ...prev,
+          [data.position]: {
+            name: data.name,
+            score: data.score,
+          },
+        };
 
-      }));
+        if (
+          updated[1] &&
+          updated[2] &&
+          updated[3]
+        ) {
+          setDone(true);
 
-      setFoundIds(prev => [
-        ...prev,
-        cubeur.id,
-      ]);
+          setVictory({
+            name: "le podium",
+          });
+        }
 
-      const newPodium = {
-        ...podium,
-        [data.position]: {
-          name: data.name,
-          score: data.score,
-        },
-      };
+        return updated;
 
-      if (
-        newPodium[1] &&
-        newPodium[2] &&
-        newPodium[3]
-      ) {
-
-        setDone(true);
-
-        setVictory({
-          name: "le podium",
-        });
-
-      }
-    } else {
-
-      setGuesses(prev => [
-        {
-          name: data.name,
-          in_final: data.in_final,
-          position: data.position ?? null,
-        },
-        ...prev,
-      ]);
+      });
     }
 
     inputRef.current?.focus();
@@ -251,8 +281,16 @@ function GuessPodium() {
 
           <VictoryCard
             label="Bravo ! Tu as trouvé le podium de :"
-            name={`${challenge.podium_competition?.name}`}
+            name={
+              <>
+                <div>{challenge.podium_event?.name}</div>
+                <div>{challenge.podium_competition_name}</div>
+              </>
+            }
             guesses={guesses}
+            nextTo="/location"
+            shareData={challenge}
+            buildShareText={buildShareTextPodium}
           />
 
         )}
@@ -267,7 +305,7 @@ function GuessPodium() {
               ref={dropdownRef}
             >
 
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
                 🔍
               </span>
 
@@ -278,61 +316,60 @@ function GuessPodium() {
                 placeholder="Ex : Max Park..."
                 autoComplete="off"
                 spellCheck={false}
-                className="
-                  w-full
-                  pl-9
-                  pr-4
-                  py-3
-                  bg-white
-                  border-2
-                  border-black
-                  rounded-xl
-                  font-body
-                  text-sm
-                  text-black
-                  placeholder:text-black/30
-                  outline-none
-                  focus:border-cubdle-yellow
-                "
-              />
+
+                onKeyDown={e => {
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+
+                    setSelectedIndex(i =>
+                      Math.min(i + 1, results.length - 1)
+                    );
+
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+
+                    setSelectedIndex(i =>
+                      Math.max(i - 1, -1)
+                    );
+
+                  } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+
+                    submitGuess(results[selectedIndex]);
+                  }
+                }}
+
+                className=" w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow" />
 
               {results.length > 0 && (
 
-                <ul className="
-                  absolute
-                  top-[calc(100%+4px)]
-                  left-0
-                  right-0
-                  bg-white
-                  border-2
-                  border-black
-                  rounded-xl
-                  z-30
-                  overflow-hidden
-                  list-none
-                  m-0
-                  p-0
-                  shadow-lg
-                ">
+                <ul role="listbox" className=" absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-30 overflow-hidden list-none m-0 p-0 shadow-lg">
 
-                  {results.map(c => (
-
+                  {results.map((c, i) => (
                     <li
                       key={c.id}
+                      role="option"
+                      aria-selected={i === selectedIndex}
                       onMouseDown={() => submitGuess(c)}
-                      className="
-                        px-4
-                        py-2
-                        cursor-pointer
-                        hover:bg-cubdle-yellow/20
-                        font-body
-                        text-sm
-                        border-b
-                        border-black/10
-                      "
+                      onMouseEnter={() => setSelectedIndex(i)}
+                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors font-body text-sm
+                        ${
+                          i === selectedIndex
+                            ? 'bg-cubdle-yellow/40'
+                            : 'hover:bg-cubdle-yellow/20'
+                        }
+                      `}
                     >
 
-                      {c.first_name} {c.last_name}
+                      <span className="font-body text-sm font-medium flex-1 text-black">
+                        {c.first_name} {c.last_name}
+                      </span>
+
+                      {c.country_iso2 && (
+                        <span className="font-body text-xs text-black/40">
+                          {c.country_iso2}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -344,13 +381,19 @@ function GuessPodium() {
         {/* INFOS CHALLENGE */}
         <div className="flex items-center justify-center gap-4">
 
-          <div className="flex flex-col items-center">
+          <img
+            src={`/events-icons/${challenge.podium_event?.slug}.svg`}
+            alt={challenge.podium_event?.name}
+            className="w-12 h-12 object-contain"
+          />
 
-            <span className="font-title font-extrabold text-lg text-black">
-              {challenge.podium_competition?.name}
+          <div className="flex flex-col">
+
+            <span className="font-title font-extrabold text-lg text-black uppercase">
+              {challenge.podium_competition_name}
             </span>
 
-            <span className="font-body text-sm text-black/60">
+            <span className="font-body text-sm text-black">
               {challenge.podium_event?.name}
             </span>
 
@@ -363,6 +406,7 @@ function GuessPodium() {
           <PodiumTable
             podium={podium}
             guesses={guesses}
+            eventSlug={challenge.podium_event?.slug}
           />
 
         </div>

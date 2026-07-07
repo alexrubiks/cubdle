@@ -66,6 +66,7 @@ function ShareBlock({ guesses, buildShareText, shareData }) {
   );
 }
 
+
 export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData }) {
   const ref = useRef(null);
 
