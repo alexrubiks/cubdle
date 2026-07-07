@@ -101,3 +101,12 @@ export function getRankingDirection(userValue, targetValue) {
   if (u === t) return null;
   return t < u ? 'up' : 'down';
 }
+
+// formate la distance pour l'afficher en km ou m
+export function formatDistance(distanceM) {
+  if (distanceM < 1000) {
+    return `${Math.round(distanceM)} m`;
+  }
+
+  return `${(distanceM / 1000).toFixed(1)} km`;
+}

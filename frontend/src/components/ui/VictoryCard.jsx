@@ -67,7 +67,7 @@ function ShareBlock({ guesses, buildShareText, shareData }) {
 }
 
 
-export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData }) {
+export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats}) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -89,14 +89,17 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
           {name}
         </span>
 
-        <div className="flex flex-col items-center gap-1">
-          <span className="font-body text-xs text-black/40 uppercase tracking-wide">
-            Trouvé en
-          </span>
-          <span className="font-title font-extrabold text-4xl text-cubdle-background">
-            {guesses.length} essai{guesses.length > 1 ? 's' : ''}
-          </span>
-        </div>
+        {stats ?? (
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+              Trouvé en
+            </span>
+
+            <span className="font-title font-extrabold text-4xl text-cubdle-background">
+              {guesses.length} essai{guesses.length > 1 ? 's' : ''}
+            </span>
+          </div>
+        )}
 
         <div className="w-full h-[2px] bg-black/10 rounded-full" />
 

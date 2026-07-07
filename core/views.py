@@ -405,11 +405,11 @@ def guess_location(request):
         return Response({"error": "latitude et longitude requis"}, status=400)
 
     target = challenge.location_competition
-    distance_km = _haversine(guessed_lat, guessed_lng, target.latitude, target.longitude)
-    score = _location_score(distance_km)
+    distance_m = _haversine(guessed_lat, guessed_lng, target.latitude, target.longitude)
+    score = _location_score(distance_m)
 
     return Response({
-        "distance_km": round(distance_km, 1),
+        "distance_m": round(distance_m, 1),
         "score": score,
         "correct_location": {
             "latitude": target.latitude,
@@ -420,8 +420,8 @@ def guess_location(request):
 
 
 def _haversine(lat1, lon1, lat2, lon2):
-    """Distance en km entre deux points GPS"""
-    R = 6371
+    """Distance en m entre deux points GPS"""
+    R = 6371000
     phi1, phi2 = math.radians(lat1), math.radians(lat2)
     dphi = math.radians(lat2 - lat1)
     dlambda = math.radians(lon2 - lon1)
@@ -429,6 +429,6 @@ def _haversine(lat1, lon1, lat2, lon2):
     return 2 * R * math.asin(math.sqrt(a))
 
 
-def _location_score(distance_km, max_score=5000, scale=100):
+def _location_score(distance_m, max_score=5000, scale=100000):
     """Score décroissance exponentielle, calibré pour la France (~1000km de diagonale)"""
-    return round(max_score * math.exp(-distance_km / scale))
+    return round(max_score * math.exp(-distance_m / scale))

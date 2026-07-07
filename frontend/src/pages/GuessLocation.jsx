@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react';
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  useMapEvents,
-} from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-
-import { API_URLS } from '../utils';
+import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
+import VictoryCard from '../components/ui/VictoryCard';
 
 
 const guessIcon = L.divIcon({
@@ -25,6 +19,7 @@ const guessIcon = L.divIcon({
   `,
 });
 
+
 const targetIcon = L.divIcon({
   className: '',
   html: `
@@ -39,9 +34,18 @@ const targetIcon = L.divIcon({
 });
 
 
-// ─────────────────────────────
-// Gestion clic carte
-// ─────────────────────────────
+function buildShareTextLocation(_, shareData) {
+  return [
+    '🎯 Cubdle — Devine la Localisation 🌍',
+    shareData.competition,
+    '',
+    `📍 ${formatDistance(shareData.distance)}`,
+    `🔥 ${shareData.score} / 5000`,
+    '',
+    'https://cubdle.alexrubiks.fr',
+  ].join('\n');
+}
+
 
 function LocationSelector({ setPosition, disabled }) {
 
@@ -128,47 +132,6 @@ function LocationMap({
   );
 }
 
-function LocationResult({ result, competition }) {
-
-  return (
-    <div className=" bg-white border-4 border-black rounded-2xl p-6 flex flex-col items-center gap-4 mt-4">
-
-      <span className=" font-body text-sm text-black/50">
-        Résultat pour
-      </span>
-
-      <span className=" font-title font-extrabold text-2xl text-center">
-        {competition}
-      </span>
-
-      <div className="flex gap-8">
-
-        <div className="flex flex-col items-center">
-          <span className="font-body text-xs text-black/40 uppercase">
-            Distance
-          </span>
-
-          <span className="font-title font-extrabold text-3xl">
-            {result.distance_km} km
-          </span>
-        </div>
-
-        <div className="flex flex-col items-center">
-
-          <span className="font-body text-xs text-black/40 uppercase">
-            Score
-          </span>
-
-          <span className="font-title font-extrabold text-3xl text-cubdle-background">
-            {result.score}
-          </span>
-
-        </div>
-      </div>
-    </div>
-  );
-}
-
 
 function GuessLocation() {
   const [challenge, setChallenge] = useState(null);
@@ -208,7 +171,7 @@ function GuessLocation() {
 
   return (
 
-    <div className=" min-h-screen bg-cubdle-background flex flex-col items-center px-5">
+    <div className=" min-h-screen bg-cubdle-background flex flex-col items-center px-5 mb-6">
 
       <div className=" w-2/3 min-w-[320px] flex flex-col gap-4">
 
@@ -225,17 +188,56 @@ function GuessLocation() {
 
         </div>
 
-        {/* COMPETITION */}
-        <div className="bg-white border-2 border-black rounded-xl px-4 py-3 text-center">
+        {/* RESULTS */}
+        {result && (
 
-          <span className="font-title font-extrabold text-lg">
+          <VictoryCard
+            label="Bravo ! Tu as trouvé la localisation de :"
+            name={challenge.location_competition_name}
+            buildShareText={buildShareTextLocation}
+            nextTo={"/cubeur"}
+            shareData={{
+              competition: challenge.location_competition_name,
+              distance: result.distance_m,
+              score: result.score,
+            }}
+            stats={
+              <div className="flex gap-8">
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+                    Distance
+                  </span>
+
+                  <span className="font-title font-extrabold text-4xl text-cubdle-background">
+                    {formatDistance(result.distance_m)}
+                  </span>
+                </div>
+
+                <div className="flex flex-col items-center gap-1">
+                  <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+                    Score
+                  </span>
+
+                  <span className="font-title font-extrabold text-4xl text-cubdle-green">
+                    {result.score}
+                  </span>
+                </div>
+              </div>
+            }
+          />
+        )}
+
+        {/* COMPETITION */}
+        <div className="px-4 py-3 text-center">
+
+          <span className="font-title font-extrabold text-3xl">
             {challenge.location_competition_name}
           </span>
 
         </div>
 
         {/* MAP */}
-        <div className="border-4 border-black rounded-2xl overflow-hidden bg-white">
+        <div className="border-4 border-black rounded-2xl  overflow-hidden bg-white">
 
           <LocationMap
             guessPosition={guessPosition}
@@ -254,16 +256,6 @@ function GuessLocation() {
             Valider
           </button>
 
-        )}
-
-        {result && (
-
-          <LocationResult
-            result={result}
-            competition={
-              challenge.location_competition_name
-            }
-          />
         )}
       </div>
     </div>
