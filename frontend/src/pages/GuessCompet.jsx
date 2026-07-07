@@ -107,7 +107,7 @@ export default function GuessCompet() {
             label="Bravo ! La compétition à deviner était :"
             name={victory.name}
             guesses={guesses}
-            nextTo="/competition"
+            nextTo="/ranking"
             buildShareText={buildShareTextCompet}
           />
         )}

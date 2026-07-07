@@ -27,9 +27,9 @@ function Countdown() {
   );
 }
 
-function ShareBlock({ guesses, buildShareText }) {
+function ShareBlock({ guesses, buildShareText, shareData }) {
   const [copied, setCopied] = useState(false);
-  const text = buildShareText(guesses);
+  const text = buildShareText(guesses, shareData);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(text).then(() => {
@@ -66,7 +66,7 @@ function ShareBlock({ guesses, buildShareText }) {
   );
 }
 
-export default function VictoryCard({ name, label, guesses, nextTo, buildShareText }) {
+export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
       {/* ── DROITE : partage ── */}
       <div className="flex-1">
         {buildShareText
-          ? <ShareBlock guesses={guesses} buildShareText={buildShareText} />
+          ? <ShareBlock guesses={guesses} buildShareText={buildShareText} shareData={shareData} />
           : null
         }
       </div>

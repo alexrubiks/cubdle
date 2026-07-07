@@ -73,6 +73,7 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
         fields = [
             'date',
             'ranking_cubeur', 'ranking_event',
+            'ranking_result_type',
             'podium_year', 'podium_event',
             'location_competition_name',
         ]

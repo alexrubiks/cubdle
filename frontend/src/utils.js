@@ -50,6 +50,38 @@ export function compareValues(userValue, targetValue, isYear = false) {
   return 'tile-partial';
 }
 
+export function formatRankingScore(score, eventSlug) {
+  if (score == null) return "";
+
+  // Multi-Blind
+  if (eventSlug === "333mbf") {
+    const misses = score % 100;
+    const seconds = Math.floor((score % 10000000) / 100);
+    const points = 99 - Math.floor(score / 10000000);
+
+    const solved = points + misses;
+    const attempted = solved + misses;
+
+    const minutes = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+
+    return `${solved}/${attempted} ${minutes}:${secs
+      .toString()
+      .padStart(2, "0")}`;
+  }
+
+  // Format WCA classique (centisecondes)
+  const totalSeconds = score / 100;
+
+  if (totalSeconds < 60) {
+    return totalSeconds.toFixed(2);
+  }
+
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = (totalSeconds % 60).toFixed(2).padStart(5, "0");
+
+  return `${minutes}:${seconds}`;
+}
 
 // valeur normale : plus grand = flèche haut
 export function getDirection(userValue, targetValue) {

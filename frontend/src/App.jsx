@@ -16,10 +16,10 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/cubeur" element={<GuessCubeur />} />
+        <Route path="/competition" element={<GuessCompet />} />
         <Route path="/ranking" element={<GuessRanking />} />
         <Route path="/podium" element={<GuessPodium />} />
         <Route path="/location" element={<GuessLocation />} />
-        <Route path="/competition" element={<GuessCompet />} />
       </Routes>
     </div>
   );

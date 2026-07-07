@@ -309,7 +309,11 @@ def guess_ranking(request):
     target_rank = target_ranking.national_rank
 
     if guessed_rank == target_rank:
-        return Response({"correct": True})
+        return Response({
+            "correct": True,
+            "rank": target_ranking.national_rank,
+            "score": target_ranking.score,
+        })
 
     direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
 
