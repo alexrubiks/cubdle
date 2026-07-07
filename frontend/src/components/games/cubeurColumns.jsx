@@ -10,6 +10,13 @@ const STATUS_COLOR = {
   'wrong':   'tile-wrong',
 };
 
+const TILE_EMOJI = {
+  'correct': '🟩',
+  'near':    '🟨',
+  'partial': '🟧',
+  'wrong':   '🟥',
+};
+
 const separator = (key) => ({
   key,
   width: '2px',
@@ -48,6 +55,37 @@ const eventColumns = EVENTS_ORDER.map(slug => ({
     );
   },
 }));
+
+export function buildShareTextCubeur(guesses) {
+  const allLines = [...guesses].reverse().map(guess => {
+    const c = guess.comparison;
+
+    const cells = [
+      c.gender.status,
+      c.wca_year.status,
+      c.competition_count.status,
+      c.gold_count.status,
+      c.silver_count.status,
+      c.bronze_count.status,
+    ].map(status => TILE_EMOJI[status] ?? '⬜').join('');
+
+    return `${cells}`;
+  });
+
+  const MAX = 5;
+  const lines = allLines.length <= MAX + 1
+    ? allLines
+    : [...allLines.slice(0, MAX), '...', allLines[allLines.length - 1]];
+
+  return [
+    '🎯 Cubdle — Devine le Cubeur 👤',
+    `Trouvé en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !`,
+    '',
+    ...lines,
+    '',
+    'https://cubdle.alexrubiks.fr',
+  ].join('\n');
+}
 
 export const cubeurColumns = [
   {
@@ -154,3 +192,6 @@ export const cubeurColumns = [
   separator('sep-podiums'),
   ...eventColumns,
 ];
+
+
+export default cubeurColumns;

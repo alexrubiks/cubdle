@@ -1,62 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { compareValues, EVENTS_ORDER, EVENTS_SINGLE } from '../../utils';
-
-const TILE_EMOJI = {
-  'tile-correct': '🟩',
-  'tile-near':    '🟨',
-  'tile-partial': '🟧',
-  'tile-wrong':   '🟥',
-  'tile-none':    '⬜',
-};
-
-function buildShareText(guesses, guessCount) {
-  const allLines = [...guesses].reverse().map(guess => {
-    const c = guess.comparison;
-
-    const cells = [
-      compareValues(c.gender.value, c.gender.target),
-      compareValues(c.wca_year.value, c.wca_year.target, true),
-      compareValues(c.competition_count.value, c.competition_count.target),
-      compareValues(c.gold_count.value, c.gold_count.target),
-      compareValues(c.silver_count.value, c.silver_count.target),
-      compareValues(c.bronze_count.value, c.bronze_count.target),
-    ].map(color => TILE_EMOJI[color] ?? '⬜').join('');
-
-    const eventTotal = EVENTS_ORDER.length;
-    const eventCorrect = EVENTS_ORDER.filter(slug => {
-      const rt = EVENTS_SINGLE.has(slug) ? 'single' : 'average';
-      const r = c.rankings?.[`${slug}_${rt}`];
-      if (r?.value != null && r?.target != null)
-        return compareValues(r.value, r.target) === 'tile-correct';
-      if (r?.value == null && r?.target == null) return true;
-      return false;
-    }).length;
-
-    return `${cells} · ${eventCorrect}/${eventTotal} events`;
-  });
-
-  const MAX = 5;
-  let lines;
-  if (allLines.length <= MAX + 1) {
-    lines = allLines;
-  } else {
-    lines = [
-      ...allLines.slice(0, MAX),
-      '...',
-      allLines[allLines.length - 1],
-    ];
-  }
-
-  return [
-    `🎯 Cubdle — Devine le Cubeur`,
-    `Trouvé en ${guessCount} essai${guessCount > 1 ? 's' : ''} !`,
-    '',
-    ...lines,
-    '',
-    'https://cubdle.alexrubiks.fr',
-  ].join('\n');
-}
 
 function Countdown() {
   const [timeLeft, setTimeLeft] = useState('');
@@ -84,9 +27,9 @@ function Countdown() {
   );
 }
 
-function ShareBlock({ guesses, guessCount }) {
+function ShareBlock({ guesses, buildShareText }) {
   const [copied, setCopied] = useState(false);
-  const text = buildShareText(guesses, guessCount);
+  const text = buildShareText(guesses);
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(text).then(() => {
@@ -123,7 +66,7 @@ function ShareBlock({ guesses, guessCount }) {
   );
 }
 
-export default function VictoryCard({ name, guessCount, guesses, nextTo }) {
+export default function VictoryCard({ name, label, guesses, nextTo, buildShareText }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -138,7 +81,7 @@ export default function VictoryCard({ name, guessCount, guesses, nextTo }) {
       {/* ── GAUCHE : infos victoire ── */}
       <div className="flex flex-col items-center gap-4 flex-1">
         <p className="font-body text-sm text-black/50 text-center">
-          Bravo ! Le cubeur à deviner était :
+          {label ?? 'Bravo ! La réponse était :'}
         </p>
 
         <span className="font-title font-extrabold text-2xl text-black text-center">
@@ -150,7 +93,7 @@ export default function VictoryCard({ name, guessCount, guesses, nextTo }) {
             Trouvé en
           </span>
           <span className="font-title font-extrabold text-4xl text-cubdle-background">
-            {guessCount} essai{guessCount > 1 ? 's' : ''}
+            {guesses.length} essai{guesses.length > 1 ? 's' : ''}
           </span>
         </div>
 
@@ -158,7 +101,7 @@ export default function VictoryCard({ name, guessCount, guesses, nextTo }) {
 
         <div className="flex flex-col items-center gap-1">
           <span className="font-body text-xs text-black/40 uppercase tracking-wide">
-            Prochain cubeur dans
+            Prochain défi dans
           </span>
           <Countdown />
           <span className="font-body text-[10px] text-black/30">
@@ -181,7 +124,10 @@ export default function VictoryCard({ name, guessCount, guesses, nextTo }) {
 
       {/* ── DROITE : partage ── */}
       <div className="flex-1">
-        <ShareBlock guesses={guesses} guessCount={guessCount} />
+        {buildShareText
+          ? <ShareBlock guesses={guesses} buildShareText={buildShareText} />
+          : null
+        }
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import WordleGrid from '../components/ui/WordleGrid';
 import { cubeurColumns } from '../components/games/cubeurColumns';
 import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
+import { buildShareTextCubeur } from '../components/games/cubeurColumns';
 
 function YesterdayCubeur() {
   const [name, setName] = useState(undefined); // undefined = pas encore chargé
@@ -109,10 +110,11 @@ function GuessCubeur() {
         {/* ── VICTORY ── */}
         {victory && (
           <VictoryCard
+            label="Bravo ! Le cubeur à deviner était :"
             name={victory.name}
-            guessCount={guesses.length}
             guesses={guesses}
             nextTo="/competition"
+            buildShareText={buildShareTextCubeur}
           />
         )}
 

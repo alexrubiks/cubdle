@@ -4,6 +4,7 @@ import WordleGrid from '../components/ui/WordleGrid';
 import { competColumns } from '../components/games/competColumns';
 import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
+import { buildShareTextCompet } from '../components/games/competColumns';
 
 function YesterdayCompet() {
   const [name, setName] = useState(undefined);
@@ -103,10 +104,11 @@ export default function GuessCompet() {
         {/* ── VICTORY ── */}
         {victory && (
           <VictoryCard
+            label="Bravo ! La compétition à deviner était :"
             name={victory.name}
-            guessCount={guesses.length}
             guesses={guesses}
-            nextTo="/ranking"
+            nextTo="/competition"
+            buildShareText={buildShareTextCompet}
           />
         )}
 
