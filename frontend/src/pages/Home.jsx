@@ -1,5 +1,6 @@
 import MenuButton from '../components/ui/MenuButton';
 import CubdleLogo from '../components/ui/CubdleLogo';
+import { Link } from 'react-router-dom';
 
 const MENU_ITEMS = [
   {
@@ -34,7 +35,7 @@ const MENU_ITEMS = [
     to: '/location',
     icon: '/events-icons/skewb.svg',
     title: 'DEVINE LA LOCALISATION',
-    subtitle: 'pointe sur la carte',
+    subtitle: 'en pointant sur la carte',
     color: 'bg-cubdle-blue',
   },
 ];
@@ -44,10 +45,16 @@ export default function Home() {
     <div className="min-h-screen bg-cubdle-background flex flex-col items-center p-5">
       
       {/* ── LOGO ── */}
-      <div className="flex items-center justify-center py-8">
+      <Link
+        to="/"
+        className="flex items-center justify-center py-8 transition-transform hover:scale-105 active:scale-95"
+      >
         <CubdleLogo size="xl" />
-      </div>
+      </Link>
 
+      {/* ── ACCROCHE ── */}
+      <div className="font-body font-bold text-2xl text-white mt-1 mb-6">Tous les jours, devine un cubeur et bien plus !</div>
+      
       {/* ── MENU ── */}
       <div className="flex flex-col gap-3 items-center w-full max-w-md">
         {MENU_ITEMS.map((item) => (

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { API_URLS, formatDistance } from '../utils';
@@ -178,9 +179,12 @@ function GuessLocation() {
         {/* HEADER */}
         <div className="flex flex-col items-center pt-8">
 
-          <div className="flex items-center justify-center py-2">
+          <Link
+            to="/"
+            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+          >
             <CubdleLogo size="lg" />
-          </div>
+          </Link>
 
           <span className="font-body text-2xl text-white/60 mt-1">
             Devine la localisation

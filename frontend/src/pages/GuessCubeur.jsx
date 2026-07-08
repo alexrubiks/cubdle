@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { API_URLS } from '../utils';
 import WordleGrid from '../components/ui/WordleGrid';
 import { cubeurColumns } from '../components/games/cubeurColumns';
@@ -101,9 +102,12 @@ function GuessCubeur() {
         
         {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-center py-2">
+          <Link
+            to="/"
+            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+          >
             <CubdleLogo size="lg" />
-          </div>
+          </Link>
           <span className="font-body text-2xl text-white/60 mt-1">Devine le cubeur</span>
         </div>
 
