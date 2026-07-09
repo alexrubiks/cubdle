@@ -1,9 +1,9 @@
 import Modal from './Modal';
 
-export default function SettingsModal({ onClose, user, onLogin, onLogout }) {
+export default function AccountModal({ onClose, user, onLogin, onLogout }) {
   return (
     <Modal
-      title="Paramètres"
+      title="Mon compte"
       onClose={onClose}
     >
 

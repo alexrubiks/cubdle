@@ -2,9 +2,9 @@ import MenuButton from '../components/ui/MenuButton';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { Settings, Info, Coffee } from 'lucide-react';
+import { User, Info, Coffee } from 'lucide-react';
 import AboutModal from '../components/ui/AboutModal';
-import SettingsModal from '../components/ui/SettingsModal';
+import AccountModal from '../components/ui/AccountModal';
 
 const MENU_ITEMS = [
   {
@@ -46,7 +46,7 @@ const MENU_ITEMS = [
 
 export default function Home() {
   const [showAbout, setShowAbout] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [showAccount, setShowAccount] = useState(false);
 
   const [user, setUser] = useState(null);
 
@@ -88,10 +88,10 @@ export default function Home() {
         <div className="flex gap-4">
 
           <button
-            onClick={() => setShowSettings(true)}
+            onClick={() => setShowAccount(true)}
             className="w-12 h-12 rounded-full border-4 border-black bg-white flex items-center justify-center hover:scale-105 transition-transform"
           >
-            <Settings size={22} strokeWidth={3}/>
+            <User size={22} strokeWidth={3}/>
           </button>
 
 
@@ -150,9 +150,9 @@ export default function Home() {
         />
       )}
 
-      {showSettings && (
-        <SettingsModal
-          onClose={() => setShowSettings(false)}
+      {showAccount && (
+        <AccountModal
+          onClose={() => setShowAccount(false)}
           user={user}
           onLogin={loginWCA}
           onLogout={logoutWCA}
