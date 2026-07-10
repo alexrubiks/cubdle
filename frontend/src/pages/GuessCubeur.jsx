@@ -6,6 +6,7 @@ import { cubeurColumns } from '../components/games/cubeurColumns';
 import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCubeur } from '../components/games/cubeurColumns';
+import GameNavCard from '../components/ui/GameNavCard';
 
 function YesterdayCubeur() {
   const [name, setName] = useState(undefined); // undefined = pas encore chargé
@@ -98,16 +99,34 @@ function GuessCubeur() {
     <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5">
       <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
-        
-        
         {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8">
-          <Link
-            to="/"
-            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-          >
-            <CubdleLogo size="lg" />
-          </Link>
+          <div className="flex items-center justify-between w-2/3">
+          
+            <GameNavCard
+              to="/location"
+              direction="prev"
+              color="bg-cubdle-blue"
+              prefix="Devine la"
+              title="LOCALISATION"
+            />
+
+            <Link
+              to="/"
+              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+            >
+              <CubdleLogo size="lg" />
+            </Link>
+
+            <GameNavCard
+                to="/competition"
+                direction="next"
+                color="bg-cubdle-orange"
+                prefix="Devine la"
+                title="COMPETITION"
+              />
+          </div>
+
           <span className="font-body text-2xl text-white/60 mt-1">Devine le cubeur</span>
         </div>
 

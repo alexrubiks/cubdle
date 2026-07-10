@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
+import GameNavCard from '../components/ui/GameNavCard';
 
 
 const guessIcon = L.divIcon({
@@ -172,19 +173,37 @@ function GuessLocation() {
 
   return (
 
-    <div className=" min-h-screen bg-cubdle-background flex flex-col items-center px-5 mb-6">
+    <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5 mb-6">
 
-      <div className=" w-2/3 min-w-[320px] flex flex-col gap-4">
+      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
-        {/* HEADER */}
+        {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8">
+          <div className="flex items-center justify-between w-2/3">
 
-          <Link
-            to="/"
-            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-          >
-            <CubdleLogo size="lg" />
-          </Link>
+            <GameNavCard
+              to="/podium"
+              direction="prev"
+              color="bg-cubdle-green"
+              prefix="Devine le"
+              title="PODIUM"
+            />
+
+            <Link
+              to="/"
+              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+            >
+              <CubdleLogo size="lg" />
+            </Link>
+
+            <GameNavCard
+              to="/cubeur"
+              direction="next"
+              color="bg-cubdle-red"
+              prefix="Devine le"
+              title="CUBEUR"
+            />
+          </div>
 
           <span className="font-body text-2xl text-white/60 mt-1">
             Devine la localisation

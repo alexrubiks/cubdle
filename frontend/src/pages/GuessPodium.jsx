@@ -4,6 +4,7 @@ import { API_URLS } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
+import GameNavCard from '../components/ui/GameNavCard';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
@@ -264,15 +265,33 @@ function GuessPodium() {
 
       <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
-        {/* HEADER */}
+        {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8">
+          <div className="flex items-center justify-between w-2/3">
 
-          <Link
-            to="/"
-            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-          >
-            <CubdleLogo size="lg" />
-          </Link>
+            <GameNavCard
+              to="/ranking"
+              direction="prev"
+              color="bg-cubdle-yellow"
+              prefix="Devine le"
+              title="CLASSEMENT"
+            />
+
+            <Link
+              to="/"
+              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+            >
+              <CubdleLogo size="lg" />
+            </Link>
+          
+            <GameNavCard
+              to="/location"
+              direction="next"
+              color="bg-cubdle-blue"
+              prefix="Devine la"
+              title="LOCALISATION"
+            />
+          </div>
 
           <span className="font-body text-2xl text-white/60 mt-1">
             Devine le podium

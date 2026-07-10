@@ -6,6 +6,7 @@ import { competColumns } from '../components/games/competColumns';
 import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCompet } from '../components/games/competColumns';
+import GameNavCard from '../components/ui/GameNavCard';
 
 function YesterdayCompet() {
   const [name, setName] = useState(undefined);
@@ -96,12 +97,32 @@ export default function GuessCompet() {
 
         {/* ── HEADER ── */}
         <div className="flex flex-col items-center pt-8">
-          <Link
-            to="/"
-            className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-          >
-            <CubdleLogo size="lg" />
-          </Link>
+          <div className="flex items-center justify-between w-2/3">
+          
+            <GameNavCard
+              to="/cubeur"
+              direction="prev"
+              color="bg-cubdle-red"
+              prefix="Devine le"
+              title="CUBEUR"
+            />
+            
+            <Link
+              to="/"
+              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
+            >
+              <CubdleLogo size="lg" />
+            </Link>
+
+            <GameNavCard
+              to="/ranking"
+              direction="next"
+              color="bg-cubdle-yellow"
+              prefix="Devine le"
+              title="CLASSEMENT"
+            />
+          </div>
+          
           <span className="font-body text-2xl text-white/60 mt-1">Devine la compétition</span>
         </div>
 
