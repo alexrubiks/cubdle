@@ -97,3 +97,5 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
     
     def get_podium_competition_name(self, obj):
         return obj.podium_competition.name if obj.podium_competition else None
+    
+

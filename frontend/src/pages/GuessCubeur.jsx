@@ -7,6 +7,8 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCubeur } from '../components/games/cubeurColumns';
 import GameNavCard from '../components/ui/GameNavCard';
+import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+
 
 function YesterdayCubeur() {
   const [name, setName] = useState(undefined); // undefined = pas encore chargé
@@ -34,22 +36,46 @@ function YesterdayCubeur() {
 
 
 function GuessCubeur() {
-  const [query,   setQuery]   = useState('');
-  const [results, setResults] = useState([]);
-  const [guesses, setGuesses] = useState([]);
-  const [done,    setDone]    = useState(false);
-  const [victory, setVictory] = useState(null);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [query,          setQuery]   = useState('');
+  const [results,        setResults] = useState([]);
+  const [guesses,        setGuesses] = useState(getGuesses("cubeur_guesses"));
+  const [done,           setDone]    = useState(getDone("cubeur_done"));
+  const [selectedIndex,  setSelectedIndex] = useState(-1);
+  const [victory,        setVictory] = useState(() => {
+    const previousVictory = getGuesses("cubeur_guesses")
+      .find(g => g.correct);
 
+    if (!previousVictory) return null;
+
+    return {
+      name: previousVictory.name,
+      photoUrl: previousVictory.photoUrl ?? null,
+    };
+  });
+  
   const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
+    if (done) {
+      setResults([]);
+      return;
+    }
+
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
     fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}`)
       .then(r => r.json())
-      .then(data => setResults(data.filter(c => !guesses.find(g => g.id === c.id))));
-  }, [query, guesses]);
+      .then(data =>
+        setResults(
+          data.filter(c => !guesses.find(g => g.id === c.id))
+        )
+      );
+
+  }, [query, guesses, done]);
 
   useEffect(() => {
     setSelectedIndex(-1);
@@ -71,6 +97,8 @@ function GuessCubeur() {
     setQuery('');
     setResults([]);
 
+    if (done) return;
+
     const res = await fetch(API_URLS.guessCubeur, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -79,18 +107,28 @@ function GuessCubeur() {
 
     const data = await res.json();
     const newGuess = { id: cubeur.id, name: data.guessed_name, comparison: data.comparison };
-    
-    
-    setGuesses(prev => {
-      const updated = [newGuess, ...prev];
+    const updated = [newGuess, ...guesses];
 
-      if (data.correct) {
-        setDone(true);
-        setVictory({ name: data.guessed_name, photoUrl: data.photo_url ?? null });
+    setGuesses(updated);
+
+    if (data.correct) {
+      saveDone("cubeur_done");
+      setDone(true);
+      setVictory({
+        name: data.guessed_name,
+        photoUrl: data.photo_url ?? null,
+      });
+    }
+
+    addGuess(
+      "cubeur_guesses",
+      {
+        id: cubeur.id,
+        name: data.guessed_name,
+        comparison: data.comparison,
+        correct: data.correct,
       }
-
-      return updated;
-    });
+    );
 
     inputRef.current?.focus();
   };

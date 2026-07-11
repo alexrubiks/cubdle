@@ -1,9 +1,9 @@
 import math
 from datetime import date
 
-
 import unicodedata
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from core.models import (
@@ -12,11 +12,17 @@ from core.models import (
     Cubeur,
     CubeurRanking,
     DailyChallenge,
+    DailyProgress,
 )
 from core.serializers import (
     CompetitionSearchSerializer,
     CubeurSearchSerializer,
     DailyChallengeSerializer,
+)
+from .progress import (
+    get_error_count,
+    add_guess,
+    set_done,
 )
 
 
@@ -49,6 +55,15 @@ def normalize(s):
         c for c in unicodedata.normalize('NFD', s)
         if unicodedata.category(c) != 'Mn'
     ).lower()
+
+
+def build_hint(text, mistakes, first_at=10, every=5):
+    if mistakes < first_at:
+        return ""
+
+    letters = 1 + (mistakes - first_at) // every
+
+    return text[:min(len(text), letters)]
 
 
 @api_view(['GET'])
@@ -88,10 +103,12 @@ def competition_search(request):
 @api_view(['POST'])
 def guess_cubeur(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
+
     if challenge is None or challenge.cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     guessed_id = request.data.get('cubeur_id')
+
     if guessed_id is None:
         return Response({"error": "cubeur_id requis"}, status=400)
 
@@ -103,20 +120,29 @@ def guess_cubeur(request):
     target = challenge.cubeur
     correct = guessed.id == target.id
 
+    add_guess(request, "cubeur_guesses", guessed.id)
+
+    if correct:
+        set_done(request, "cubeur_done")
+
     comparison = {
-        "gender":            _compare_categorical(guessed.gender, target.gender),
-        "wca_year":          _compare_numeric(guessed.wca_year, target.wca_year, threshold=1),
+        "gender": _compare_categorical(guessed.gender, target.gender),
+        "wca_year": _compare_numeric(guessed.wca_year, target.wca_year, threshold=1),
         "competition_count": _compare_numeric(guessed.competition_count, target.competition_count),
-        "gold_count":        _compare_numeric(guessed.gold_count, target.gold_count),
-        "silver_count":      _compare_numeric(guessed.silver_count, target.silver_count),
-        "bronze_count":      _compare_numeric(guessed.bronze_count, target.bronze_count),
-        "rankings":          _compare_rankings(guessed, target),
+        "gold_count": _compare_numeric(guessed.gold_count, target.gold_count),
+        "silver_count": _compare_numeric(guessed.silver_count, target.silver_count),
+        "bronze_count": _compare_numeric(guessed.bronze_count, target.bronze_count),
+        "rankings": _compare_rankings(guessed, target),
     }
 
     return Response({
         "correct": correct,
         "guessed_name": f"{guessed.first_name} {guessed.last_name}",
         "comparison": comparison,
+        "hint": None if correct else build_hint(
+            f"{target.first_name} {target.last_name}",
+            get_error_count(request, "cubeur_guesses", target.id)
+        ),
     })
 
 
@@ -144,6 +170,25 @@ def _compare_numeric(guessed_value, target_value, threshold=5):
         "status": status,
     }
 
+ALL_RANKINGS = [
+    ('333', 'average'),
+    ('222', 'average'),
+    ('444', 'average'),
+    ('555', 'average'),
+    ('666', 'average'),
+    ('777', 'average'),
+    ('333bf', 'single'),
+    ('333fm', 'average'),
+    ('333oh', 'average'),
+    ('clock', 'average'),
+    ('minx', 'average'),
+    ('pyram', 'average'),
+    ('skewb', 'average'),
+    ('sq1', 'average'),
+    ('444bf', 'single'),
+    ('555bf', 'single'),
+    ('333mbf', 'single'),
+]
 
 def _compare_rankings(guessed, target):
     guessed_rankings = {
@@ -155,8 +200,8 @@ def _compare_rankings(guessed, target):
         for r in CubeurRanking.objects.filter(cubeur=target).select_related('event')
     }
     result = {}
-    all_keys = set(guessed_rankings.keys()) | set(target_rankings.keys())
-    for (event_slug, result_type) in all_keys:
+
+    for event_slug, result_type in ALL_RANKINGS:
         key = f"{event_slug}_{result_type}"
         guessed_rank = guessed_rankings.get((event_slug, result_type))
         target_rank  = target_rankings.get((event_slug, result_type))
@@ -183,28 +228,53 @@ def _compare_rankings(guessed, target):
 @api_view(['POST'])
 def guess_compet(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
+
     if challenge is None or challenge.competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
+
     guessed_id = request.data.get('competition_id')
+
     if guessed_id is None:
         return Response({"error": "competition_id requis"}, status=400)
+
     try:
         guessed = Competition.objects.get(id=guessed_id)
     except Competition.DoesNotExist:
         return Response({"error": "Compétition introuvable"}, status=404)
+
     target = challenge.competition
     correct = guessed.id == target.id
+
+    add_guess(request, "compet_guesses", {
+        "id": guessed.id,
+        "name": guessed.name,
+        "correct": correct,
+    })
+
+    if correct:
+        set_done(request, "compet_done")
+
     comparison = {
         "month": _compare_set_string(guessed.month, target.month),
         "year": _compare_set_string(guessed.year, target.year),
-        "participant_count": _compare_numeric(guessed.participant_count, target.participant_count),
+        "participant_count": _compare_numeric(
+            guessed.participant_count,
+            target.participant_count
+        ),
         "events": _compare_events(
             [e.slug for e in guessed.events.all()],
             [e.slug for e in target.events.all()],
         ),
-        "organizers": _compare_list(guessed.organizers, target.organizers),
-        "delegates": _compare_list(guessed.delegates, target.delegates),
+        "organizers": _compare_list(
+            guessed.organizers,
+            target.organizers
+        ),
+        "delegates": _compare_list(
+            guessed.delegates,
+            target.delegates
+        ),
     }
+
     return Response({
         "correct": correct,
         "guessed_name": guessed.name,
@@ -432,3 +502,96 @@ def _haversine(lat1, lon1, lat2, lon2):
 def _location_score(distance_m, max_score=5000, scale=100000):
     """Score décroissance exponentielle, calibré pour la France (~1000km de diagonale)"""
     return round(max_score * math.exp(-distance_m / scale))
+
+
+def get_daily_progress(user):
+    return DailyProgress.objects.get_or_create(
+        user=user,
+        date=date.today()
+    )[0]
+
+
+GAME_LIST_FIELDS = [
+    "cubeur_guesses",
+    "compet_guesses",
+    "ranking_guesses",
+    "podium_guesses",
+]
+
+
+DONE_FIELDS = [
+    "cubeur_done",
+    "compet_done",
+    "ranking_done",
+    "podium_done",
+    "location_done",
+]
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def sync_progress(request):
+
+    local_progress = request.data
+
+    progress, created = DailyProgress.objects.get_or_create(
+        user=request.user,
+        date=date.today(),
+    )
+
+    changed = False
+
+    # ── LISTES DE TENTATIVES ──
+    for field in GAME_LIST_FIELDS:
+
+        local_value = local_progress.get(field, [])
+        db_value = getattr(progress, field)
+
+        # Si aucune tentative dans le compte,
+        # on récupère la progression locale
+        if len(db_value) == 0 and len(local_value) > 0:
+            setattr(progress, field, local_value)
+            changed = True
+
+    # ── LOCATION ──
+    local_location = local_progress.get(
+        "location_guess",
+        {}
+    )
+
+    if not progress.location_guess and local_location:
+        progress.location_guess = local_location
+        changed = True
+
+    # ── JEUX TERMINÉS ──
+    for field in DONE_FIELDS:
+
+        local_value = local_progress.get(field, False)
+        db_value = getattr(progress, field)
+
+        # On ne peut passer de False -> True
+        # que si le compte n'avait pas déjà une valeur
+        if not db_value and local_value:
+            setattr(progress, field, True)
+            changed = True
+
+    if changed:
+        progress.save()
+
+    return Response({
+        "success": True,
+        "synced": changed,
+        "progress": {
+            "cubeur_guesses": progress.cubeur_guesses,
+            "compet_guesses": progress.compet_guesses,
+            "ranking_guesses": progress.ranking_guesses,
+            "podium_guesses": progress.podium_guesses,
+            "location_guess": progress.location_guess,
+
+            "cubeur_done": progress.cubeur_done,
+            "compet_done": progress.compet_done,
+            "ranking_done": progress.ranking_done,
+            "podium_done": progress.podium_done,
+            "location_done": progress.location_done,
+        }
+    })

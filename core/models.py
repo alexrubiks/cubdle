@@ -147,3 +147,30 @@ class DailyChallenge(models.Model):
 
     def __str__(self):
         return f"Défis du {self.date}"
+    
+
+class DailyProgress(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+    )
+
+    date = models.DateField()
+
+    cubeur_guesses = models.JSONField(default=list)
+    compet_guesses = models.JSONField(default=list)
+    ranking_guesses = models.JSONField(default=list)
+    podium_guesses = models.JSONField(default=list)
+    location_guess = models.JSONField(default=dict)
+
+    cubeur_done = models.BooleanField(default=False)
+    compet_done = models.BooleanField(default=False)
+    ranking_done = models.BooleanField(default=False)
+    podium_done = models.BooleanField(default=False)
+    location_done = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('user', 'date')
+        indexes = [
+            models.Index(fields=['user', 'date']),
+        ]

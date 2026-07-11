@@ -7,6 +7,7 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCompet } from '../components/games/competColumns';
 import GameNavCard from '../components/ui/GameNavCard';
+import { getGuesses, getDone, addGuess, saveDone } from '../utils/localProgress';
 
 function YesterdayCompet() {
   const [name, setName] = useState(undefined);
@@ -32,23 +33,46 @@ function YesterdayCompet() {
   );
 }
 
-export default function GuessCompet() {
+function GuessCompet() {
   const [query,         setQuery]         = useState('');
   const [results,       setResults]       = useState([]);
-  const [guesses,       setGuesses]       = useState([]);
-  const [done,          setDone]          = useState(false);
-  const [victory,       setVictory]       = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [guesses,       setGuesses]       = useState(getGuesses("compet_guesses"));
+  const [done,          setDone]          = useState(getDone("compet_done"));
+  const [victory, setVictory] = useState(() => {
+    const previousVictory = getGuesses("compet_guesses")
+      .find(g => g.correct);
+
+    if (!previousVictory) return null;
+
+    return {
+      name: previousVictory.name,
+    };
+  });
 
   const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
-    if (query.length < 2) { setResults([]); return; }
-      fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`)
-        .then(r => r.json())
-        .then(data => setResults(data.filter(c => !guesses.find(g => g.id === c.id)).slice(0, 10)));
-    }, [query, guesses]);
+    if (done) {
+      setResults([]);
+      return;
+    }
+
+    if (query.length < 2) { 
+      setResults([]); 
+      return; 
+    }
+
+    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`)
+      .then(r => r.json())
+      .then(data =>
+        setResults(
+          data.filter(c => !guesses.find(g => g.id === c.id))
+        )
+      );
+
+  }, [query, guesses, done]);
 
   useEffect(() => {
     setSelectedIndex(-1);
@@ -70,23 +94,45 @@ export default function GuessCompet() {
     setQuery('');
     setResults([]);
 
-    const res  = await fetch(API_URLS.guessCompet, {
+    if (done) return;
+
+    const res = await fetch(API_URLS.guessCompet, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ competition_id: compet.id }),
     });
+
     const data = await res.json();
+    console.log("compet result", data);
 
-    const newGuess = { id: compet.id, name: data.guessed_name, comparison: data.comparison };
+    const newGuess = {
+      id: compet.id,
+      name: data.guessed_name,
+      comparison: data.comparison,
+    };
 
-    setGuesses(prev => {
-      const updated = [newGuess, ...prev];
-      if (data.correct) {
-        setDone(true);
-        setVictory({ name: data.guessed_name });
+    const updated = [newGuess, ...guesses];
+
+    setGuesses(updated);
+
+    if (data.correct) {
+      saveDone("compet_done");
+
+      setDone(true);
+      setVictory({
+        name: data.guessed_name,
+      });
+    }
+
+    addGuess(
+      "compet_guesses",
+      {
+        id: compet.id,
+        name: data.guessed_name,
+        comparison: data.comparison,
+        correct: data.correct,
       }
-      return updated;
-    });
+    );
 
     inputRef.current?.focus();
   };
@@ -211,3 +257,5 @@ export default function GuessCompet() {
     </div>
   );
 }
+
+export default GuessCompet;
