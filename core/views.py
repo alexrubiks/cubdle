@@ -378,21 +378,38 @@ def guess_ranking(request):
     )
     target_rank = target_ranking.national_rank
 
-    if guessed_rank == target_rank:
-        return Response({
-            "correct": True,
-            "rank": target_ranking.national_rank,
-            "score": target_ranking.score,
-        })
+    correct = guessed_rank == target_rank
+    persons_at_rank = []
+    direction = None
 
-    direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
+    if not correct:
+        direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
 
-    persons_at_rank = _get_persons_at_rank(
-        challenge.ranking_event, challenge.ranking_result_type, guessed_rank
+        persons_at_rank = _get_persons_at_rank(
+            challenge.ranking_event,
+            challenge.ranking_result_type,
+            guessed_rank,
+        )
+
+    add_guess(
+        request,
+        "ranking_guesses",
+        {
+            "rank": guessed_rank,
+            "persons": persons_at_rank,
+            "direction": direction,
+            "correct": correct,
+            "score": target_ranking.score if correct else None,
+        }
     )
 
+    if correct:
+        set_done(request, "ranking_done")
+
     return Response({
-        "correct": False,
+        "correct": correct,
+        "rank": target_rank if correct else guessed_rank,
+        "score": target_ranking.score if correct else None,
         "direction": direction,
         "persons_at_rank": persons_at_rank,
     })

@@ -46,10 +46,9 @@ export function saveProgress(progress) {
 export function addGuess(field, value) {
   const progress = loadProgress();
 
-  if (!progress[field].some(g => g.id === value.id)) {
-    progress[field].unshift(value);
-    saveProgress(progress);
-  }
+  progress[field].unshift(value);
+
+  saveProgress(progress);
 
   return progress;
 }

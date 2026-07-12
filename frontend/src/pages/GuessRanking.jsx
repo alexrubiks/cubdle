@@ -5,6 +5,7 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
+import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
 
 function buildShareTextRanking(guesses, challenge) {
   return [
@@ -132,10 +133,20 @@ function GuessRanking() {
 
   const [challenge, setChallenge] = useState(null);
   const [rank, setRank] = useState('');
-  const [guesses, setGuesses] = useState([]);
-  const [done, setDone] = useState(false);
-  const [solution, setSolution] = useState(null);
+  const [guesses, setGuesses] = useState(getGuesses("ranking_guesses"));
+  const [done, setDone] = useState(getDone("ranking_done"));
   const [victory, setVictory] = useState(null);
+  const [solution, setSolution] = useState(() => {
+    const win = getGuesses("ranking_guesses")
+      .find(g => g.correct);
+
+    if (!win) return null;
+
+    return {
+      rank: win.rank,
+      score: win.score,
+    };
+  });
 
   const inputRef = useRef(null);
 
@@ -145,7 +156,17 @@ function GuessRanking() {
       .then(data => setChallenge(data));
   }, []);
 
+  useEffect(() => {
+    if (!challenge || !done || victory) return;
+
+    setVictory({
+      name: challenge.ranking_cubeur.name,
+    });
+  }, [challenge, done, victory]);
+
   const submitGuess = async () => {
+    if (done) return;
+
     const value = Number(rank);
 
     if (!value || value < 1 || value > 100) {
@@ -164,21 +185,27 @@ function GuessRanking() {
 
     const data = await res.json();
 
+    const newGuess = {
+      rank: value,
+      persons: data.persons_at_rank ?? [],
+      direction: data.direction,
+      correct: data.correct,
+      score: data.score ?? null,
+    };
 
     setGuesses(prev => [
-      {
-        rank: value,
-        persons: data.correct
-          ? []
-          : data.persons_at_rank ?? [],
-        direction: data.direction,
-        correct: data.correct,
-      },
+      newGuess,
       ...prev,
     ]);
 
+    addGuess(
+      "ranking_guesses",
+      newGuess
+    );
 
     if (data.correct) {
+      saveDone("ranking_done");
+
       setDone(true);
 
       setSolution({
@@ -190,7 +217,6 @@ function GuessRanking() {
         name: challenge.ranking_cubeur.name,
       });
     }
-
 
     setRank('');
 
@@ -239,7 +265,7 @@ function GuessRanking() {
         </div>
 
         {/* ── VICTORY ── */}
-        {victory && (
+        {victory && challenge && (
           <VictoryCard
             label="Bravo ! Tu as trouvé le classement de :"
             name={victory.name}
