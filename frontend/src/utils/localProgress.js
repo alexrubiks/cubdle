@@ -92,6 +92,13 @@ export function setLocationGuess(latitude, longitude) {
   return progress;
 }
 
+export function saveGuess(field, value) {
+  const progress = loadProgress();
+
+  progress[field] = value;
+
+  saveProgress(progress);
+}
 
 export function resetProgress() {
   localStorage.removeItem(getStorageKey());

@@ -6,6 +6,7 @@ import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import GameNavCard from '../components/ui/GameNavCard';
+import { saveGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
 
 
 const guessIcon = L.divIcon({
@@ -88,20 +89,17 @@ function LocationMap({
       center={[46.6, 2.3]}
       zoom={6}
       scrollWheelZoom={true}
-      className="h-[450px] w-full rounded-xl"
+      className="w-full h-full rounded-xl"
     >
-
       <TileLayer
         attribution="&copy; OpenStreetMap"
         url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
 
-
       <LocationSelector
         setPosition={setGuessPosition}
         disabled={done}
       />
-
 
       {guessPosition && (
         <Marker
@@ -110,7 +108,6 @@ function LocationMap({
         />
       )}
 
-
       {targetPosition && (
         <Marker
           position={targetPosition}
@@ -118,18 +115,11 @@ function LocationMap({
         />
       )}
 
-
       {guessPosition && targetPosition && (
-
         <Polyline
-          positions={[
-            guessPosition,
-            targetPosition,
-          ]}
+          positions={[guessPosition, targetPosition]}
         />
-
       )}
-
     </MapContainer>
   );
 }
@@ -137,9 +127,23 @@ function LocationMap({
 
 function GuessLocation() {
   const [challenge, setChallenge] = useState(null);
-  const [guessPosition, setGuessPosition] = useState(null);
-  const [result, setResult] = useState(null);
-  const [done, setDone] = useState(false);
+  const savedGuess = getGuesses("location_guess");
+  const [guessPosition, setGuessPosition] = useState(() => {
+    if (!savedGuess?.latitude || !savedGuess?.longitude) return null;
+
+    return [
+      savedGuess.latitude,
+      savedGuess.longitude,
+    ];
+  });
+
+  const [result, setResult] = useState(() => {
+    if (!savedGuess?.result) return null;
+
+    return savedGuess.result;
+  });
+
+  const [done, setDone] = useState(getDone("location_done"));
 
   useEffect(() => {
     fetch(API_URLS.daily)
@@ -164,6 +168,14 @@ function GuessLocation() {
 
     const data = await res.json();
 
+    const saved = {
+      latitude: guessPosition[0],
+      longitude: guessPosition[1],
+      result: data,
+    };
+
+    saveGuess("location_guess", saved);
+    saveDone("location_done");
     setResult(data);
     setDone(true);
 
@@ -260,26 +272,28 @@ function GuessLocation() {
         </div>
 
         {/* MAP */}
-        <div className="border-4 border-black rounded-2xl  overflow-hidden bg-white">
+        <div className="mx-auto max-w-full">
+          <div className="h-[calc(100vh-340px)] aspect-[3/2] max-w-full mx-auto border-4 border-black rounded-2xl overflow-hidden bg-white">
 
-          <LocationMap
-            guessPosition={guessPosition}
-            setGuessPosition={setGuessPosition}
-            result={result}
-            done={done}
-          />
+            <LocationMap
+              guessPosition={guessPosition}
+              setGuessPosition={setGuessPosition}
+              result={result}
+              done={done}
+            />
+          </div>
+
+          {!done && (
+
+            <button
+              onClick={submitGuess}
+              disabled={!guessPosition}
+              className="mt-4 w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40">
+              Valider
+            </button>
+
+          )}
         </div>
-
-        {!done && (
-
-          <button
-            onClick={submitGuess}
-            disabled={!guessPosition}
-            className="w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40">
-            Valider
-          </button>
-
-        )}
       </div>
     </div>
   );
