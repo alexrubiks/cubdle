@@ -3,7 +3,7 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 
 export default function Legal() {
   return (
-    <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5 py-8">
+    <div className="min-h-screen flex flex-col items-center px-5 py-8">
 
       <div className="w-2/3 min-w-[320px] max-w-3xl">
 

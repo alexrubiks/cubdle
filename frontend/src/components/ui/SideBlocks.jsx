@@ -38,7 +38,7 @@ export default function SideBlocks({ position }) {
 
   return (
     <div
-      className="absolute top-0 pointer-events-none h-full overflow-hidden"
+      className="absolute top-0 pointer-events-none h-full overflow-hidden z-10"
       style={{
         width: 'clamp(80px, 10vw, 140px)',
         height: '100%',

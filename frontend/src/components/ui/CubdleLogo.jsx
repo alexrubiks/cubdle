@@ -1,46 +1,56 @@
-export default function CubdleLogo({ size = 'md' }) {
-  const scale = size === 'xl' ? 2.5 : size === 'lg' ? 1.5 : 1;
-  const cell  = 16 * scale;
-  const r     = 4 * scale;  // border-radius
-
+export default function CubdleLogo({ className = "" }) {
   const COLORS = {
     'tile-correct': '#7BD45A',
-    'tile-near':    '#F2D24D',
+    'tile-near': '#F2D24D',
     'tile-partial': '#F4924D',
-    'tile-wrong':   '#F0455A',
+    'tile-wrong': '#F0455A',
   };
 
   const GRID = [
-    ['tile-correct', 'tile-near',    'tile-correct'],
-    ['tile-partial', 'tile-correct', 'tile-near'   ],
-    ['tile-near',    'tile-wrong',   'tile-wrong'  ],
+    ['tile-correct', 'tile-near', 'tile-correct'],
+    ['tile-partial', 'tile-correct', 'tile-near'],
+    ['tile-near', 'tile-wrong', 'tile-wrong'],
   ];
 
-  const gridW = 3 * cell;
-  const gridH = 3 * cell;
-  const pad   = 2 * scale; // épaisseur du "bord noir"
+  const cell = 16;
+  const pad = 2;
+  const radius = 4;
 
   return (
-    <div className="flex items-center gap-3">
+    <div
+      className={`
+        flex
+        items-center
+        gap-[0.08em]
+        ${className}
+      `}
+    >
       <svg
-        width={gridW}
-        height={gridH}
-        viewBox={`0 0 ${gridW} ${gridH}`}
+        viewBox="0 0 48 48"
+        className="h-[1em] w-[1em]"
         xmlns="http://www.w3.org/2000/svg"
       >
         {GRID.map((row, i) =>
           row.map((color, j) => {
-            const x = j * (cell);
-            const y = i * (cell);
+            const x = j * cell;
+            const y = i * cell;
+
             return (
               <g key={`${i}-${j}`}>
-                {/* fond noir = bord */}
-                <rect x={x} y={y} width={cell} height={cell} rx={r} fill="#000" />
-                {/* sticker coloré */}
                 <rect
-                  x={x + pad} y={y + pad}
-                  width={cell - pad * 2} height={cell - pad * 2}
-                  rx={r - pad}
+                  x={x}
+                  y={y}
+                  width={cell}
+                  height={cell}
+                  rx={radius}
+                  fill="#000"
+                />
+                <rect
+                  x={x + pad}
+                  y={y + pad}
+                  width={cell - pad * 2}
+                  height={cell - pad * 2}
+                  rx={radius - pad}
                   fill={COLORS[color]}
                 />
               </g>
@@ -50,10 +60,13 @@ export default function CubdleLogo({ size = 'md' }) {
       </svg>
 
       <span
-        className={`font-title font-extrabold leading-none text-white ${
-          size === 'xl' ? 'text-6xl' :
-          size === 'lg' ? 'text-4xl' : 'text-2xl'
-        }`}
+        className="
+          font-title
+          font-extrabold
+          leading-none
+          text-white
+          text-[0.5em]
+        "
       >
         Cub<span className="text-cubdle-yellow">dle</span>
       </span>

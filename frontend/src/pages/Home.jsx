@@ -63,24 +63,35 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-cubdle-background flex flex-col items-center p-5">
-      
-      {/* ── LOGO ── */}
-      <Link
-        to="/"
-        className="flex items-center justify-center py-8 transition-transform hover:scale-105 active:scale-95"
-      >
-        <CubdleLogo size="xl" />
-      </Link>
+    <div className="min-h-screen flex flex-col items-center px-5 py-[clamp(8px,2vh,14px)]">
+      <div className="flex flex-col items-center text-[clamp(1rem,min(2vw,3vh),1.5rem)]">
+        {/* ── LOGO ── */}
+        <Link
+          to="/"
+          className="flex items-center justify-center py-[clamp(10px,4vh,30px)]"
+        >
+          <CubdleLogo className="text-[6em]" />
+        </Link>
 
-      {/* ── ACCROCHE ── */}
-      <div className="font-body font-bold text-2xl text-white mt-1 mb-6">Tous les jours, devine un <span className="text-cubdle-yellow">cubeur</span> et bien plus !</div>
+        <div
+          className="
+            font-body
+            font-bold
+            text-[1em]
+            mt-1
+            mb-[1em]
+            text-white
+          "
+        >
+          Tous les jours, devine un <span className="text-cubdle-yellow">cubeur</span> et bien plus !
+        </div>
       
-      {/* ── MENU ── */}
-      <div className="flex flex-col gap-3 items-center w-full max-w-md">
-        {MENU_ITEMS.map((item) => (
-          <MenuButton key={item.to} {...item} />
-        ))}
+        {/* ── MENU ── */}
+        <div className="flex flex-col gap-3 items-center w-full max-w-md">
+          {MENU_ITEMS.map((item) => (
+            <MenuButton key={item.to} {...item} />
+          ))}
+        </div>
       </div>
 
       <footer className="w-full max-w-md mt-10 pt-6 border-white/10 flex flex-col items-center gap-4">

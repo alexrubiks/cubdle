@@ -134,38 +134,39 @@ function GuessCubeur() {
   };
 
   return (
-    <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5">
-      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
+    <div className="min-h-screen flex flex-col items-center px-4 pt-6">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-between w-2/3">
-          
-            <GameNavCard
-              to="/location"
-              direction="prev"
-              color="bg-cubdle-blue"
-              prefix="Devine la"
-              title="LOCALISATION"
-            />
+        <div className="flex flex-col items-center">
 
-            <Link
-              to="/"
-              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <CubdleLogo size="lg" />
+          {/* ── HEADER ── */}
+          <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
+            <div className="absolute left-1 md:left-4">
+              <GameNavCard
+                to="/location"
+                direction="prev"
+                color="bg-cubdle-blue"
+                prefix="Devine la"
+                title="LOCALISATION"
+              />
+            </div>
+
+            <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
+              <CubdleLogo className="text-[4em] md:text-[6em]" />
             </Link>
 
-            <GameNavCard
+            <div className="absolute right-1 md:right-4">
+              <GameNavCard
                 to="/competition"
                 direction="next"
                 color="bg-cubdle-orange"
                 prefix="Devine la"
                 title="COMPETITION"
               />
+            </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-1">Devine le cubeur</span>
+          <span className="font-body text-2xl text-white/60 mt-8">Devine le cubeur</span>
         </div>
 
         {/* ── VICTORY ── */}
@@ -181,8 +182,8 @@ function GuessCubeur() {
 
         {/* ── INPUT ── */}
         {!done && (
-          <div className="px-5 py-4 flex justify-center">
-            <div className="w-1/2 relative" ref={dropdownRef}>
+          <div className="px-2 md:px-5 py-4 flex justify-center">
+            <div className="w-full md:w-1/2 relative" ref={dropdownRef}>
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
                 🔍
               </span>
@@ -241,11 +242,11 @@ function GuessCubeur() {
 
         {/* ── GRILLE ── */}
         {guesses.length > 0 && (
-          <div className="px-5">
+          <div className="px-1 md:px-5">
             <WordleGrid columns={cubeurColumns} guesses={guesses} />
           </div>
         )}
-        
+
         {/* ── CUBEUR D'HIER ── */}
         <YesterdayCubeur />
       </div>

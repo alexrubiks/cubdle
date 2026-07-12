@@ -185,7 +185,7 @@ function GuessLocation() {
 
   return (
 
-    <div className="min-h-screen bg-cubdle-background flex flex-col items-center px-5 mb-6">
+    <div className="min-h-screen flex flex-col items-center px-5 mb-6">
 
       <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
 
