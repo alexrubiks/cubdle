@@ -184,40 +184,39 @@ function GuessLocation() {
   if (!challenge) return null;
 
   return (
+    <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
-    <div className="min-h-screen flex flex-col items-center px-5 mb-6">
+        <div className="flex flex-col items-center">
 
-      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
+          {/* ── HEADER ── */}
+          <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
+            <div className="absolute left-1 md:left-4">
+              <GameNavCard
+                to="/podium"
+                direction="prev"
+                color="bg-cubdle-green"
+                prefix="Devine le"
+                title="PODIUM"
+              />
+            </div>
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-between w-2/3">
-
-            <GameNavCard
-              to="/podium"
-              direction="prev"
-              color="bg-cubdle-green"
-              prefix="Devine le"
-              title="PODIUM"
-            />
-
-            <Link
-              to="/"
-              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <CubdleLogo size="lg" />
+            <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
+              <CubdleLogo className="text-[4em] md:text-[6em]" />
             </Link>
 
-            <GameNavCard
-              to="/cubeur"
-              direction="next"
-              color="bg-cubdle-red"
-              prefix="Devine le"
-              title="CUBEUR"
-            />
+            <div className="absolute right-1 md:right-4">
+              <GameNavCard
+                to="/cubeur"
+                direction="next"
+                color="bg-cubdle-red"
+                prefix="Devine le"
+                title="CUBEUR"
+              />
+            </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-1">
+          <span className="font-body text-2xl text-white/60 mt-8">
             Devine la localisation
           </span>
 
@@ -263,7 +262,7 @@ function GuessLocation() {
         )}
 
         {/* COMPETITION */}
-        <div className="px-4 py-3 text-center">
+        <div className="px-2 md:px-4 py-3 text-center">
 
           <span className="font-title font-extrabold text-3xl">
             {challenge.location_competition_name}
@@ -272,27 +271,29 @@ function GuessLocation() {
         </div>
 
         {/* MAP */}
-        <div className="mx-auto max-w-full">
-          <div className="h-[calc(100vh-340px)] aspect-[3/2] max-w-full mx-auto border-4 border-black rounded-2xl overflow-hidden bg-white">
-
-            <LocationMap
-              guessPosition={guessPosition}
-              setGuessPosition={setGuessPosition}
-              result={result}
-              done={done}
-            />
+        <div className="mx-auto w-full max-w-full px-1 md:px-0 flex justify-center">
+          <div className="inline-flex flex-col max-w-full">
+            <div className="h-[calc(100vh-340px)] aspect-[3/2] max-w-full border-4 border-black rounded-2xl overflow-hidden bg-white">
+ 
+              <LocationMap
+                guessPosition={guessPosition}
+                setGuessPosition={setGuessPosition}
+                result={result}
+                done={done}
+              />
+            </div>
+ 
+            {!done && (
+ 
+              <button
+                onClick={submitGuess}
+                disabled={!guessPosition}
+                className="mt-4 w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40">
+                Valider
+              </button>
+ 
+            )}
           </div>
-
-          {!done && (
-
-            <button
-              onClick={submitGuess}
-              disabled={!guessPosition}
-              className="mt-4 w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40">
-              Valider
-            </button>
-
-          )}
         </div>
       </div>
     </div>

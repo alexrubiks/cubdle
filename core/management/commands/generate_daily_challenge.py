@@ -38,7 +38,7 @@ class Command(BaseCommand):
         cubeur = self._pick_cubeur()
         self._get_avatar_url(cubeur)
         competition = self._pick_competition()
-        ranking_cubeur, ranking_event = self._pick_ranking()
+        ranking_cubeur, ranking_event, ranking_result_type = self._pick_ranking()
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_competition()
@@ -49,6 +49,7 @@ class Command(BaseCommand):
             competition=competition,
             ranking_cubeur=ranking_cubeur,
             ranking_event=ranking_event,
+            ranking_result_type=ranking_result_type,
             podium_competition=podium_competition,
             podium_event=podium_event,
             location_competition=location_competition,
@@ -57,7 +58,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(f"Défi du {today} généré !"))
         self.stdout.write(f"  Cubeur     : {cubeur.first_name} {cubeur.last_name}")
         self.stdout.write(f"  Compet     : {competition.name}")
-        self.stdout.write(f"  Classement : {ranking_cubeur.first_name} {ranking_cubeur.last_name} / {ranking_event.name}")
+        self.stdout.write(f"  Classement : {ranking_cubeur.first_name} {ranking_cubeur.last_name} / {ranking_event.name} ({ranking_result_type})")
         self.stdout.write(f"  Podium     : {podium_competition.name} / {podium_event.name}")
         self.stdout.write(f"  Location   : {location_competition.name}")
 
@@ -95,22 +96,48 @@ class Command(BaseCommand):
         return random.choices(competitions, weights=weights, k=1)[0]
 
     def _pick_ranking(self):
-        recent = DailyChallenge.objects.filter(date__gte=CUTOFF).exclude(
+        recent = DailyChallenge.objects.filter(
+            date__gte=CUTOFF
+        ).exclude(
             ranking_cubeur__isnull=True
-        ).values_list('ranking_cubeur_id', 'ranking_event_id')
+        ).values_list(
+            'ranking_cubeur_id',
+            'ranking_event_id',
+            'ranking_result_type'
+        )
+
         recent_pairs = set(recent)
-        
-        all_rankings = list(CubeurRanking.objects.filter(
-            cubeur__is_active=True,
-            national_rank__lte=100
-        ).select_related('cubeur', 'event'))
-        
-        available = [r for r in all_rankings if (r.cubeur_id, r.event_id) not in recent_pairs]
+
+        all_rankings = list(
+            CubeurRanking.objects.filter(
+                cubeur__is_active=True,
+                national_rank__lte=100
+            ).select_related('cubeur', 'event')
+        )
+
+        available = []
+
+        for ranking in all_rankings:
+            expected_type = _get_ranking_result_type(ranking.event.slug)
+
+            if ranking.result_type != expected_type:
+                continue
+
+            if (ranking.cubeur_id, ranking.event_id, ranking.result_type) in recent_pairs:
+                continue
+
+            available.append(ranking)
+
         if not available:
             available = all_rankings
-        
+
         ranking = random.choice(available)
-        return ranking.cubeur, ranking.event
+
+        return (
+            ranking.cubeur,
+            ranking.event,
+            ranking.result_type
+        )
 
     def _pick_podium(self):
         recent = DailyChallenge.objects.filter(date__gte=CUTOFF).exclude(

@@ -3,16 +3,16 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 
 export default function Privacy() {
   return (
-    <div className="min-h-screen flex flex-col items-center px-5 py-8">
+    <div className="min-h-screen flex flex-col items-center px-4 pt-6 pb-8">
 
-      <div className="w-2/3 min-w-[320px] max-w-3xl">
+      <div className="w-full max-w-sm md:w-2/3 md:max-w-3xl">
 
         {/* LOGO */}
         <Link
           to="/"
           className="flex justify-center mb-8 hover:scale-105 transition-transform"
         >
-          <CubdleLogo size="lg" />
+          <CubdleLogo className="text-[4em] md:text-[6em]" />
         </Link>
 
         <div className="
@@ -20,7 +20,8 @@ export default function Privacy() {
           border-4
           border-black
           rounded-2xl
-          p-6
+          p-4
+          md:p-6
           font-body
           text-sm
           leading-relaxed
@@ -29,7 +30,8 @@ export default function Privacy() {
           <h1 className="
             font-title
             font-extrabold
-            text-3xl
+            text-2xl
+            md:text-3xl
             mb-6
           ">
             Politique de confidentialité

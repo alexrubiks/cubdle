@@ -7,10 +7,11 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCompet } from '../components/games/competColumns';
 import GameNavCard from '../components/ui/GameNavCard';
-import { getGuesses, getDone, addGuess, saveDone } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+
 
 function YesterdayCompet() {
-  const [name, setName] = useState(undefined);
+  const [name, setName] = useState(undefined); // undefined = pas encore chargé
 
   useEffect(() => {
     fetch(API_URLS.yesterday)
@@ -18,11 +19,11 @@ function YesterdayCompet() {
       .then(data => setName(data.competition));
   }, []);
 
-  if (name === undefined) return null;
-  if (!name) return null;
+  if (name === undefined) return null; // chargement
+  if (!name) return null;              // pas de données
 
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-1 h-[160px]">
       <span className="font-body font-bold text-xs text-black uppercase tracking-wide">
         La compétition d'hier était
       </span>
@@ -33,13 +34,14 @@ function YesterdayCompet() {
   );
 }
 
+
 function GuessCompet() {
-  const [query,         setQuery]         = useState('');
-  const [results,       setResults]       = useState([]);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [guesses,       setGuesses]       = useState(getGuesses("compet_guesses"));
-  const [done,          setDone]          = useState(getDone("compet_done"));
-  const [victory, setVictory] = useState(() => {
+  const [query,          setQuery]   = useState('');
+  const [results,        setResults] = useState([]);
+  const [guesses,        setGuesses] = useState(getGuesses("compet_guesses"));
+  const [done,           setDone]    = useState(getDone("compet_done"));
+  const [selectedIndex,  setSelectedIndex] = useState(-1);
+  const [victory,        setVictory] = useState(() => {
     const previousVictory = getGuesses("compet_guesses")
       .find(g => g.correct);
 
@@ -59,9 +61,9 @@ function GuessCompet() {
       return;
     }
 
-    if (query.length < 2) { 
-      setResults([]); 
-      return; 
+    if (query.length < 2) {
+      setResults([]);
+      return;
     }
 
     fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`)
@@ -103,21 +105,13 @@ function GuessCompet() {
     });
 
     const data = await res.json();
-    console.log("compet result", data);
-
-    const newGuess = {
-      id: compet.id,
-      name: data.guessed_name,
-      comparison: data.comparison,
-    };
-
+    const newGuess = { id: compet.id, name: data.guessed_name, comparison: data.comparison };
     const updated = [newGuess, ...guesses];
 
     setGuesses(updated);
 
     if (data.correct) {
       saveDone("compet_done");
-
       setDone(true);
       setVictory({
         name: data.guessed_name,
@@ -138,38 +132,39 @@ function GuessCompet() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-5">
-      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
+    <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-between w-2/3">
-          
-            <GameNavCard
-              to="/cubeur"
-              direction="prev"
-              color="bg-cubdle-red"
-              prefix="Devine le"
-              title="CUBEUR"
-            />
-            
-            <Link
-              to="/"
-              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <CubdleLogo size="lg" />
+        <div className="flex flex-col items-center">
+
+          {/* ── HEADER ── */}
+          <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
+            <div className="absolute left-1 md:left-4">
+              <GameNavCard
+                to="/cubeur"
+                direction="prev"
+                color="bg-cubdle-red"
+                prefix="Devine le"
+                title="CUBEUR"
+              />
+            </div>
+
+            <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
+              <CubdleLogo className="text-[4em] md:text-[6em]" />
             </Link>
 
-            <GameNavCard
-              to="/ranking"
-              direction="next"
-              color="bg-cubdle-yellow"
-              prefix="Devine le"
-              title="CLASSEMENT"
-            />
+            <div className="absolute right-1 md:right-4">
+              <GameNavCard
+                to="/ranking"
+                direction="next"
+                color="bg-cubdle-yellow"
+                prefix="Devine le"
+                title="CLASSEMENT"
+              />
+            </div>
           </div>
-          
-          <span className="font-body text-2xl text-white/60 mt-1">Devine la compétition</span>
+
+          <span className="font-body text-2xl text-white/60 mt-8">Devine la compétition</span>
         </div>
 
         {/* ── VICTORY ── */}
@@ -185,8 +180,8 @@ function GuessCompet() {
 
         {/* ── INPUT ── */}
         {!done && (
-          <div className="px-5 py-4 flex justify-center">
-            <div className="w-1/2 relative" ref={dropdownRef}>
+          <div className="px-2 md:px-5 py-4 flex justify-center">
+            <div className="w-full md:w-1/2 relative" ref={dropdownRef}>
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
                 🔍
               </span>
@@ -245,14 +240,13 @@ function GuessCompet() {
 
         {/* ── GRILLE ── */}
         {guesses.length > 0 && (
-          <div className="px-5">
+          <div className="px-1 md:px-5">
             <WordleGrid columns={competColumns} guesses={guesses} />
           </div>
         )}
 
         {/* ── COMPÉT D'HIER ── */}
         <YesterdayCompet />
-
       </div>
     </div>
   );

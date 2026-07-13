@@ -300,40 +300,39 @@ function GuessPodium() {
   if (!challenge) return null;
 
   return (
+    <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
-    <div className="min-h-screen flex flex-col items-center px-5">
+        <div className="flex flex-col items-center">
 
-      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
+          {/* ── HEADER ── */}
+          <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
+            <div className="absolute left-1 md:left-4">
+              <GameNavCard
+                to="/ranking"
+                direction="prev"
+                color="bg-cubdle-yellow"
+                prefix="Devine le"
+                title="CLASSEMENT"
+              />
+            </div>
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-between w-2/3">
-
-            <GameNavCard
-              to="/ranking"
-              direction="prev"
-              color="bg-cubdle-yellow"
-              prefix="Devine le"
-              title="CLASSEMENT"
-            />
-
-            <Link
-              to="/"
-              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <CubdleLogo size="lg" />
+            <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
+              <CubdleLogo className="text-[4em] md:text-[6em]" />
             </Link>
-          
-            <GameNavCard
-              to="/location"
-              direction="next"
-              color="bg-cubdle-blue"
-              prefix="Devine la"
-              title="LOCALISATION"
-            />
+
+            <div className="absolute right-1 md:right-4">
+              <GameNavCard
+                to="/location"
+                direction="next"
+                color="bg-cubdle-blue"
+                prefix="Devine la"
+                title="LOCALISATION"
+              />
+            </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-1">
+          <span className="font-body text-2xl text-white/60 mt-8">
             Devine le podium
           </span>
 
@@ -361,10 +360,10 @@ function GuessPodium() {
         {/* SEARCH */}
         {!done && (
 
-          <div className="px-5 py-4 flex justify-center">
+          <div className="px-2 md:px-5 py-4 flex justify-center">
 
             <div
-              className="w-1/2 relative"
+              className="w-full md:w-1/2 relative"
               ref={dropdownRef}
             >
 
@@ -402,11 +401,12 @@ function GuessPodium() {
                   }
                 }}
 
-                className=" w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow" />
+                className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+              />
 
               {results.length > 0 && (
 
-                <ul role="listbox" className=" absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-30 overflow-hidden list-none m-0 p-0 shadow-lg">
+                <ul role="listbox" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-30 overflow-hidden list-none m-0 p-0 shadow-lg">
 
                   {results.map((c, i) => (
                     <li
@@ -464,7 +464,7 @@ function GuessPodium() {
         </div>
 
         {/* TABLE */}
-        <div className="px-5">
+        <div className="px-1 md:px-5">
 
           <PodiumTable
             podium={podium}

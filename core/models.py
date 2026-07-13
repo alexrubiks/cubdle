@@ -70,7 +70,7 @@ class CubeurRanking(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.cubeur} est classé {self.national_rank} au {self.event}"
+        return f"{self.cubeur} est classé {self.national_rank} au {self.event} ({self.result_type})"
 
 
 class Competition(models.Model):

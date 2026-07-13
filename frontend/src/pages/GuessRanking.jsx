@@ -226,39 +226,39 @@ function GuessRanking() {
   if (!challenge) return null;
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-5">
+    <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
-      <div className="w-2/3 min-w-[320px] flex flex-col gap-4">
+        <div className="flex flex-col items-center">
 
-        {/* ── HEADER ── */}
-        <div className="flex flex-col items-center pt-8">
-          <div className="flex items-center justify-between w-2/3">
+          {/* ── HEADER ── */}
+          <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
+            <div className="absolute left-1 md:left-4">
+              <GameNavCard
+                to="/competition"
+                direction="prev"
+                color="bg-cubdle-orange"
+                prefix="Devine la"
+                title="COMPÉTITION"
+              />
+            </div>
 
-            <GameNavCard
-              to="/competition"
-              direction="prev"
-              color="bg-cubdle-orange"
-              prefix="Devine la"
-              title="COMPÉTITION"
-            />
-
-            <Link
-              to="/"
-              className="flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95"
-            >
-              <CubdleLogo size="lg" />
+            <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
+              <CubdleLogo className="text-[4em] md:text-[6em]" />
             </Link>
-          
-            <GameNavCard
-              to="/podium"
-              direction="next"
-              color="bg-cubdle-green"
-              prefix="Devine le"
-              title="PODIUM"
-            />
+
+            <div className="absolute right-1 md:right-4">
+              <GameNavCard
+                to="/podium"
+                direction="next"
+                color="bg-cubdle-green"
+                prefix="Devine le"
+                title="PODIUM"
+              />
+            </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-1">
+          <span className="font-body text-2xl text-white/60 mt-8">
             Devine le classement
           </span>
 
@@ -278,9 +278,9 @@ function GuessRanking() {
 
         {/* ── INPUT ── */}
         {!done && (
-          <div className="px-5 py-4 flex justify-center">
+          <div className="px-2 md:px-5 py-4 flex justify-center">
 
-            <div className="w-1/2">
+            <div className="w-full md:w-1/2">
 
               <input
                 ref={inputRef}
@@ -295,22 +295,7 @@ function GuessRanking() {
                   }
                 }}
                 placeholder="un nombre entre 1 et 100..."
-                className="
-                  w-full
-                  px-4
-                  py-3
-                  bg-white
-                  border-2
-                  border-black
-                  rounded-xl
-                  font-body
-                  text-sm
-                  text-black
-                  placeholder:text-black/30
-                  outline-none
-                  focus:border-cubdle-yellow
-                  transition-colors
-                "
+                className="w-full px-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
               />
             </div>
           </div>
@@ -340,7 +325,7 @@ function GuessRanking() {
         </div>
 
         {/* ── GRILLE ── */}
-        <div className="px-5">
+        <div className="px-1 md:px-5">
 
           <RankingTable
             challenge={challenge}

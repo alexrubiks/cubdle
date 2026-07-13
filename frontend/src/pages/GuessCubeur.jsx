@@ -134,7 +134,7 @@ function GuessCubeur() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 pt-6">
+    <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
       <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
         <div className="flex flex-col items-center">
