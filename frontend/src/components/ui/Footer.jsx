@@ -3,7 +3,7 @@ import { User, Info, Coffee } from "lucide-react";
 
 export default function Footer({ onAccount, onAbout }) {
   return (
-    <footer className="w-full max-w-md mx-auto mb-4 flex flex-col items-center gap-4">
+    <footer className="w-full max-w-md mx-auto mb-4 flex flex-col items-center gap-4 z-20">
 
       {/* Boutons */}
       <div className="flex gap-4">
