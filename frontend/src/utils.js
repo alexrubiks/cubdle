@@ -1,6 +1,4 @@
-const API_BASE = 'http://localhost:8000/api/';
-
-// const API_BASE = "https://api.cubdle.alexrubiks.fr";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 export const API_URLS = {
   guessCubeur: `${API_BASE}guess/cubeur/`,
