@@ -7,23 +7,15 @@ export default function AuthCallback() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
 
-    const access = params.get("access");
-    const refresh = params.get("refresh");
+    const token = params.get("token");
 
-    if (access) {
-      localStorage.setItem("access_token", access);
-
-      if (refresh) {
-        localStorage.setItem("refresh_token", refresh);
-      }
-
-      window.history.replaceState({}, document.title, "/");
-
+    if (token) {
+      localStorage.setItem("access_token", token);
       navigate("/");
     } else {
       navigate("/");
     }
-  }, [navigate]);
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

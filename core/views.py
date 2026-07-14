@@ -10,6 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 
 from core.models import (
     ChampionshipResult,
@@ -35,12 +36,10 @@ from .progress import (
 
 @api_view(["GET"])
 def me(request):
-    user = request.user
-
     return Response({
-        "wca_id": user.wca_id,
+        "wca_id": request.auth["wca_id"],
+        "pseudo": request.auth["pseudo"],
     })
-
 
 def wca_login(request):
     client = OAuth2Session(
@@ -59,24 +58,28 @@ def wca_login(request):
 
 def wca_callback(request):
 
+    # 1) Reprendre la session OAuth créée au login
     client = OAuth2Session(
         settings.WCA_CLIENT_ID,
         state=request.session["oauth_state"],
         redirect_uri=settings.WCA_REDIRECT_URI,
     )
 
-    token = client.fetch_token(
+    # 2) Échanger le code WCA contre un token WCA
+    client.fetch_token(
         "https://www.worldcubeassociation.org/oauth/token",
         client_secret=settings.WCA_CLIENT_SECRET,
         authorization_response=request.build_absolute_uri(),
     )
 
+    # 3) Récupérer les informations du cubeur connecté
     response = client.get(
         "https://www.worldcubeassociation.org/api/v0/me"
     )
 
     wca_user = response.json()
 
+    # 4) Créer ou récupérer le cubeur dans ta base
     user, _ = User.objects.get_or_create(
         wca_id=wca_user["id"],
         defaults={
@@ -84,11 +87,16 @@ def wca_callback(request):
         }
     )
 
-    refresh = RefreshToken.for_user(user)
+    # 5) Créer notre JWT Cubdle
+    token = AccessToken()
 
+    token["user_id"] = user.id
+    token["wca_id"] = user.wca_id
+    token["pseudo"] = user.pseudo
+
+    # 6) Rediriger vers React avec le token
     params = urlencode({
-        "access": str(refresh.access_token),
-        "refresh": str(refresh),
+        "token": str(token),
     })
 
     return redirect(

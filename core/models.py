@@ -1,11 +1,11 @@
 from django.db import models
-from django.contrib.auth.models import AbstractUser
 
-class User(AbstractUser):
+class User(models.Model):
     wca_id = models.CharField(max_length=10, unique=True)
+    pseudo = models.CharField(max_length=30)
 
     def __str__(self):
-        return self.wca_id
+        return self.pseudo
 
 
 class Game(models.Model):

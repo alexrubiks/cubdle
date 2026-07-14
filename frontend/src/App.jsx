@@ -24,7 +24,17 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch(API_URLS.authMe)
+    const token = localStorage.getItem("access_token");
+
+    if (!token) {
+      return;
+    }
+
+    fetch(API_URLS.authMe, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
       .then(r => r.ok ? r.json() : null)
       .then(data => setUser(data))
       .catch(() => {});
@@ -36,7 +46,6 @@ export default function App() {
 
   const logoutWCA = () => {
     localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
     setUser(null);
   };
 
