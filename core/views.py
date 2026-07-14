@@ -1,10 +1,15 @@
 import math
-from datetime import date
-
 import unicodedata
+from datetime import date
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.shortcuts import redirect
+from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.models import (
     ChampionshipResult,
@@ -13,17 +18,82 @@ from core.models import (
     CubeurRanking,
     DailyChallenge,
     DailyProgress,
+    User,
 )
 from core.serializers import (
     CompetitionSearchSerializer,
     CubeurSearchSerializer,
     DailyChallengeSerializer,
 )
+
 from .progress import (
-    get_error_count,
     add_guess,
+    get_error_count,
     set_done,
 )
+
+
+@api_view(["GET"])
+def me(request):
+    user = request.user
+
+    return Response({
+        "wca_id": user.wca_id,
+    })
+
+
+def wca_login(request):
+    client = OAuth2Session(
+        settings.WCA_CLIENT_ID,
+        redirect_uri=settings.WCA_REDIRECT_URI,
+    )
+
+    authorization_url, state = client.authorization_url(
+        "https://www.worldcubeassociation.org/oauth/authorize"
+    )
+
+    request.session["oauth_state"] = state
+
+    return redirect(authorization_url)
+
+
+def wca_callback(request):
+
+    client = OAuth2Session(
+        settings.WCA_CLIENT_ID,
+        state=request.session["oauth_state"],
+        redirect_uri=settings.WCA_REDIRECT_URI,
+    )
+
+    token = client.fetch_token(
+        "https://www.worldcubeassociation.org/oauth/token",
+        client_secret=settings.WCA_CLIENT_SECRET,
+        authorization_response=request.build_absolute_uri(),
+    )
+
+    response = client.get(
+        "https://www.worldcubeassociation.org/api/v0/me"
+    )
+
+    wca_user = response.json()
+
+    user, _ = User.objects.get_or_create(
+        wca_id=wca_user["id"],
+        defaults={
+            "pseudo": wca_user["name"],
+        }
+    )
+
+    refresh = RefreshToken.for_user(user)
+
+    params = urlencode({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+    })
+
+    return redirect(
+        f"https://cubdle.alexrubiks.fr/auth/callback?{params}"
+    )
 
 
 @api_view(['GET'])

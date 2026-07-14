@@ -8,6 +8,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+WCA_CLIENT_ID = config("WCA_CLIENT_ID")
+WCA_CLIENT_SECRET = config("WCA_CLIENT_SECRET")
+WCA_REDIRECT_URI = config("WCA_REDIRECT_URI")
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -58,6 +61,8 @@ DATABASES = {
     )
 }
 
+AUTH_USER_MODEL = "core.User"
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -92,4 +97,17 @@ CORS_ALLOWED_ORIGINS = [
     "https://www.alexrubiks.fr",
 ]
 
-CORS_ALLOWED_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = True
+
+from datetime import timedelta
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=365),
+}

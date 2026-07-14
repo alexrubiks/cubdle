@@ -14,4 +14,7 @@ urlpatterns = [
 
     path('cubeurs/search/', views.cubeur_search),
     path('competitions/search/', views.competition_search),
+    
+    path("auth/wca/login/", views.wca_login),
+    path("auth/wca/callback/", views.wca_callback),
 ]

@@ -10,6 +10,9 @@ export const API_URLS = {
   competitions: `${API_BASE}competitions/`,
   daily: `${API_BASE}daily/`,
   yesterday: `${API_BASE}yesterday/`,
+  authMe: `${API_BASE}auth/me/`,
+  authWcaLogin: `${API_BASE}auth/wca/login/`,
+  authLogout: `${API_BASE}auth/logout/`,
 };
 
 export const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);

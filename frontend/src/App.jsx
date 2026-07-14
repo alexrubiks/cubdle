@@ -12,6 +12,9 @@ import Legal from './pages/Legal';
 import Footer from './components/ui/Footer';
 import AboutModal from './components/ui/AboutModal';
 import AccountModal from './components/ui/AccountModal';
+import AuthCallback from './components/auth/AuthCallback';
+import { API_URLS } from './utils';
+
 
 
 export default function App() {
@@ -21,21 +24,19 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    fetch("/api/auth/me")
+    fetch(API_URLS.authMe)
       .then(r => r.ok ? r.json() : null)
       .then(data => setUser(data))
       .catch(() => {});
   }, []);
 
   const loginWCA = () => {
-    window.location.href = "/api/auth/wca/login";
+    window.location.href = API_URLS.authWcaLogin;
   };
 
-  const logoutWCA = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-    });
-
+  const logoutWCA = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
     setUser(null);
   };
 
@@ -57,6 +58,8 @@ export default function App() {
 
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/legal" element={<Legal />} />
+
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </div>
 
