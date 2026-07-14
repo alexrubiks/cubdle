@@ -25,13 +25,19 @@ class Command(BaseCommand):
         for e in CubeurNationalityException.objects.all():
             self.exceptions[e.cubeur.wca_id] = e
 
+        # (competition_id, event_id) déjà importés = jamais retouchés
+        self.done_pairs = set(
+            ChampionshipResult.objects.values_list('competition_id', 'event_id')
+        )
+
         championships = Competition.objects.filter(is_championship=True)
         self.stdout.write(f"{championships.count()} championnats trouvés, import en cours...")
 
         total = championships.count()
+        skipped_events = 0
 
         for i, championship in enumerate(championships, start=1):
-            self._import_championship(championship)
+            skipped_events += self._import_championship(championship)
 
             self.stdout.write(
                 f"\rImport championnats : {i}/{total}",
@@ -40,6 +46,7 @@ class Command(BaseCommand):
             self.stdout.flush()
         self.stdout.write("")
 
+        self.stdout.write(f"{skipped_events} épreuves déjà en base ignorées.")
         self.stdout.write(self.style.SUCCESS("Import terminé !"))
 
     def _is_fr(self, wca_id, competition_year):
@@ -78,8 +85,15 @@ class Command(BaseCommand):
 
     def _import_championship(self, competition):
         competition_year = int(re.search(r'\d{4}', competition.wca_id).group())
+        skipped = 0
 
         for event in competition.events.all():
+            # Épreuve déjà importée pour ce championnat -> les résultats d'un
+            # championnat passé ne changent jamais, pas besoin de rappeler l'API
+            if (competition.id, event.id) in self.done_pairs:
+                skipped += 1
+                continue
+
             response = requests.get(
                 f"https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/refs/heads/v1/results/{competition.wca_id}/{event.slug}.json"
             )
@@ -121,6 +135,8 @@ class Command(BaseCommand):
                 self.stdout.write(
                     f"{cubeur.first_name} {cubeur.last_name} : {new_position} au {self.events[event.slug].slug} à {competition_year} ({best}, {average})"
                 )
+
+        return skipped
 
     def _get_or_create_cubeur(self, wca_id):
         start = time.time()

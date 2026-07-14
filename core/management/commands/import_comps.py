@@ -27,8 +27,11 @@ class Command(BaseCommand):
         total = len(competitions)
         self.stdout.write(f"{len(competitions)} compétitions trouvées, import en cours...")
 
+        skipped_cancelled = 0
+
         for i, comp in enumerate(competitions, start=1):
-            self._import_competition(comp)
+            if not self._import_competition(comp):
+                skipped_cancelled += 1
 
             self.stdout.write(
                 f"\rImport compétitions : {i}/{total}",
@@ -37,16 +40,20 @@ class Command(BaseCommand):
             self.stdout.flush()
         self.stdout.write("")
 
+        self.stdout.write(f"{skipped_cancelled} compétitions annulées ignorées.")
         self.stdout.write(self.style.SUCCESS("Import terminé !"))
 
     def _import_competition(self, comp):
+        if comp.get("isCanceled"):
+            return False
+
         date_from_str = comp["date"]["from"]
         date_till_str = comp["date"]["till"]
         parsed_date_from = date.fromisoformat(date_from_str)
-        
+
         cutoff = date.today() - timedelta(days=7)
         if parsed_date_from > cutoff:
-            return
+            return True
 
         month_str, year_str = self._format_month_year(date_from_str, date_till_str)
 
@@ -77,6 +84,8 @@ class Command(BaseCommand):
             if slug in self.events
         ]
         competition.events.set(event_objects)
+
+        return True
 
     def _format_month_year(self, date_from, date_till):
         year_from, month_from, _ = date_from.split("-")
