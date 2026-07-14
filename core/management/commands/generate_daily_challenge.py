@@ -29,9 +29,9 @@ class Command(BaseCommand):
     help = "Génère le défi quotidien"
 
     def handle(self, *args, **kwargs):
-        today = date.today()
+        target_date = date.today() + timedelta(days=1)
 
-        if DailyChallenge.objects.filter(date=today).exists():
+        if DailyChallenge.objects.filter(date=target_date).exists():
             self.stdout.write("Défi du jour déjà généré.")
             return
 
@@ -44,7 +44,7 @@ class Command(BaseCommand):
         location_competition = self._pick_competition()
 
         DailyChallenge.objects.create(
-            date=today,
+            date=target_date,
             cubeur=cubeur,
             competition=competition,
             ranking_cubeur=ranking_cubeur,
@@ -55,7 +55,7 @@ class Command(BaseCommand):
             location_competition=location_competition,
         )
 
-        self.stdout.write(self.style.SUCCESS(f"Défi du {today} généré !"))
+        self.stdout.write(self.style.SUCCESS(f"Défi du {target_date} généré !"))
         self.stdout.write(f"  Cubeur     : {cubeur.first_name} {cubeur.last_name}")
         self.stdout.write(f"  Compet     : {competition.name}")
         self.stdout.write(f"  Classement : {ranking_cubeur.first_name} {ranking_cubeur.last_name} / {ranking_event.name} ({ranking_result_type})")
