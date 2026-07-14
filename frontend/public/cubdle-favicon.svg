@@ -1,0 +1,42 @@
+<svg
+  viewBox="0 0 48 48"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Case 1 -->
+  <rect x="0" y="0" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="1" y="1" width="14" height="14" rx="3" fill="#7BD45A"/>
+
+  <!-- Case 2 -->
+  <rect x="16" y="0" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="17" y="1" width="14" height="14" rx="3" fill="#F2D24D"/>
+
+  <!-- Case 3 -->
+  <rect x="32" y="0" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="33" y="1" width="14" height="14" rx="3" fill="#7BD45A"/>
+
+
+  <!-- Case 4 -->
+  <rect x="0" y="16" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="1" y="17" width="14" height="14" rx="3" fill="#F4924D"/>
+
+  <!-- Case 5 -->
+  <rect x="16" y="16" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="17" y="17" width="14" height="14" rx="3" fill="#7BD45A"/>
+
+  <!-- Case 6 -->
+  <rect x="32" y="16" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="33" y="17" width="14" height="14" rx="3" fill="#F2D24D"/>
+
+
+  <!-- Case 7 -->
+  <rect x="0" y="32" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="1" y="33" width="14" height="14" rx="3" fill="#F2D24D"/>
+
+  <!-- Case 8 -->
+  <rect x="16" y="32" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="17" y="33" width="14" height="14" rx="3" fill="#F0455A"/>
+
+  <!-- Case 9 -->
+  <rect x="32" y="32" width="16" height="16" rx="4" fill="#000"/>
+  <rect x="33" y="33" width="14" height="14" rx="3" fill="#F0455A"/>
+</svg>

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_URL;
+const API_BASE = `${import.meta.env.VITE_API_URL}/api/`;
 
 export const API_URLS = {
   guessCubeur: `${API_BASE}guess/cubeur/`,
