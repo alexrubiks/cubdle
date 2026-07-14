@@ -8,13 +8,13 @@ export default function Footer({ onAccount, onAbout }) {
       {/* Boutons */}
       <div className="flex gap-4">
 
-        <button
+        {/* <button
           onClick={onAccount}
           className="w-12 h-12 rounded-full border-4 border-black bg-white flex items-center justify-center hover:scale-105 transition-transform"
           aria-label="Mon compte"
         >
           <User size={22} strokeWidth={3}/>
-        </button>
+        </button> */}
 
 
         <button
