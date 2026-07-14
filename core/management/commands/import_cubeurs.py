@@ -94,5 +94,3 @@ class Command(BaseCommand):
                     "score": item["best"],
                 }
             )
-
-    

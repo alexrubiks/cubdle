@@ -33,7 +33,9 @@ export default function AboutModal({ onClose, lastDatabaseUpdate }) {
           </h3>
 
           <p>
-            La base de données est mise à jour quotidiennement à 23h30.
+            La base de données est mise à jour quotidiennement à 21h30 UTC.
+            En fonction de la saison, cela peut correspondre à 22h30 ou 23h30
+            Pour la France.
             <br />
             Le nouveau défi apparaît chaque jour à minuit.
           </p>
