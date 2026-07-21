@@ -20,7 +20,20 @@ function getStorageKey() {
 }
 
 
+function cleanupOldProgress() {
+  const currentKey = getStorageKey();
+
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith(`${STORAGE_PREFIX}_`) && key !== currentKey) {
+      localStorage.removeItem(key);
+    }
+  });
+}
+
+
 export function loadProgress() {
+  cleanupOldProgress();
+
   const saved = localStorage.getItem(getStorageKey());
 
   if (!saved) {
