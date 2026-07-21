@@ -152,8 +152,8 @@ def cubeur_search(request):
 
     terms = [normalize(t) for t in query.split()]
 
-    # Récupère plus de résultats pour filtrer ensuite en Python
-    cubeurs = Cubeur.objects.all()
+    # Récupère les cubeurs actifs
+    cubeurs = Cubeur.objects.filter(is_active=True)
 
     # Filtre en Python avec normalisation
     def matches(cubeur):

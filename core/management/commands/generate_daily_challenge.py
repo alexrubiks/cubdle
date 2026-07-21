@@ -79,7 +79,6 @@ class Command(BaseCommand):
         return None
 
     def _pick_cubeur(self):
-        # Exclure les cubeurs tirés dans les 6 derniers mois
         recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('cubeur_id', flat=True)
         cubeurs = list(Cubeur.objects.filter(is_active=True).exclude(id__in=recent))
         if not cubeurs:
