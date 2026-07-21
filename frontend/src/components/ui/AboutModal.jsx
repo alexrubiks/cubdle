@@ -1,7 +1,7 @@
 import Modal from './Modal';
 import { Link } from 'react-router-dom';
 
-export default function AboutModal({ onClose, lastDatabaseUpdate }) {
+export default function AboutModal({ onClose }) {
   return (
     <Modal title="À propos" onClose={onClose} >
 
@@ -35,18 +35,11 @@ export default function AboutModal({ onClose, lastDatabaseUpdate }) {
           <p>
             La base de données est mise à jour quotidiennement à 21h30 UTC.
             En fonction de la saison, cela peut correspondre à 22h30 ou 23h30
-            pour la France.
+            pour la France. Il est cependant possible qu'il y existe un décalage
+            de quelques jours entre les données réelles et les données collectées.
             <br />
             Le nouveau défi apparaît chaque jour à minuit.
           </p>
-
-          {lastDatabaseUpdate && (
-            <p className="mt-2 text-xs text-black/40">
-              Dernière mise à jour :
-              <br />
-              {lastDatabaseUpdate}
-            </p>
-          )}
         </div>
 
         {/* RETOURS */}
@@ -78,6 +71,7 @@ export default function AboutModal({ onClose, lastDatabaseUpdate }) {
             Retrouvez plus d'informations dans la{' '}
             <Link
               to="/privacy"
+              onClick={onClose}
               className="
                 underline
                 cursor-pointer
