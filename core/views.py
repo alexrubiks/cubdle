@@ -495,10 +495,12 @@ def _compare_list(guessed_list, target_list):
 @api_view(['POST'])
 def guess_ranking(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
+
     if challenge is None or challenge.ranking_cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
-    guessed_rank = request.data.get('rank')
+    guessed_rank = request.data.get("rank")
+
     if guessed_rank is None:
         return Response({"error": "rank requis"}, status=400)
 
@@ -515,19 +517,37 @@ def guess_ranking(request):
         event=challenge.ranking_event,
         result_type=challenge.ranking_result_type,
     )
+
     target_rank = target_ranking.national_rank
 
-    correct = guessed_rank == target_rank
-    persons_at_rank = []
+    ranking_result = _get_persons_at_rank(
+        challenge.ranking_event,
+        challenge.ranking_result_type,
+        guessed_rank,
+    )
+
+    persons_at_rank = ranking_result["persons"]
+    resolved_rank = ranking_result["resolved_rank"]
+
+    correct = any(
+        p["id"] == challenge.ranking_cubeur.id
+        for p in persons_at_rank
+    )
+
+    blocked_ranks = []
+
+    if resolved_rank != guessed_rank:
+        blocked_ranks = list(range(resolved_rank, guessed_rank + 1))
+    else:
+        blocked_ranks = [guessed_rank]
+
     direction = None
 
     if not correct:
-        direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
-
-        persons_at_rank = _get_persons_at_rank(
-            challenge.ranking_event,
-            challenge.ranking_result_type,
-            guessed_rank,
+        direction = (
+            "needs_lower"
+            if guessed_rank > target_rank
+            else "needs_higher"
         )
 
     add_guess(
@@ -535,6 +555,7 @@ def guess_ranking(request):
         "ranking_guesses",
         {
             "rank": guessed_rank,
+            "blocked_ranks": blocked_ranks,
             "persons": persons_at_rank,
             "direction": direction,
             "correct": correct,
@@ -547,17 +568,17 @@ def guess_ranking(request):
 
     return Response({
         "correct": correct,
-        "rank": target_rank if correct else guessed_rank,
+        "rank": target_rank,
         "score": target_ranking.score if correct else None,
         "direction": direction,
         "persons_at_rank": persons_at_rank,
+        "blocked_ranks": blocked_ranks,
     })
 
 
 def _get_persons_at_rank(event, result_type, guessed_rank):
-    """Trouve les personnes au rang demandé, en gérant les ex-aequo
-    qui créent des trous dans le classement (ex: deux 37e -> pas de 38e)"""
     rank = guessed_rank
+
     while rank >= 1:
         rankings = CubeurRanking.objects.filter(
             event=event,
@@ -566,18 +587,25 @@ def _get_persons_at_rank(event, result_type, guessed_rank):
         ).select_related('cubeur')
 
         if rankings.exists():
-            return [
-                {
-                    "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
-                    "score": r.score,
-                    "rank": r.national_rank,
-                }
-                for r in rankings
-            ]
+            return {
+                "persons": [
+                    {
+                        "id": r.cubeur.id,
+                        "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
+                        "score": r.score,
+                        "rank": r.national_rank,
+                    }
+                    for r in rankings
+                ],
+                "resolved_rank": rank,
+            }
+
         rank -= 1
 
-    return []
-
+    return {
+        "persons": [],
+        "resolved_rank": None,
+    }
 
 @api_view(['POST'])
 def guess_podium(request):

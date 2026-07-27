@@ -38,7 +38,6 @@ function TargetRow({ challenge, solution }) {
         {challenge.ranking_cubeur?.name}
       </div>
 
-      
       <div className="px-3 py-2 text-center font-bold">
         {solved
           ? formatRankingScore(solution.score, challenge.ranking_event?.slug)
@@ -84,6 +83,14 @@ function RankingTable({ challenge, guesses, solution }) {
     .flatMap(g => g.persons)
     .sort((a, b) => a.rank - b.rank);
 
+  const correctRows = guesses
+  .filter(g => g.correct)
+  .flatMap(g =>
+    g.persons.filter(
+      person => person.name !== challenge.ranking_cubeur.name
+    )
+  );
+
   return (
     <div className="border-2 border-black rounded-xl overflow-hidden bg-white mb-6">
 
@@ -105,22 +112,31 @@ function RankingTable({ challenge, guesses, solution }) {
       {/* PARTIE HAUTE */}
       {higherRows.map((person, i) => (
         <GuessRow
-          key={`high-${i}`}
+          key={`high-${person.id}`}
           person={person}
           eventSlug={challenge.ranking_event.slug}
         />
       ))}
-
+      
       {/* CIBLE */}
       <TargetRow
         challenge={challenge}
         solution={solution}
       />
 
+      {/* EX AEQUO AU-DESSUS OU MEME RANG */}
+      {correctRows.map((person, i) => (
+        <GuessRow
+          key={`tie-${person.id}`}
+          person={person}
+          eventSlug={challenge.ranking_event.slug}
+        />
+      ))}
+
       {/* PARTIE BASSE */}
       {lowerRows.map((person, i) => (
         <GuessRow
-          key={`low-${i}`}
+          key={`low-${person.id}`}
           person={person}
           eventSlug={challenge.ranking_event.slug}
         />
@@ -130,7 +146,6 @@ function RankingTable({ challenge, guesses, solution }) {
 }
 
 function GuessRanking() {
-
   const [challenge, setChallenge] = useState(null);
   const [rank, setRank] = useState('');
   const [guesses, setGuesses] = useState(getGuesses("ranking_guesses"));
@@ -145,6 +160,7 @@ function GuessRanking() {
     return {
       rank: win.rank,
       score: win.score,
+      persons: win.persons ?? [],
     };
   });
 
@@ -173,6 +189,10 @@ function GuessRanking() {
       return;
     }
 
+    if (guesses.some(g => g.blockedRanks.includes(value))) {
+      return;
+    }
+
     const res = await fetch(API_URLS.guessRanking, {
       method: 'POST',
       headers: {
@@ -187,6 +207,7 @@ function GuessRanking() {
 
     const newGuess = {
       rank: value,
+      blockedRanks: data.blocked_ranks ?? [],
       persons: data.persons_at_rank ?? [],
       direction: data.direction,
       correct: data.correct,
@@ -195,7 +216,7 @@ function GuessRanking() {
 
     setGuesses(prev => [
       newGuess,
-      ...prev,
+      ...prev.filter(g => g.rank !== value),
     ]);
 
     addGuess(
