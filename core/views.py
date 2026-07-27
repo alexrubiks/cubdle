@@ -9,8 +9,7 @@ from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from core.models import (
     ChampionshipResult,
@@ -146,23 +145,46 @@ def build_hint(text, mistakes, first_at=10, every=5):
 
 @api_view(['GET'])
 def cubeur_search(request):
-    query = request.query_params.get('q', '').strip()
+    query = request.query_params.get("q", "").strip()
     if len(query) < 2:
         return Response([])
 
-    terms = [normalize(t) for t in query.split()]
+    query_norm = normalize(query)
+    terms = query_norm.split()
 
-    # Récupère les cubeurs actifs
-    cubeurs = Cubeur.objects.filter(is_active=True)
+    active_only = request.query_params.get("active_only", "true").lower() == "true"
 
-    # Filtre en Python avec normalisation
-    def matches(cubeur):
+    cubeurs = Cubeur.objects.all()
+
+    if active_only:
+        cubeurs = cubeurs.filter(is_active=True)
+
+    results = []
+
+    for cubeur in cubeurs:
         full = normalize(f"{cubeur.first_name} {cubeur.last_name}")
-        return all(term in full for term in terms)
 
-    results = [c for c in cubeurs if matches(c)][:10]
+        if not all(term in full for term in terms):
+            continue
 
-    serializer = CubeurSearchSerializer(results, many=True)
+        words = full.split()
+
+        if full.startswith(query_norm):
+            category = 0
+        elif all(any(word.startswith(term) for word in words) for term in terms):
+            category = 1
+        else:
+            category = 2
+
+        position = min(full.find(term) for term in terms)
+        results.append((category, position, full, cubeur))
+
+    results.sort(key=lambda x: (x[0], x[2]))
+
+    serializer = CubeurSearchSerializer(
+        [cubeur for _, _, _, cubeur in results[:10]],
+        many=True
+    )
     return Response(serializer.data)
 
 
@@ -376,8 +398,13 @@ def _compare_events(guessed_events, target_events):
 
 def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""
-    guessed_set = set(guessed_value.split("-"))
-    target_set = set(target_value.split("-"))
+
+    guessed_values = guessed_value.split("-")
+    target_values = target_value.split("-")
+
+    guessed_set = set(guessed_values)
+    target_set = set(target_values)
+
     if guessed_set == target_set:
         status = "correct"
     elif guessed_set & target_set:
@@ -386,36 +413,41 @@ def _compare_set_string(guessed_value, target_value):
         status = "wrong"
 
     months = {
-        "janvier":1,
-        "février":2,
-        "mars":3,
-        "avril":4,
-        "mai":5,
-        "juin":6,
-        "juillet":7,
-        "août":8,
-        "septembre":9,
-        "octobre":10,
-        "novembre":11,
-        "décembre":12,
+        "janvier": 1,
+        "février": 2,
+        "mars": 3,
+        "avril": 4,
+        "mai": 5,
+        "juin": 6,
+        "juillet": 7,
+        "août": 8,
+        "septembre": 9,
+        "octobre": 10,
+        "novembre": 11,
+        "décembre": 12,
     }
 
+    def get_value(value):
+        if value.isdigit():
+            return int(value)
+        return months.get(value)
+
     direction = None
-    guessed_set = list(guessed_set)
-    target_set = list(target_set)
-    try:
-        if int(guessed_set[0]) < int(target_set[0]):
-            direction = "up"
-        elif int(guessed_set[0]) > int(target_set[0]):
-            direction = "down"
-    except Exception:
-        if months[guessed_set[0]] < months[target_set[0]]:
-            direction = "down"
-        elif months[guessed_set[0]] > months[target_set[0]]:
-            direction = "up"
 
-    return {"status": status, "direction": direction, "value": guessed_value}
+    guessed_min = get_value(guessed_values[0])
+    target_min = get_value(target_values[0])
 
+    if guessed_min is not None and target_min is not None:
+        if guessed_min < target_min:
+            direction = "up"  # la cible est après
+        elif guessed_min > target_min:
+            direction = "down"  # la cible est avant
+
+    return {
+        "status": status,
+        "direction": direction,
+        "value": guessed_value,
+    }
 
 
 def _compare_list(guessed_list, target_list):

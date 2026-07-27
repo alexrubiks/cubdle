@@ -37,6 +37,57 @@ export function RubikCell({ color = 'tile-none', direction = null, width = null,
   );
 }
 
+export function PeriodCell({ color = 'tile-none', direction = null, width = null, children }) {
+  const directionText =
+    direction === 'up'
+      ? 'après'
+      : direction === 'down'
+      ? 'avant'
+      : '';
+
+  return (
+    <div
+      className="h-12 bg-black rounded-xl p-1 flex items-center justify-center shrink-0"
+      style={{ width: width ?? '48px' }}
+    >
+      <div
+        className={`w-full h-full rounded-lg ${
+          COLOR_MAP[color] ?? 'bg-[#d4d4d4]'
+        } flex flex-col items-center justify-center font-title font-bold leading-none tabular-nums`}
+      >
+        <div className="h-[10px] flex items-center justify-center text-[9px] font-bold text-black">
+          {directionText}
+        </div>
+
+        <div className="text-xs">
+          {children}
+        </div>
+
+        <div className="h-[10px]" />
+      </div>
+    </div>
+  );
+}
+
+export function DateCell({ color = 'tile-none', direction = null, width = null, children }) {
+  return (
+    <div
+      className="h-12 bg-black rounded-xl p-1 flex items-center justify-center shrink-0"
+      style={{ width: width ?? '48px' }}
+    >
+      <div className={`w-full h-full rounded-lg ${COLOR_MAP[color] ?? 'bg-[#d4d4d4]'} flex flex-col items-center justify-center font-title font-bold text-xs leading-none tabular-nums`}>
+        <div className="h-[10px] flex items-center justify-center">
+          {direction === 'up' ? <ChevronUp /> : null}
+        </div>
+        {children}
+        <div className="h-[10px] flex items-center justify-center">
+          {direction === 'down' ? <ChevronDown /> : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function NameCell({ children, width = '160px' }) {
   return (
     <div

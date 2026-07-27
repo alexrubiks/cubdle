@@ -187,7 +187,7 @@ function GuessPodium() {
       return;
     }
 
-    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}`)
+    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&active_only=false`)
       .then(r => r.json())
       .then(data =>
         setResults(
