@@ -2,34 +2,36 @@ export default function WordleGrid({ columns, guesses }) {
   const gridTemplate = columns.map(col => col.width).join(' ');
 
   return (
-    <div className="overflow-x-auto pb-10">
-      <div
-        className="grid gap-x-1 gap-y-1"
-        style={{ gridTemplateColumns: gridTemplate }}
-      >
+    <div className="overflow-visible">
+      <div className="overflow-x-auto pb-10">
+        <div
+          className="grid gap-x-1 gap-y-1"
+          style={{ gridTemplateColumns: gridTemplate }}
+        >
 
-        {/* ── HEADER ── */}
-        {columns.map(col => (
-          <div
-            key={col.key}
-            className="flex flex-col items-center justify-center"
-          >
-            {col.header}
-          </div>
-        ))}
-
-        {/* ── ROWS ── */}
-        {guesses.map((guess, i) => (
-          columns.map(col => (
+          {/* ── HEADER ── */}
+          {columns.map(col => (
             <div
-              key={`${i}-${col.key}`}
-              className="flex items-center justify-center"
+              key={col.key}
+              className="flex flex-col items-center justify-center"
             >
-              {col.renderCell(guess)}
+              {col.header}
             </div>
-          ))
-        ))}
+          ))}
 
+          {/* ── ROWS ── */}
+          {guesses.map((guess, i) => (
+            columns.map(col => (
+              <div
+                key={`${i}-${col.key}`}
+                className="flex items-center justify-center"
+              >
+                {col.renderCell(guess)}
+              </div>
+            ))
+          ))}
+
+        </div>
       </div>
     </div>
   );

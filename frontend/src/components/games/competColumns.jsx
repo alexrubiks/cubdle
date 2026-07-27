@@ -1,4 +1,4 @@
-import { PeriodCell, RubikCell, NameCell } from '../ui/RubikCell';
+import { ListCell, PeriodCell, RubikCell, NameCell } from '../ui/RubikCell';
 import { getDirection, EVENTS_ORDER, EVENT_LABEL } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
@@ -135,12 +135,14 @@ export const competColumns = [
     header: <HeaderCell icon="🎙️" label="Orgas" />,
     renderCell: (guess) => {
       const { status, value } = guess.comparison.organizers;
+
       return (
-        <RubikCell
+        <ListCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          value={value}
         >
           {value?.length ?? 0}
-        </RubikCell>
+        </ListCell>
       );
     },
   },
@@ -151,11 +153,12 @@ export const competColumns = [
     renderCell: (guess) => {
       const { status, value } = guess.comparison.delegates;
       return (
-        <RubikCell
+        <ListCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          value={value}
         >
           {value?.length ?? 0}
-        </RubikCell>
+        </ListCell>
       );
     },
   },
