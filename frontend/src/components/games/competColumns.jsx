@@ -133,13 +133,17 @@ export const competColumns = [
     key: 'organisateurs',
     width: '48px',
     header: <HeaderCell icon="🎙️" label="Orgas" />,
-    renderCell: (guess) => {
+    renderCell: (guess, id, openedCell, setOpenedCell) => {
       const { status, value } = guess.comparison.organizers;
 
       return (
         <ListCell
+          id={id}
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           value={value}
+          open={openedCell === id}
+          onOpen={() => setOpenedCell(id)}
+          onClose={() => setOpenedCell(null)}
         >
           {value?.length ?? 0}
         </ListCell>
@@ -150,12 +154,16 @@ export const competColumns = [
     key: 'delegues',
     width: '48px',
     header: <HeaderCell icon="🏅" label="Délégués" />,
-    renderCell: (guess) => {
+    renderCell: (guess, id, openedCell, setOpenedCell) => {
       const { status, value } = guess.comparison.delegates;
       return (
         <ListCell
+          id={id}
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           value={value}
+          open={openedCell === id}
+          onOpen={() => setOpenedCell(id)}
+          onClose={() => setOpenedCell(null)}
         >
           {value?.length ?? 0}
         </ListCell>

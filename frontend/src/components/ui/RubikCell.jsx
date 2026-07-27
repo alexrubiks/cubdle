@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 
 const COLOR_MAP = {
@@ -86,20 +86,33 @@ export function NameCell({ children, width = '160px' }) {
 }
 
 
-export function ListCell({ color = 'tile-none', direction = null, width = null, value = null, children }) {
-  const [open, setOpen] = useState(false);
+export function ListCell({ color = 'tile-none', direction = null, width = null, value = null, children, open, onOpen, onClose }) {
   const [position, setPosition] = useState(null);
 
-  function handleClick(event) {
-    const rect = event.currentTarget.getBoundingClientRect();
+  function handleClick(e) {
+    e.stopPropagation();
+
+    const rect = e.currentTarget.getBoundingClientRect();
 
     setPosition({
-      top: rect.top,
-      left: rect.left - 8,
+      top: rect.top + window.scrollY,
+      left: rect.left + window.scrollX - 8,
     });
 
-    setOpen(!open);
+    onOpen();
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    function close() {
+      onClose();
+    }
+
+    document.addEventListener("click", close);
+
+    return () => document.removeEventListener("click", close);
+  }, [open, onClose]);
 
   return (
     <>
@@ -139,6 +152,7 @@ export function ListCell({ color = 'tile-none', direction = null, width = null, 
               left: position.left,
               transform: "translateX(-100%)",
             }}
+            onClick={(e) => e.stopPropagation()}
           >
             {value.map((name) => (
               <div key={name}>

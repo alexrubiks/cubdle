@@ -1,4 +1,7 @@
+import { useState } from "react";
+
 export default function WordleGrid({ columns, guesses }) {
+  const [openedCell, setOpenedCell] = useState(null);
   const gridTemplate = columns.map(col => col.width).join(' ');
 
   return (
@@ -26,7 +29,12 @@ export default function WordleGrid({ columns, guesses }) {
                 key={`${i}-${col.key}`}
                 className="flex items-center justify-center"
               >
-                {col.renderCell(guess)}
+                {col.renderCell(
+                  guess,
+                  `${i}-${col.key}`,
+                  openedCell,
+                  setOpenedCell
+                )}
               </div>
             ))
           ))}
