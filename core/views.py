@@ -438,17 +438,46 @@ def _compare_set_string(guessed_value, target_value):
     target_min = get_value(target_values[0])
 
     if guessed_min is not None and target_min is not None:
-        if guessed_min < target_min:
-            direction = "up"  # la cible est après
-        elif guessed_min > target_min:
-            direction = "down"  # la cible est avant
+        diff = guessed_min - target_min
+
+        if abs(diff) == 1 and status == "wrong":
+            status = "near"
+
+        if diff < 0:
+            direction = "up"
+        elif diff > 0:
+            direction = "down"
+
+    def format_display_value(value):
+        abbreviations = {
+            "janvier": "jan",
+            "février": "févr",
+            "mars": "mars",
+            "avril": "avr",
+            "mai": "mai",
+            "juin": "juin",
+            "juillet": "juil",
+            "août": "août",
+            "septembre": "sept",
+            "octobre": "oct",
+            "novembre": "nov",
+            "décembre": "déc",
+        }
+
+        if "-" not in value:
+            return value
+
+        return "-".join(
+            abbreviations.get(part, part)
+            for part in value.split("-")
+        )
 
     return {
         "status": status,
         "direction": direction,
         "value": guessed_value,
+        "display_value": format_display_value(guessed_value),
     }
-
 
 def _compare_list(guessed_list, target_list):
     """Compare deux listes (events, organizers, delegates)"""

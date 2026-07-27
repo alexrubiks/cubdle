@@ -80,14 +80,14 @@ export const competColumns = [
     width: '80px',
     header: <HeaderCell icon="📅" label="Mois" />,
     renderCell: (guess) => {
-      const { value, direction, status } = guess.comparison.month;
+      const { display_value, direction, status } = guess.comparison.month;
       return (
         <PeriodCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={direction}
           width={'80px'}
         >
-          {value}
+          {display_value}
         </PeriodCell>
       );
     },
