@@ -41,16 +41,7 @@ function GuessCompet() {
   const [guesses,        setGuesses] = useState(getGuesses("compet_guesses"));
   const [done,           setDone]    = useState(getDone("compet_done"));
   const [selectedIndex,  setSelectedIndex] = useState(-1);
-  const [victory,        setVictory] = useState(() => {
-    const previousVictory = getGuesses("compet_guesses")
-      .find(g => g.correct);
-
-    if (!previousVictory) return null;
-
-    return {
-      name: previousVictory.name,
-    };
-  });
+  const [victory, setVictory] = useState(null);
 
   const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
@@ -92,6 +83,23 @@ function GuessCompet() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const previousVictory = getGuesses("compet_guesses")
+      .find(g => g.correct);
+
+    if (!previousVictory) return;
+
+    fetch(API_URLS.competitionDetail(previousVictory.id))
+      .then(r => r.json())
+      .then(data => {
+        setVictory({
+          name: data.name,
+          wca_id: data.wca_id,
+        });
+      });
+
+  }, []);
+
   const submitGuess = async (compet) => {
     setQuery('');
     setResults([]);
@@ -115,6 +123,7 @@ function GuessCompet() {
       setDone(true);
       setVictory({
         name: data.guessed_name,
+        wca_id: compet.wca_id,
       });
     }
 
@@ -175,6 +184,7 @@ function GuessCompet() {
             guesses={guesses}
             nextTo="/ranking"
             buildShareText={buildShareTextCompet}
+            link={`https://www.worldcubeassociation.org/competitions/${victory.wca_id}`}
           />
         )}
 

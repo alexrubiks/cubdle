@@ -4,7 +4,7 @@ from datetime import date
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -146,6 +146,29 @@ def build_hint(text, mistakes, first_at=10, every=5):
 
 
 @api_view(['GET'])
+def cubeur_detail(request, pk):
+    cubeur = get_object_or_404(Cubeur, id=pk)
+
+    return Response({
+        "id": cubeur.id,
+        "wca_id": cubeur.wca_id,
+        "name": f"{cubeur.first_name} {cubeur.last_name}",
+        "avatar_url": cubeur.avatar_url,
+    })
+
+
+@api_view(['GET'])
+def competition_detail(request, pk):
+    competition = get_object_or_404(Competition, id=pk)
+
+    return Response({
+        "id": competition.id,
+        "name": competition.name,
+        "wca_id": competition.wca_id,
+    })
+
+
+@api_view(['GET'])
 def cubeur_search(request):
     query = request.query_params.get("q", "").strip()
     if len(query) < 2:
@@ -195,12 +218,42 @@ def competition_search(request):
     query = request.query_params.get('q', '').strip()
     if len(query) < 2:
         return Response([])
+
+    query_norm = normalize(query)
+    terms = query_norm.split()
+
     already_guessed = int(request.query_params.get('exclude_count', 0))
     limit = 10 + already_guessed
-    competitions = Competition.objects.filter(name__icontains=query)[:limit]
-    serializer = CompetitionSearchSerializer(competitions, many=True)
-    return Response(serializer.data)
 
+    competitions = Competition.objects.all()
+
+    results = []
+
+    for competition in competitions:
+        full = normalize(competition.name)
+
+        if not all(term in full for term in terms):
+            continue
+
+        words = full.split()
+
+        if full.startswith(query_norm):
+            category = 0
+        elif all(any(word.startswith(term) for word in words) for term in terms):
+            category = 1
+        else:
+            category = 2
+
+        position = min(full.find(term) for term in terms)
+        results.append((category, position, full, competition))
+
+    results.sort(key=lambda x: (x[0], x[2]))
+
+    serializer = CompetitionSearchSerializer(
+        [competition for _, _, _, competition in results[:limit]],
+        many=True
+    )
+    return Response(serializer.data)
 
 @api_view(['POST'])
 def guess_cubeur(request):

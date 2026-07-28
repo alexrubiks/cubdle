@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
 from datetime import date, timedelta
+import math
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -21,6 +22,8 @@ EVENT_GROUPS = {
 }
 CUTOFF = date.today() - timedelta(days=50)
 SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+LOCATION_PROXIMITY_KM = 5
+LOCATION_CITY_CUTOFF_DAYS = 50
 
 def _get_ranking_result_type(event_slug):
     return "single" if event_slug in SINGLE_ONLY_EVENTS else "average"
@@ -41,7 +44,7 @@ class Command(BaseCommand):
         ranking_cubeur, ranking_event, ranking_result_type = self._pick_ranking(cubeur)
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
-        location_competition = self._pick_competition()
+        location_competition = self._pick_location_competition(competition)
 
         DailyChallenge.objects.create(
             date=target_date,
@@ -87,7 +90,7 @@ class Command(BaseCommand):
         return random.choices(cubeurs, weights=weights, k=1)[0]
     
     def _pick_competition(self):
-        recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True)
+        recent = list(DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True))
         competitions = list(Competition.objects.filter(participant_count__gt=0).exclude(id__in=recent))
         if not competitions:
             competitions = list(Competition.objects.filter(participant_count__gt=0))
@@ -174,8 +177,6 @@ class Command(BaseCommand):
 
         valid_pairs = []
         for comp in championships:
-            if (comp.id,) in [(r[0],) for r in recent_pairs]:
-                continue
             events = ChampionshipResult.objects.filter(
                 competition=comp
             ).values_list('event_id', flat=True).distinct()
@@ -195,14 +196,12 @@ class Command(BaseCommand):
                     valid_pairs.append((comp, event_id))
 
         if not valid_pairs:
-            # Fallback sans filtre recent
             valid_pairs = [
                 (comp, event_id)
                 for comp in championships
                 for event_id in ChampionshipResult.objects.filter(
                     competition=comp,
                     best__gt=0,
-                    average__gt=0,
                 ).values_list('event_id', flat=True).distinct()
             ]
 
@@ -226,3 +225,41 @@ class Command(BaseCommand):
     def _competition_weight(self, competition):
         age_days = (date.today() - competition.date_from).days
         return max(1, 3650 - age_days)
+
+    def _distance_km(self, lat1, lon1, lat2, lon2):
+        lat_avg = math.radians((lat1 + lat2) / 2)
+        dx = math.radians(lon2 - lon1) * math.cos(lat_avg)
+        dy = math.radians(lat2 - lat1)
+        return 6371 * math.sqrt(dx ** 2 + dy ** 2)
+
+    def _pick_location_competition(self, competition_du_jour):
+        cutoff = date.today() - timedelta(days=LOCATION_CITY_CUTOFF_DAYS)
+
+        recent_locations = list(
+            DailyChallenge.objects.filter(
+                date__gte=cutoff
+            ).exclude(
+                location_competition__isnull=True
+            ).values_list('location_competition__latitude', 'location_competition__longitude')
+        )
+        recent_locations.append((competition_du_jour.latitude, competition_du_jour.longitude))
+
+        recent_ids = list(DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True))
+        candidates = Competition.objects.filter(participant_count__gt=0).exclude(id__in=recent_ids).exclude(id=competition_du_jour.id)
+
+        filtered = [
+            c for c in candidates
+            if all(
+                self._distance_km(c.latitude, c.longitude, lat, lon) > LOCATION_PROXIMITY_KM
+                for lat, lon in recent_locations
+            )
+        ]
+
+        if not filtered:
+            filtered = [
+                c for c in Competition.objects.filter(participant_count__gt=0).exclude(id=competition_du_jour.id)
+                if self._distance_km(c.latitude, c.longitude, competition_du_jour.latitude, competition_du_jour.longitude) > LOCATION_PROXIMITY_KM
+            ]
+
+        weights = [self._competition_weight(c) for c in filtered]
+        return random.choices(filtered, weights=weights, k=1)[0]

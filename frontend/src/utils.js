@@ -17,6 +17,8 @@ export const API_URLS = {
   authMe: `${API_BASE}auth/me/`,
   authWcaLogin: `${API_BASE}auth/wca/login/`,
   authLogout: `${API_BASE}auth/logout/`,
+  cubeurDetail: (id) => `${API_BASE}cubeurs/${id}/`,
+  competitionDetail: (id) => `${API_BASE}competitions/${id}/`,
 };
 
 export const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);

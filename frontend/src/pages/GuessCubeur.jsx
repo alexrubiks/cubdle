@@ -41,17 +41,7 @@ function GuessCubeur() {
   const [guesses,        setGuesses] = useState(getGuesses("cubeur_guesses"));
   const [done,           setDone]    = useState(getDone("cubeur_done"));
   const [selectedIndex,  setSelectedIndex] = useState(-1);
-  const [victory,        setVictory] = useState(() => {
-    const previousVictory = getGuesses("cubeur_guesses")
-      .find(g => g.correct);
-
-    if (!previousVictory) return null;
-
-    return {
-      name: previousVictory.name,
-      photoUrl: previousVictory.photoUrl ?? null,
-    };
-  });
+  const [victory, setVictory] = useState(null);
   
   const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
@@ -93,6 +83,29 @@ function GuessCubeur() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    const saved = getGuesses("cubeur_guesses");
+    console.log("saved guesses:", saved);
+
+    const previousVictory = saved.find(g => g.correct);
+    console.log("previous victory:", previousVictory);
+
+    if (!previousVictory) return;
+
+    fetch(API_URLS.cubeurDetail(previousVictory.id))
+      .then(r => r.json())
+      .then(data => {
+        console.log("cubeur detail:", data);
+
+        setVictory({
+          name: data.name,
+          wca_id: data.wca_id,
+          avatar_url: data.avatar_url,
+        });
+      });
+
+  }, []);
+
   const submitGuess = async (cubeur) => {
     setQuery('');
     setResults([]);
@@ -116,19 +129,17 @@ function GuessCubeur() {
       setDone(true);
       setVictory({
         name: data.guessed_name,
-        photoUrl: data.photo_url ?? null,
+        wca_id: cubeur.wca_id,
+        avatar_url: cubeur.avatar_url,
       });
     }
 
-    addGuess(
-      "cubeur_guesses",
-      {
-        id: cubeur.id,
-        name: data.guessed_name,
-        comparison: data.comparison,
-        correct: data.correct,
-      }
-    );
+    addGuess("cubeur_guesses", {
+      id: cubeur.id,
+      name: data.guessed_name,
+      comparison: data.comparison,
+      correct: data.correct,
+    });
 
     inputRef.current?.focus();
   };
@@ -174,11 +185,15 @@ function GuessCubeur() {
           <VictoryCard
             label="Bravo ! Le cubeur à deviner était :"
             name={victory.name}
+            avatarUrl={victory.avatar_url}
             guesses={guesses}
             nextTo="/competition"
             buildShareText={buildShareTextCubeur}
+            link={`https://www.worldcubeassociation.org/persons/${victory.wca_id}`}
           />
         )}
+
+        {victory && console.log(victory.avatar_url)}
 
         {/* ── INPUT ── */}
         {!done && (
