@@ -529,17 +529,29 @@ def guess_ranking(request):
     persons_at_rank = ranking_result["persons"]
     resolved_rank = ranking_result["resolved_rank"]
 
+    if resolved_rank is None:
+        blocked_ranks = []
+    else:
+        next_rank = (
+            CubeurRanking.objects.filter(
+                event=challenge.ranking_event,
+                result_type=challenge.ranking_result_type,
+                national_rank__gt=resolved_rank,
+            )
+            .order_by("national_rank")
+            .values_list("national_rank", flat=True)
+            .first()
+        )
+
+        if next_rank is None:
+            blocked_ranks = list(range(resolved_rank, 101))
+        else:
+            blocked_ranks = list(range(resolved_rank, next_rank))
+
     correct = any(
         p["id"] == challenge.ranking_cubeur.id
         for p in persons_at_rank
     )
-
-    blocked_ranks = []
-
-    if resolved_rank != guessed_rank:
-        blocked_ranks = list(range(resolved_rank, guessed_rank + 1))
-    else:
-        blocked_ranks = [guessed_rank]
 
     direction = None
 

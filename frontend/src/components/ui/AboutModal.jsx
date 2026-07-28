@@ -113,7 +113,7 @@ export default function AboutModal({ onClose }) {
         {/* SIGNATURE */}
         <div className="text-center pt-2">
           <p className="text-xs text-black/40 mt-1">
-            Alexis Tremellat
+            Cubdle 1.2.0 · Alexis Tremellat
           </p>
         </div>
 

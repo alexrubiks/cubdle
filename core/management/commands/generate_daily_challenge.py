@@ -38,7 +38,7 @@ class Command(BaseCommand):
         cubeur = self._pick_cubeur()
         self._get_avatar_url(cubeur)
         competition = self._pick_competition()
-        ranking_cubeur, ranking_event, ranking_result_type = self._pick_ranking()
+        ranking_cubeur, ranking_event, ranking_result_type = self._pick_ranking(cubeur)
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_competition()
@@ -94,24 +94,35 @@ class Command(BaseCommand):
         weights = [self._competition_weight(c) for c in competitions]
         return random.choices(competitions, weights=weights, k=1)[0]
 
-    def _pick_ranking(self):
-        recent = DailyChallenge.objects.filter(
-            date__gte=CUTOFF
-        ).exclude(
-            ranking_cubeur__isnull=True
-        ).values_list(
-            'ranking_cubeur_id',
-            'ranking_event_id',
-            'ranking_result_type'
+    def _pick_ranking(self, excluded_cubeur):
+        recent_pairs = set(
+            DailyChallenge.objects.filter(
+                date__gte=date.today() - timedelta(days=50)
+            ).exclude(
+                ranking_cubeur__isnull=True
+            ).values_list(
+                "ranking_cubeur_id",
+                "ranking_event_id",
+                "ranking_result_type"
+            )
         )
 
-        recent_pairs = set(recent)
+        recent_cubeurs = set(
+            DailyChallenge.objects.filter(
+                date__gte=date.today() - timedelta(days=15)
+            ).exclude(
+                ranking_cubeur__isnull=True
+            ).values_list(
+                "ranking_cubeur_id",
+                flat=True
+            )
+        )
 
         all_rankings = list(
             CubeurRanking.objects.filter(
                 cubeur__is_active=True,
                 national_rank__lte=100
-            ).select_related('cubeur', 'event')
+            ).select_related("cubeur", "event")
         )
 
         available = []
@@ -122,20 +133,35 @@ class Command(BaseCommand):
             if ranking.result_type != expected_type:
                 continue
 
-            if (ranking.cubeur_id, ranking.event_id, ranking.result_type) in recent_pairs:
+            if ranking.cubeur_id == excluded_cubeur.id:
+                continue
+
+            if ranking.cubeur_id in recent_cubeurs:
+                continue
+
+            if (
+                ranking.cubeur_id,
+                ranking.event_id,
+                ranking.result_type
+            ) in recent_pairs:
                 continue
 
             available.append(ranking)
 
         if not available:
-            available = all_rankings
+            available = [
+                r for r in all_rankings
+                if r.cubeur_id != excluded_cubeur.id
+                and r.result_type == _get_ranking_result_type(r.event.slug)
+            ]
 
-        ranking = random.choice(available)
+        weights = [(101 - r.national_rank) ** 1.5 for r in available]
+        ranking = random.choices(available, weights=weights, k=1)[0]
 
         return (
             ranking.cubeur,
             ranking.event,
-            ranking.result_type
+            ranking.result_type,
         )
 
     def _pick_podium(self):
