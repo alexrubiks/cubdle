@@ -41,7 +41,7 @@ class Command(BaseCommand):
         ranking_cubeur, ranking_event, ranking_result_type = self._pick_ranking(cubeur)
         self._get_avatar_url(ranking_cubeur)
         podium_competition, podium_event = self._pick_podium()
-        location_competition = self._pick_competition()
+        location_competition = self._pick_competition(extra_exclude_ids=[competition.id])
 
         DailyChallenge.objects.create(
             date=target_date,
@@ -86,11 +86,13 @@ class Command(BaseCommand):
         weights = [self._cubeur_weight(c) for c in cubeurs]
         return random.choices(cubeurs, weights=weights, k=1)[0]
     
-    def _pick_competition(self):
-        recent = DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True)
+    def _pick_competition(self, extra_exclude_ids=None):
+        recent = list(DailyChallenge.objects.filter(date__gte=CUTOFF).values_list('competition_id', flat=True))
+        if extra_exclude_ids:
+            recent = recent + list(extra_exclude_ids)
         competitions = list(Competition.objects.filter(participant_count__gt=0).exclude(id__in=recent))
         if not competitions:
-            competitions = list(Competition.objects.filter(participant_count__gt=0))
+            competitions = list(Competition.objects.filter(participant_count__gt=0).exclude(id__in=extra_exclude_ids or []))
         weights = [self._competition_weight(c) for c in competitions]
         return random.choices(competitions, weights=weights, k=1)[0]
 
@@ -174,8 +176,6 @@ class Command(BaseCommand):
 
         valid_pairs = []
         for comp in championships:
-            if (comp.id,) in [(r[0],) for r in recent_pairs]:
-                continue
             events = ChampionshipResult.objects.filter(
                 competition=comp
             ).values_list('event_id', flat=True).distinct()
@@ -195,14 +195,12 @@ class Command(BaseCommand):
                     valid_pairs.append((comp, event_id))
 
         if not valid_pairs:
-            # Fallback sans filtre recent
             valid_pairs = [
                 (comp, event_id)
                 for comp in championships
                 for event_id in ChampionshipResult.objects.filter(
                     competition=comp,
                     best__gt=0,
-                    average__gt=0,
                 ).values_list('event_id', flat=True).distinct()
             ]
 
