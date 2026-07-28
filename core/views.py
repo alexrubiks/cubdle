@@ -9,8 +9,7 @@ from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
 from core.models import (
     ChampionshipResult,
@@ -32,6 +31,8 @@ from .progress import (
     get_error_count,
     set_done,
 )
+
+SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
 
 
 @api_view(["GET"])
@@ -146,23 +147,46 @@ def build_hint(text, mistakes, first_at=10, every=5):
 
 @api_view(['GET'])
 def cubeur_search(request):
-    query = request.query_params.get('q', '').strip()
+    query = request.query_params.get("q", "").strip()
     if len(query) < 2:
         return Response([])
 
-    terms = [normalize(t) for t in query.split()]
+    query_norm = normalize(query)
+    terms = query_norm.split()
 
-    # Récupère plus de résultats pour filtrer ensuite en Python
+    active_only = request.query_params.get("active_only", "true").lower() == "true"
+
     cubeurs = Cubeur.objects.all()
 
-    # Filtre en Python avec normalisation
-    def matches(cubeur):
+    if active_only:
+        cubeurs = cubeurs.filter(is_active=True)
+
+    results = []
+
+    for cubeur in cubeurs:
         full = normalize(f"{cubeur.first_name} {cubeur.last_name}")
-        return all(term in full for term in terms)
 
-    results = [c for c in cubeurs if matches(c)][:10]
+        if not all(term in full for term in terms):
+            continue
 
-    serializer = CubeurSearchSerializer(results, many=True)
+        words = full.split()
+
+        if full.startswith(query_norm):
+            category = 0
+        elif all(any(word.startswith(term) for word in words) for term in terms):
+            category = 1
+        else:
+            category = 2
+
+        position = min(full.find(term) for term in terms)
+        results.append((category, position, full, cubeur))
+
+    results.sort(key=lambda x: (x[0], x[2]))
+
+    serializer = CubeurSearchSerializer(
+        [cubeur for _, _, _, cubeur in results[:10]],
+        many=True
+    )
     return Response(serializer.data)
 
 
@@ -376,8 +400,13 @@ def _compare_events(guessed_events, target_events):
 
 def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""
-    guessed_set = set(guessed_value.split("-"))
-    target_set = set(target_value.split("-"))
+
+    guessed_values = guessed_value.split("-")
+    target_values = target_value.split("-")
+
+    guessed_set = set(guessed_values)
+    target_set = set(target_values)
+
     if guessed_set == target_set:
         status = "correct"
     elif guessed_set & target_set:
@@ -386,37 +415,71 @@ def _compare_set_string(guessed_value, target_value):
         status = "wrong"
 
     months = {
-        "janvier":1,
-        "février":2,
-        "mars":3,
-        "avril":4,
-        "mai":5,
-        "juin":6,
-        "juillet":7,
-        "août":8,
-        "septembre":9,
-        "octobre":10,
-        "novembre":11,
-        "décembre":12,
+        "janvier": 1,
+        "février": 2,
+        "mars": 3,
+        "avril": 4,
+        "mai": 5,
+        "juin": 6,
+        "juillet": 7,
+        "août": 8,
+        "septembre": 9,
+        "octobre": 10,
+        "novembre": 11,
+        "décembre": 12,
     }
 
+    def get_value(value):
+        if value.isdigit():
+            return int(value)
+        return months.get(value)
+
     direction = None
-    guessed_set = list(guessed_set)
-    target_set = list(target_set)
-    try:
-        if int(guessed_set[0]) < int(target_set[0]):
+
+    guessed_min = get_value(guessed_values[0])
+    target_min = get_value(target_values[0])
+
+    if guessed_min is not None and target_min is not None:
+        diff = guessed_min - target_min
+
+        if abs(diff) == 1 and status == "wrong":
+            status = "near"
+
+        if diff < 0:
             direction = "up"
-        elif int(guessed_set[0]) > int(target_set[0]):
+        elif diff > 0:
             direction = "down"
-    except Exception:
-        if months[guessed_set[0]] < months[target_set[0]]:
-            direction = "down"
-        elif months[guessed_set[0]] > months[target_set[0]]:
-            direction = "up"
 
-    return {"status": status, "direction": direction, "value": guessed_value}
+    def format_display_value(value):
+        abbreviations = {
+            "janvier": "jan",
+            "février": "févr",
+            "mars": "mars",
+            "avril": "avr",
+            "mai": "mai",
+            "juin": "juin",
+            "juillet": "juil",
+            "août": "août",
+            "septembre": "sept",
+            "octobre": "oct",
+            "novembre": "nov",
+            "décembre": "déc",
+        }
 
+        if "-" not in value:
+            return value
 
+        return "-".join(
+            abbreviations.get(part, part)
+            for part in value.split("-")
+        )
+
+    return {
+        "status": status,
+        "direction": direction,
+        "value": guessed_value,
+        "display_value": format_display_value(guessed_value),
+    }
 
 def _compare_list(guessed_list, target_list):
     """Compare deux listes (events, organizers, delegates)"""
@@ -434,10 +497,12 @@ def _compare_list(guessed_list, target_list):
 @api_view(['POST'])
 def guess_ranking(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
+
     if challenge is None or challenge.ranking_cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
-    guessed_rank = request.data.get('rank')
+    guessed_rank = request.data.get("rank")
+
     if guessed_rank is None:
         return Response({"error": "rank requis"}, status=400)
 
@@ -454,19 +519,49 @@ def guess_ranking(request):
         event=challenge.ranking_event,
         result_type=challenge.ranking_result_type,
     )
+
     target_rank = target_ranking.national_rank
 
-    correct = guessed_rank == target_rank
-    persons_at_rank = []
+    ranking_result = _get_persons_at_rank(
+        challenge.ranking_event,
+        challenge.ranking_result_type,
+        guessed_rank,
+    )
+
+    persons_at_rank = ranking_result["persons"]
+    resolved_rank = ranking_result["resolved_rank"]
+
+    if resolved_rank is None:
+        blocked_ranks = []
+    else:
+        next_rank = (
+            CubeurRanking.objects.filter(
+                event=challenge.ranking_event,
+                result_type=challenge.ranking_result_type,
+                national_rank__gt=resolved_rank,
+            )
+            .order_by("national_rank")
+            .values_list("national_rank", flat=True)
+            .first()
+        )
+
+        if next_rank is None:
+            blocked_ranks = list(range(resolved_rank, 101))
+        else:
+            blocked_ranks = list(range(resolved_rank, next_rank))
+
+    correct = any(
+        p["id"] == challenge.ranking_cubeur.id
+        for p in persons_at_rank
+    )
+
     direction = None
 
     if not correct:
-        direction = "needs_lower" if guessed_rank > target_rank else "needs_higher"
-
-        persons_at_rank = _get_persons_at_rank(
-            challenge.ranking_event,
-            challenge.ranking_result_type,
-            guessed_rank,
+        direction = (
+            "needs_lower"
+            if guessed_rank > target_rank
+            else "needs_higher"
         )
 
     add_guess(
@@ -474,6 +569,7 @@ def guess_ranking(request):
         "ranking_guesses",
         {
             "rank": guessed_rank,
+            "blocked_ranks": blocked_ranks,
             "persons": persons_at_rank,
             "direction": direction,
             "correct": correct,
@@ -486,17 +582,17 @@ def guess_ranking(request):
 
     return Response({
         "correct": correct,
-        "rank": target_rank if correct else guessed_rank,
+        "rank": target_rank,
         "score": target_ranking.score if correct else None,
         "direction": direction,
         "persons_at_rank": persons_at_rank,
+        "blocked_ranks": blocked_ranks,
     })
 
 
 def _get_persons_at_rank(event, result_type, guessed_rank):
-    """Trouve les personnes au rang demandé, en gérant les ex-aequo
-    qui créent des trous dans le classement (ex: deux 37e -> pas de 38e)"""
     rank = guessed_rank
+
     while rank >= 1:
         rankings = CubeurRanking.objects.filter(
             event=event,
@@ -505,18 +601,25 @@ def _get_persons_at_rank(event, result_type, guessed_rank):
         ).select_related('cubeur')
 
         if rankings.exists():
-            return [
-                {
-                    "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
-                    "score": r.score,
-                    "rank": r.national_rank,
-                }
-                for r in rankings
-            ]
+            return {
+                "persons": [
+                    {
+                        "id": r.cubeur.id,
+                        "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
+                        "score": r.score,
+                        "rank": r.national_rank,
+                    }
+                    for r in rankings
+                ],
+                "resolved_rank": rank,
+            }
+
         rank -= 1
 
-    return []
-
+    return {
+        "persons": [],
+        "resolved_rank": None,
+    }
 
 @api_view(['POST'])
 def guess_podium(request):
@@ -548,12 +651,18 @@ def guess_podium(request):
 
     correct = result.position <= 3
 
+    score = (
+        result.best
+        if challenge.podium_event.slug in SINGLE_ONLY_EVENTS
+        else result.average
+    )
+
     return Response({
         "correct": correct,
         "in_final": True,
         "name": f"{guessed.first_name} {guessed.last_name}",
         "position": result.position,
-        "score": result.average if result.average > 0 else result.best,
+        "score": score,
     })
 
 

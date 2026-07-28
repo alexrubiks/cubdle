@@ -5,7 +5,7 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
@@ -59,7 +59,7 @@ function GuessRow({ guess, eventSlug }) {
       </div>
 
       <div className="px-3 py-2 text-center">
-        {guess.score
+        {guess.score != null
           ? formatRankingScore(guess.score, eventSlug)
           : "—"}
       </div>
@@ -187,7 +187,7 @@ function GuessPodium() {
       return;
     }
 
-    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}`)
+    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&active_only=false`)
       .then(r => r.json())
       .then(data =>
         setResults(
@@ -238,6 +238,8 @@ function GuessPodium() {
     });
 
     const data = await res.json();
+
+    console.log(data.score);
 
     setQuery('');
     setResults([]);
@@ -406,7 +408,7 @@ function GuessPodium() {
 
               {results.length > 0 && (
 
-                <ul role="listbox" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-30 overflow-hidden list-none m-0 p-0 shadow-lg">
+                <ul role="listbox" className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg">
 
                   {results.map((c, i) => (
                     <li

@@ -8,7 +8,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', cast=bool)
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 WCA_CLIENT_ID = config("WCA_CLIENT_ID")
 WCA_CLIENT_SECRET = config("WCA_CLIENT_SECRET")
 WCA_REDIRECT_URI = config("WCA_REDIRECT_URI")
@@ -91,10 +91,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-CORS_ALLOWED_ORIGINS = [
-    "https://cubdle.alexrubiks.fr",
-    "https://www.alexrubiks.fr",
-]
+CORS_ALLOWED_ORIGINS = config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173').split(',')
 
 CORS_ALLOW_CREDENTIALS = True
 

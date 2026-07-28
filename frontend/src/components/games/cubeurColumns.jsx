@@ -1,4 +1,4 @@
-import { RubikCell, NameCell } from '../ui/RubikCell';
+import { PeriodCell, RubikCell, NameCell } from '../ui/RubikCell';
 import { getRankingDirection, getDirection, EVENTS_ORDER, EVENTS_SINGLE, EVENT_LABEL } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
@@ -115,12 +115,12 @@ export const cubeurColumns = [
     renderCell: (guess) => {
       const { value, target, status } = guess.comparison.wca_year;
       return (
-        <RubikCell
+        <PeriodCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={getDirection(value, target)}
         >
           {value}
-        </RubikCell>
+        </PeriodCell>
       );
     },
   },

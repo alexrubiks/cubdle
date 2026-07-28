@@ -49,13 +49,23 @@ export default function App() {
     setUser(null);
   };
 
+  useEffect(() => {
+    const modalOpen = showAbout || showAccount;
+
+    document.body.style.overflow = modalOpen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showAbout, showAccount]);
+
   return (
     <div className="relative flex flex-col min-h-screen bg-cubdle-background">
 
       <SideBlocks position="left" />
       <SideBlocks position="right" />
 
-      <div className="flex-1 z-20">
+      <div className="flex-1 relative z-30">
         <Routes>
           <Route path="/" element={<Home />} />
 

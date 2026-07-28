@@ -212,7 +212,7 @@ function GuessCubeur() {
               {results.length > 0 && (
                 <ul
                   role="listbox"
-                  className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-30 overflow-hidden list-none m-0 p-0 shadow-lg"
+                  className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg"
                 >
                   {results.map((c, i) => (
                     <li

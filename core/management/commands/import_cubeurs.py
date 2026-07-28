@@ -40,7 +40,7 @@ class Command(BaseCommand):
                 )
                 data = response.json()
                 for person in data["items"]:
-                    if person["rank"]["country"] <= 80:
+                    if person["rank"]["country"] <= 100:
                         cubers_id.add(person["personId"])
         return cubers_id
 

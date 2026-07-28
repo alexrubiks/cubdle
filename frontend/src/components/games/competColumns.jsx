@@ -1,4 +1,4 @@
-import { RubikCell, NameCell } from '../ui/RubikCell';
+import { ListCell, PeriodCell, RubikCell, NameCell } from '../ui/RubikCell';
 import { getDirection, EVENTS_ORDER, EVENT_LABEL } from '../../utils';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
@@ -80,15 +80,15 @@ export const competColumns = [
     width: '80px',
     header: <HeaderCell icon="📅" label="Mois" />,
     renderCell: (guess) => {
-      const { value, direction, status } = guess.comparison.month;
+      const { display_value, direction, status } = guess.comparison.month;
       return (
-        <RubikCell
+        <PeriodCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={direction}
           width={'80px'}
         >
-          {value}
-        </RubikCell>
+          {display_value}
+        </PeriodCell>
       );
     },
   },
@@ -99,12 +99,12 @@ export const competColumns = [
     renderCell: (guess) => {
       const { value, direction, status } = guess.comparison.year;
       return (
-        <RubikCell
+        <PeriodCell
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
           direction={direction}
         >
           {value}
-        </RubikCell>
+        </PeriodCell>
       );
     },
   },
@@ -133,14 +133,20 @@ export const competColumns = [
     key: 'organisateurs',
     width: '48px',
     header: <HeaderCell icon="🎙️" label="Orgas" />,
-    renderCell: (guess) => {
+    renderCell: (guess, id, openedCell, setOpenedCell) => {
       const { status, value } = guess.comparison.organizers;
+
       return (
-        <RubikCell
+        <ListCell
+          id={id}
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          value={value}
+          open={openedCell === id}
+          onOpen={() => setOpenedCell(id)}
+          onClose={() => setOpenedCell(null)}
         >
           {value?.length ?? 0}
-        </RubikCell>
+        </ListCell>
       );
     },
   },
@@ -148,14 +154,19 @@ export const competColumns = [
     key: 'delegues',
     width: '48px',
     header: <HeaderCell icon="🏅" label="Délégués" />,
-    renderCell: (guess) => {
+    renderCell: (guess, id, openedCell, setOpenedCell) => {
       const { status, value } = guess.comparison.delegates;
       return (
-        <RubikCell
+        <ListCell
+          id={id}
           color={STATUS_COLOR[status] ?? 'tile-wrong'}
+          value={value}
+          open={openedCell === id}
+          onOpen={() => setOpenedCell(id)}
+          onClose={() => setOpenedCell(null)}
         >
           {value?.length ?? 0}
-        </RubikCell>
+        </ListCell>
       );
     },
   },

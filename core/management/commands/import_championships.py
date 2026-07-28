@@ -90,9 +90,9 @@ class Command(BaseCommand):
         for event in competition.events.all():
             # Épreuve déjà importée pour ce championnat -> les résultats d'un
             # championnat passé ne changent jamais, pas besoin de rappeler l'API
-            if (competition.id, event.id) in self.done_pairs:
-                skipped += 1
-                continue
+            # if (competition.id, event.id) in self.done_pairs:
+            #     skipped += 1
+            #     continue
 
             response = requests.get(
                 f"https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/refs/heads/v1/results/{competition.wca_id}/{event.slug}.json"
@@ -106,17 +106,40 @@ class Command(BaseCommand):
             use_single = event.slug in SINGLE_ONLY_EVENTS
 
             finalists = [
-                (r["personId"], r["best"], r["average"])
+                r
                 for r in data["items"]
                 if r["round"] == "Final"
             ]
 
+            # On retire les étrangers, mais on garde l'ordre WCA
             fr_finalists = [
-                (person_id, best, average) for person_id, best, average in finalists
-                if self._is_fr(person_id, competition_year)
+                r
+                for r in finalists
+                if self._is_fr(r["personId"], competition_year)
             ]
 
-            for new_position, (person_id, best, average) in enumerate(fr_finalists, start=1):
+
+            # Recalcul du classement français en gardant les égalités WCA
+            previous_result = None
+            previous_position = None
+
+            for index, result in enumerate(fr_finalists, start=1):
+
+                if (
+                    previous_result is not None
+                    and self._same_wca_result(previous_result, result, use_single)
+                ):
+                    position = previous_position
+                else:
+                    position = index
+
+                previous_result = result
+                previous_position = position
+
+                person_id = result["personId"]
+                best = result["best"]
+                average = result["average"]
+
                 cubeur = self._get_or_create_cubeur(person_id)
                 if cubeur is None:
                     continue
@@ -126,14 +149,14 @@ class Command(BaseCommand):
                     cubeur=cubeur,
                     event=self.events[event.slug],
                     defaults={
-                        "position": new_position,
+                        "position": position,
                         "best": best,
                         "average": average,
                     }
                 )
 
                 self.stdout.write(
-                    f"{cubeur.first_name} {cubeur.last_name} : {new_position} au {self.events[event.slug].slug} à {competition_year} ({best}, {average})"
+                    f"{cubeur.first_name} {cubeur.last_name} : {position} au {self.events[event.slug].slug} à {competition_year} ({best}, {average})"
                 )
 
         return skipped
@@ -172,3 +195,19 @@ class Command(BaseCommand):
         self.stdout.write(f"_get_or_create_cubeur {wca_id}: {time.time() - start:.2f}s")
 
         return cubeur
+
+    def _same_wca_result(self, a, b, use_single):
+        """
+        Retourne True si deux résultats sont ex æquo selon les règles WCA.
+        """
+
+        if use_single:
+            # Blind : classement uniquement sur le single
+            return a["best"] == b["best"]
+
+        # Épreuves normales :
+        # classement sur average, départage au single
+        return (
+            a["average"] == b["average"]
+            and a["best"] == b["best"]
+        )

@@ -1,5 +1,9 @@
 const API_BASE = `${import.meta.env.VITE_API_URL}`;
 
+if (!API_BASE) {
+  throw new Error("VITE_API_URL is missing");
+}
+
 export const API_URLS = {
   guessCubeur: `${API_BASE}guess/cubeur/`,
   guessRanking: `${API_BASE}guess/ranking/`,
@@ -53,6 +57,8 @@ export function compareValues(userValue, targetValue, isYear = false) {
 
 export function formatRankingScore(score, eventSlug) {
   if (score == null) return "";
+
+  if (score <= 0) return "DNF";
 
   // Multi-Blind
   if (eventSlug === "333mbf") {
