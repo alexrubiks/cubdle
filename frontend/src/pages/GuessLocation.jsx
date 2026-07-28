@@ -271,27 +271,27 @@ function GuessLocation() {
         </div>
 
         {/* MAP */}
-        <div className="mx-auto w-full max-w-full px-1 md:px-0 flex justify-center">
-          <div className="inline-flex flex-col max-w-full">
-            <div className="h-[calc(100vh-340px)] aspect-[3/2] max-w-full border-4 border-black rounded-2xl overflow-hidden bg-white">
- 
+        <div className="mx-auto w-full px-1 md:px-0 flex justify-center">
+          <div className="w-full max-w-[900px] flex flex-col">
+            <div className="w-full aspect-[3/4] md:aspect-[3/2] border-4 border-black rounded-2xl overflow-hidden bg-white">
+              
               <LocationMap
                 guessPosition={guessPosition}
                 setGuessPosition={setGuessPosition}
                 result={result}
                 done={done}
               />
+              
             </div>
- 
+
             {!done && (
- 
               <button
                 onClick={submitGuess}
                 disabled={!guessPosition}
-                className="mt-4 w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40">
+                className="mt-4 w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold disabled:opacity-40"
+              >
                 Valider
               </button>
- 
             )}
           </div>
         </div>
