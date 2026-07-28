@@ -90,9 +90,9 @@ class Command(BaseCommand):
         for event in competition.events.all():
             # Épreuve déjà importée pour ce championnat -> les résultats d'un
             # championnat passé ne changent jamais, pas besoin de rappeler l'API
-            # if (competition.id, event.id) in self.done_pairs:
-            #     skipped += 1
-            #     continue
+            if (competition.id, event.id) in self.done_pairs:
+                skipped += 1
+                continue
 
             response = requests.get(
                 f"https://raw.githubusercontent.com/robiningelbrecht/wca-rest-api/refs/heads/v1/results/{competition.wca_id}/{event.slug}.json"
