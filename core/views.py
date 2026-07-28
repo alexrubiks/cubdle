@@ -218,12 +218,42 @@ def competition_search(request):
     query = request.query_params.get('q', '').strip()
     if len(query) < 2:
         return Response([])
+
+    query_norm = normalize(query)
+    terms = query_norm.split()
+
     already_guessed = int(request.query_params.get('exclude_count', 0))
     limit = 10 + already_guessed
-    competitions = Competition.objects.filter(name__icontains=query)[:limit]
-    serializer = CompetitionSearchSerializer(competitions, many=True)
-    return Response(serializer.data)
 
+    competitions = Competition.objects.all()
+
+    results = []
+
+    for competition in competitions:
+        full = normalize(competition.name)
+
+        if not all(term in full for term in terms):
+            continue
+
+        words = full.split()
+
+        if full.startswith(query_norm):
+            category = 0
+        elif all(any(word.startswith(term) for word in words) for term in terms):
+            category = 1
+        else:
+            category = 2
+
+        position = min(full.find(term) for term in terms)
+        results.append((category, position, full, competition))
+
+    results.sort(key=lambda x: (x[0], x[2]))
+
+    serializer = CompetitionSearchSerializer(
+        [competition for _, _, _, competition in results[:limit]],
+        many=True
+    )
+    return Response(serializer.data)
 
 @api_view(['POST'])
 def guess_cubeur(request):
