@@ -32,6 +32,8 @@ from .progress import (
     set_done,
 )
 
+SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+
 
 @api_view(["GET"])
 def me(request):
@@ -649,12 +651,18 @@ def guess_podium(request):
 
     correct = result.position <= 3
 
+    score = (
+        result.best
+        if challenge.podium_event.slug in SINGLE_ONLY_EVENTS
+        else result.average
+    )
+
     return Response({
         "correct": correct,
         "in_final": True,
         "name": f"{guessed.first_name} {guessed.last_name}",
         "position": result.position,
-        "score": result.average if result.average > 0 else result.best,
+        "score": score,
     })
 
 

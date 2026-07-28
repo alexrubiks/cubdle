@@ -58,6 +58,8 @@ export function compareValues(userValue, targetValue, isYear = false) {
 export function formatRankingScore(score, eventSlug) {
   if (score == null) return "";
 
+  if (score <= 0) return "DNF";
+
   // Multi-Blind
   if (eventSlug === "333mbf") {
     const misses = score % 100;

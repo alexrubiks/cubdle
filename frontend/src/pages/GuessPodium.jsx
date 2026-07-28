@@ -5,7 +5,7 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
@@ -59,7 +59,7 @@ function GuessRow({ guess, eventSlug }) {
       </div>
 
       <div className="px-3 py-2 text-center">
-        {guess.score
+        {guess.score != null
           ? formatRankingScore(guess.score, eventSlug)
           : "—"}
       </div>
@@ -238,6 +238,8 @@ function GuessPodium() {
     });
 
     const data = await res.json();
+
+    console.log(data.score);
 
     setQuery('');
     setResults([]);
