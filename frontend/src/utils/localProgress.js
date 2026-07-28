@@ -15,8 +15,19 @@ const DEFAULT_PROGRESS = {
 };
 
 
+function getTodayParisDateString() {
+  // Renvoie YYYY-MM-DD en heure de Paris, peu importe le fuseau du navigateur
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Europe/Paris',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return formatter.format(new Date()); // en-CA donne directement le format YYYY-MM-DD
+}
+
 function getStorageKey() {
-  return `${STORAGE_PREFIX}_${new Date().toISOString().slice(0, 10)}`;
+  return `${STORAGE_PREFIX}_${getTodayParisDateString()}`;
 }
 
 
