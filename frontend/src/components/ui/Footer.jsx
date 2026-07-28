@@ -37,11 +37,6 @@ export default function Footer({ onAccount, onAbout }) {
 
       </div>
 
-      {/* Mention WCA */}
-      <p className="font-body text-xs text-center text-white/70">
-        La WCA n'approuve ni ne sponsorise ce projet.
-      </p>
-
       {/* Liens */}
       <div className="flex items-center gap-2">
         <Link
