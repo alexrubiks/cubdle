@@ -258,6 +258,7 @@ function GuessLocation() {
                 </div>
               </div>
             }
+            link={`https://www.worldcubeassociation.org/competitions/${challenge.location_competition_id}`}
           />
         )}
 

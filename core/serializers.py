@@ -23,7 +23,7 @@ class CubeurSerializer(serializers.ModelSerializer):
             'id', 'wca_id', 'first_name', 'last_name',
             'gender', 'wca_year', 'competition_count',
             'gold_count', 'silver_count', 'bronze_count',
-            'is_active', 'rankings'
+            'is_active', 'rankings', 'avatar_url'
         ]
 
 
@@ -31,7 +31,7 @@ class CubeurSearchSerializer(serializers.ModelSerializer):
     """Serializer léger pour l'autocomplete"""
     class Meta:
         model = Cubeur
-        fields = ['id', 'wca_id', 'first_name', 'last_name']
+        fields = ['id', 'wca_id', 'first_name', 'last_name', 'avatar_url']
 
 
 class CompetitionSerializer(serializers.ModelSerializer):
@@ -66,7 +66,9 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
     podium_event = EventSerializer(read_only=True)
     podium_year = serializers.SerializerMethodField()
     podium_competition_name = serializers.SerializerMethodField()
+    podium_competition_id = serializers.SerializerMethodField()
     location_competition_name = serializers.SerializerMethodField()
+    location_competition_id = serializers.SerializerMethodField()
     ranking_cubeur = serializers.SerializerMethodField()
 
     class Meta:
@@ -76,15 +78,11 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
             'ranking_cubeur', 'ranking_event',
             'ranking_result_type',
             'podium_year', 'podium_event',
+            'podium_competition_id',
             'podium_competition_name',
+            'location_competition_id',
             'location_competition_name',
         ]
-
-    def get_podium_year(self, obj):
-        return obj.podium_competition.year if obj.podium_competition else None
-
-    def get_location_competition_name(self, obj):
-        return obj.location_competition.name if obj.location_competition else None
 
     def get_ranking_cubeur(self, obj):
         if not obj.ranking_cubeur:
@@ -95,7 +93,19 @@ class DailyChallengeSerializer(serializers.ModelSerializer):
             'avatar_url': obj.ranking_cubeur.avatar_url,
         }
     
+    def get_podium_year(self, obj):
+        return obj.podium_competition.year if obj.podium_competition else None
+
+    def get_podium_competition_id(self, obj):
+        return obj.podium_competition.wca_id if obj.podium_competition else None
+    
     def get_podium_competition_name(self, obj):
         return obj.podium_competition.name if obj.podium_competition else None
+
+    def get_location_competition_id(self, obj):
+        return obj.location_competition.wca_id if obj.location_competition else None
+    
+    def get_location_competition_name(self, obj):
+        return obj.location_competition.name if obj.location_competition else None
     
 

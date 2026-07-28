@@ -128,7 +128,7 @@ function GuessPodium() {
   const [challenge, setChallenge] = useState(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  
+  const [victory, setVictory] = useState(null);
   const [guesses, setGuesses] = useState(getGuesses("podium_guesses"));
   const [foundIds, setFoundIds] = useState(() =>getGuesses("podium_guesses").map(g => g.id));
   const [done, setDone] = useState(() => {
@@ -151,19 +151,6 @@ function GuessPodium() {
     };
   });
 
-  const [victory, setVictory] = useState(() => {
-    const saved = getGuesses("podium_guesses") ?? [];
-
-    const hasPodium =
-      saved.some(g => g.position === 1) &&
-      saved.some(g => g.position === 2) &&
-      saved.some(g => g.position === 3);
-
-    return hasPodium
-      ? { name: "le podium" }
-      : null;
-  });
-
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -174,6 +161,24 @@ function GuessPodium() {
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
+
+  useEffect(() => {
+    if (!challenge) return;
+
+    const saved = getGuesses("podium_guesses") ?? [];
+
+    const hasPodium =
+      saved.some(g => g.position === 1) &&
+      saved.some(g => g.position === 2) &&
+      saved.some(g => g.position === 3);
+
+    if (!hasPodium) return;
+
+    setVictory({
+      name: "le podium",
+    });
+
+  }, [challenge]);
 
   // SEARCH
   useEffect(() => {
@@ -355,6 +360,7 @@ function GuessPodium() {
             nextTo="/location"
             shareData={challenge}
             buildShareText={buildShareTextPodium}
+            link={`https://www.worldcubeassociation.org/competitions/${challenge.podium_competition_id}/results/all?event=${challenge.podium_event?.slug}`}
           />
 
         )}

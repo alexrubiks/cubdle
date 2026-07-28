@@ -4,7 +4,7 @@ from datetime import date
 from urllib.parse import urlencode
 
 from django.conf import settings
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -143,6 +143,29 @@ def build_hint(text, mistakes, first_at=10, every=5):
     letters = 1 + (mistakes - first_at) // every
 
     return text[:min(len(text), letters)]
+
+
+@api_view(['GET'])
+def cubeur_detail(request, pk):
+    cubeur = get_object_or_404(Cubeur, id=pk)
+
+    return Response({
+        "id": cubeur.id,
+        "wca_id": cubeur.wca_id,
+        "name": f"{cubeur.first_name} {cubeur.last_name}",
+        "avatar_url": cubeur.avatar_url,
+    })
+
+
+@api_view(['GET'])
+def competition_detail(request, pk):
+    competition = get_object_or_404(Competition, id=pk)
+
+    return Response({
+        "id": competition.id,
+        "name": competition.name,
+        "wca_id": competition.wca_id,
+    })
 
 
 @api_view(['GET'])

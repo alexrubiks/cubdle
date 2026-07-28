@@ -173,12 +173,19 @@ function GuessRanking() {
   }, []);
 
   useEffect(() => {
-    if (!challenge || !done || victory) return;
+    if (!challenge) return;
+
+    const previousVictory = getGuesses("ranking_guesses")
+      .find(g => g.correct);
+
+    if (!previousVictory) return;
 
     setVictory({
       name: challenge.ranking_cubeur.name,
+      wca_id: challenge.ranking_cubeur.wca_id,
     });
-  }, [challenge, done, victory]);
+
+  }, [challenge]);
 
   const submitGuess = async () => {
     if (done) return;
@@ -232,10 +239,12 @@ function GuessRanking() {
       setSolution({
         rank: data.rank,
         score: data.score,
+        persons: data.persons_at_rank ?? [],
       });
 
       setVictory({
         name: challenge.ranking_cubeur.name,
+        wca_id: challenge.ranking_cubeur.wca_id,
       });
     }
 
@@ -294,6 +303,7 @@ function GuessRanking() {
             nextTo="/podium"
             shareData={challenge}
             buildShareText={buildShareTextRanking}
+            link={`https://www.worldcubeassociation.org/persons/${victory.wca_id}`}
           />
         )}
 

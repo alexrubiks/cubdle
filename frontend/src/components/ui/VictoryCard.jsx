@@ -67,7 +67,7 @@ function ShareBlock({ guesses, buildShareText, shareData }) {
 }
 
 
-export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats}) {
+export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats, link, avatarUrl }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -81,25 +81,53 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
     >
       {/* ── GAUCHE : infos victoire ── */}
       <div className="flex flex-col items-center gap-4 flex-1">
+
         <p className="font-body text-sm text-black/50 text-center">
           {label ?? 'Bravo ! La réponse était :'}
         </p>
 
-        <span className="font-title font-extrabold text-2xl text-black text-center">
-          {name}
-        </span>
-
-        {stats ?? (
-          <div className="flex flex-col items-center gap-1">
-            <span className="font-body text-xs text-black/40 uppercase tracking-wide">
-              Trouvé en
+        <div className="flex flex-row items-center justify-center gap-5">
+          <div className="flex flex-col items-center gap-4">
+            <span className="font-title font-extrabold text-2xl text-black text-center">
+              {link ? (
+                <a 
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="decoration-2 hover:text-cubdle-background transition-colors"
+                >
+                  {name}
+                </a>
+              ) : (
+                name
+              )}
             </span>
 
-            <span className="font-title font-extrabold text-4xl text-cubdle-background">
-              {guesses.length} essai{guesses.length > 1 ? 's' : ''}
-            </span>
+            {stats ?? (
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+                  Trouvé en
+                </span>
+
+                <span className="font-title font-extrabold text-4xl text-cubdle-background">
+                  {guesses.length} essai{guesses.length > 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
           </div>
-        )}
+          
+          {avatarUrl && (
+            <div className="w-24 h-32 md:w-28 md:h-36 rounded-xl border-4 border-black overflow-hidden bg-black/5 flex-shrink-0">
+              <img
+                src={avatarUrl}
+                alt={name}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </div>
+          )}
+                    
+        </div>
 
         <div className="w-full h-[2px] bg-black/10 rounded-full" />
 
