@@ -56,9 +56,11 @@ export default function AccountModal({ onClose, user, onLogin, onLogout, onUpdat
 
         <div className="flex flex-col gap-2">
 
-          <h3 className="font-title font-bold text-black">
-            Compte WCA — <span className="font-normal">{user.wca_id}</span>
-          </h3>
+          {user && (
+            <h3 className="font-title font-bold text-black">
+              Compte WCA — <span className="font-normal">{user.wca_id}</span>
+            </h3>
+          )}
 
           {!user ? (
             <button
