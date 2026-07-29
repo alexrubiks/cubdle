@@ -85,9 +85,10 @@ def wca_callback(request):
         "https://www.worldcubeassociation.org/api/v0/me"
     )
 
-    wca_user = response.json()
-
     # 4) Créer ou récupérer le cubeur dans ta base
+    wca_data = response.json()
+    wca_user = wca_data["me"]
+
     user, _ = User.objects.get_or_create(
         wca_id=wca_user["id"],
         defaults={
