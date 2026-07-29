@@ -88,10 +88,9 @@ def wca_callback(request):
     # 4) Créer ou récupérer le cubeur dans ta base
     wca_data = response.json()
     wca_user = wca_data["me"]
-    print(wca_user)
 
     user, _ = User.objects.get_or_create(
-        wca_id=wca_user["id"],
+        wca_id=wca_user["wca_id"],
         defaults={
             "pseudo": wca_user["name"],
         }
