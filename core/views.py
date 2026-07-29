@@ -30,10 +30,17 @@ from .progress import (
     add_guess,
     get_error_count,
     set_done,
+    get_guesses,
+    get_error_count_from_dicts,
+    get_podium_wrong_count,
+    get_podium_names,
 )
 
 SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
 
+################################################################################
+#####  AUTH WCA  ###############################################################
+################################################################################
 
 @api_view(["GET"])
 def me(request):
@@ -104,6 +111,9 @@ def wca_callback(request):
         f"https://cubdle.alexrubiks.fr/auth/callback?{params}"
     )
 
+################################################################################
+#####  DAILY  ##################################################################
+################################################################################
 
 @api_view(['GET'])
 def daily_challenge(request):
@@ -128,6 +138,9 @@ def yesterday_challenge(request):
         "competition": challenge.competition.name if challenge.competition else None,
     })
 
+################################################################################
+#####  SEARCH  #################################################################
+################################################################################
 
 def normalize(s):
     return ''.join(
@@ -136,13 +149,23 @@ def normalize(s):
     ).lower()
 
 
-def build_hint(text, mistakes, first_at=10, every=5):
+def build_hint(text, mistakes, first_at=5, every=5):
     if mistakes < first_at:
         return ""
 
-    letters = 1 + (mistakes - first_at) // every
+    letters_to_reveal = 1 + (mistakes - first_at) // every
 
-    return text[:min(len(text), letters)]
+    revealed = []
+    count = 0
+
+    for char in text:
+        if count >= letters_to_reveal:
+            break
+        revealed.append(char)
+        if char.isalpha():
+            count += 1
+
+    return "".join(revealed)
 
 
 @api_view(['GET'])
@@ -255,6 +278,10 @@ def competition_search(request):
     )
     return Response(serializer.data)
 
+################################################################################
+#####  GUESSCUBEUR  ############################################################
+################################################################################
+
 @api_view(['POST'])
 def guess_cubeur(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
@@ -290,23 +317,26 @@ def guess_cubeur(request):
         "rankings": _compare_rankings(guessed, target),
     }
 
+    error_count = get_error_count(request, "cubeur_guesses", target.id)
+    print("DEBUG error_count:", error_count, "guesses stockés:", get_guesses(request, "cubeur_guesses"))
+
     return Response({
         "correct": correct,
         "guessed_name": f"{guessed.first_name} {guessed.last_name}",
         "comparison": comparison,
         "hint": None if correct else build_hint(
             f"{target.first_name} {target.last_name}",
-            get_error_count(request, "cubeur_guesses", target.id)
+            get_error_count(request, "cubeur_guesses", target.id),
+            first_at=5,
+            every=5,
         ),
     })
-
 
 def _compare_categorical(guessed_value, target_value):
     return {
         "value": guessed_value,
         "status": "correct" if guessed_value == target_value else "wrong",
     }
-
 
 def _compare_numeric(guessed_value, target_value, threshold=5):
     if guessed_value is None and target_value is None:
@@ -380,6 +410,10 @@ def _compare_rankings(guessed, target):
     return result
 
 
+################################################################################
+#####  GUESSCOMPET  ############################################################
+################################################################################
+
 @api_view(['POST'])
 def guess_compet(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
@@ -434,8 +468,13 @@ def guess_compet(request):
         "correct": correct,
         "guessed_name": guessed.name,
         "comparison": comparison,
+        "hint": None if correct else build_hint(
+            target.name,
+            get_error_count_from_dicts(request, "compet_guesses", target.id),
+            first_at=5,
+            every=5,
+        ),
     })
-
 
 def _compare_events(guessed_events, target_events):
     guessed_set = set(guessed_events)
@@ -449,7 +488,6 @@ def _compare_events(guessed_events, target_events):
             "status": g_has == t_has,
         }
     return per_slug
-
 
 def _compare_set_string(guessed_value, target_value):
     """Compare des strings type 'avril' ou 'avril-mai' / '2023' ou '2022-2023'"""
@@ -546,6 +584,9 @@ def _compare_list(guessed_list, target_list):
         status = "wrong"
     return {"status": status, "value": guessed_list}
 
+################################################################################
+#####  GUESSRANKING  ###########################################################
+################################################################################
 
 @api_view(['POST'])
 def guess_ranking(request):
@@ -674,6 +715,10 @@ def _get_persons_at_rank(event, result_type, guessed_rank):
         "resolved_rank": None,
     }
 
+################################################################################
+#####  GUESSPODIUM  ############################################################
+################################################################################
+
 @api_view(['POST'])
 def guess_podium(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
@@ -695,14 +740,33 @@ def guess_podium(request):
         cubeur=guessed,
     ).first()
 
+    correct = result is not None and result.position <= 3
+
+    add_guess(request, "podium_guesses", {
+        "id": guessed.id,
+        "name": f"{guessed.first_name} {guessed.last_name}",
+        "correct": correct,
+        "position": result.position if result else None,
+    })
+
+    # nombre d'essais qui n'ont touché aucune des 3 places
+    wrong_count = get_podium_wrong_count(request, "podium_guesses")
+
+    # noms des 3 places du podium, dans l'ordre 1/2/3
+    podium_names = get_podium_names(challenge)
+
+    hints = {
+        pos: build_hint(name, wrong_count, first_at=5, every=5)
+        for pos, name in podium_names.items()
+    }
+
     if result is None:
         return Response({
             "correct": False,
             "in_final": False,
             "name": f"{guessed.first_name} {guessed.last_name}",
+            "hints": hints,
         })
-
-    correct = result.position <= 3
 
     score = (
         result.best
@@ -716,8 +780,12 @@ def guess_podium(request):
         "name": f"{guessed.first_name} {guessed.last_name}",
         "position": result.position,
         "score": score,
+        "hints": hints,
     })
 
+################################################################################
+#####  GUESSLOCATION  ##########################################################
+################################################################################
 
 @api_view(['POST'])
 def guess_location(request):
@@ -784,6 +852,9 @@ DONE_FIELDS = [
     "location_done",
 ]
 
+################################################################################
+#####  PROGRESS  ###############################################################
+################################################################################
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])

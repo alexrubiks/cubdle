@@ -5,7 +5,7 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, saveLatestHint, getLatestHint } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
@@ -18,7 +18,7 @@ function buildShareTextPodium(guesses, challenge) {
   ].join('\n');
 }
 
-function PodiumRow({ medal, cubeur, eventSlug, color }) {
+function PodiumRow({ medal, cubeur, eventSlug, color, hint }) {
   return (
     <div
       className={`grid grid-cols-3 items-center border-b border-black/10 font-body text-sm ${
@@ -30,7 +30,9 @@ function PodiumRow({ medal, cubeur, eventSlug, color }) {
       </div>
 
       <div className="px-3 py-3 font-bold">
-        {cubeur ? cubeur.name : "???"}
+        {cubeur
+          ? cubeur.name
+          : (hint ? `${hint}...` : "???")}
       </div>
 
       <div className="px-3 py-3 text-center font-bold">
@@ -38,7 +40,6 @@ function PodiumRow({ medal, cubeur, eventSlug, color }) {
           ? formatRankingScore(cubeur.score, eventSlug)
           : "??"}
       </div>
-
     </div>
   );
 }
@@ -69,56 +70,31 @@ function GuessRow({ guess, eventSlug }) {
 }
 
 
-function PodiumTable({ podium, guesses, eventSlug }) {
+function PodiumTable({ podium, guesses, eventSlug, hints }) {
   return (
     <div className="border-2 border-black rounded-xl overflow-hidden bg-white mb-6">
-
-      {/* HEADER */}
       <div className="grid grid-cols-3 bg-black text-white font-body font-bold text-xs uppercase">
-
-        <div className="px-3 py-2 text-center">
-          Place
-        </div>
-
-        <div className="px-3 py-2">
-          Cubeur
-        </div>
-
-        <div className="px-3 py-2 text-center">
-          Temps
-        </div>
-
+        <div className="px-3 py-2 text-center">Place</div>
+        <div className="px-3 py-2">Cubeur</div>
+        <div className="px-3 py-2 text-center">Temps</div>
       </div>
 
-      {/* PODIUM */}
-      <PodiumRow medal="🥇" cubeur={podium[1]} eventSlug={eventSlug} color="bg-yellow-300/50" />
-      <PodiumRow medal="🥈" cubeur={podium[2]} eventSlug={eventSlug} color="bg-gray-300/70" />
-      <PodiumRow medal="🥉" cubeur={podium[3]} eventSlug={eventSlug} color="bg-orange-300/50" />
+      <PodiumRow medal="🥇" cubeur={podium[1]} eventSlug={eventSlug} color="bg-yellow-300/50" hint={hints[1]} />
+      <PodiumRow medal="🥈" cubeur={podium[2]} eventSlug={eventSlug} color="bg-gray-300/70" hint={hints[2]} />
+      <PodiumRow medal="🥉" cubeur={podium[3]} eventSlug={eventSlug} color="bg-orange-300/50" hint={hints[3]} />
 
       {/* MAUVAISES REPONSES */}
       {[...guesses]
         .filter(guess => !guess.correct)
         .sort((a, b) => {
-          // Ceux qui ont un classement passent avant
           if (a.position && !b.position) return -1;
           if (!a.position && b.position) return 1;
-
-          // Si les deux ont un classement, tri croissant
-          if (a.position && b.position) {
-            return a.position - b.position;
-          }
-
-          // Les deux sans classement restent à la fin
+          if (a.position && b.position) return a.position - b.position;
           return 0;
         })
         .map((guess, index) => (
-          <GuessRow
-            key={index}
-            guess={guess}
-            eventSlug={eventSlug}
-          />
+          <GuessRow key={index} guess={guess} eventSlug={eventSlug} />
         ))}
-
     </div>
   );
 }
@@ -130,10 +106,9 @@ function GuessPodium() {
   const [results, setResults] = useState([]);
   const [victory, setVictory] = useState(null);
   const [guesses, setGuesses] = useState(getGuesses("podium_guesses"));
-  const [foundIds, setFoundIds] = useState(() =>getGuesses("podium_guesses").map(g => g.id));
+  const [foundIds, setFoundIds] = useState(() => getGuesses("podium_guesses").map(g => g.id));
   const [done, setDone] = useState(() => {
-  const saved = getGuesses("podium_guesses") ?? [];
-
+    const saved = getGuesses("podium_guesses") ?? [];
     return (
       saved.some(g => g.position === 1) &&
       saved.some(g => g.position === 2) &&
@@ -143,13 +118,14 @@ function GuessPodium() {
 
   const [podium, setPodium] = useState(() => {
     const saved = getGuesses("podium_guesses") ?? [];
-
     return {
       1: saved.find(p => p.position === 1) ?? null,
       2: saved.find(p => p.position === 2) ?? null,
       3: saved.find(p => p.position === 3) ?? null,
     };
   });
+
+  const [hints, setHints] = useState(() => getLatestHint("podium_guesses") ?? {});
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -229,22 +205,21 @@ function GuessPodium() {
   }, []);
 
   const submitGuess = async (cubeur) => {
-
     if (done) return;
 
     const res = await fetch(API_URLS.guessPodium, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        cubeur_id: cubeur.id,
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ cubeur_id: cubeur.id }),
     });
 
     const data = await res.json();
 
-    console.log(data.score);
+    if (data.hints) {
+      setHints(data.hints);
+      saveLatestHint("podium_guesses", data.hints);
+    }
 
     setQuery('');
     setResults([]);
@@ -259,20 +234,17 @@ function GuessPodium() {
       in_final: data.in_final,
     };
 
-    const updatedGuesses = [
-      newGuess,
-      ...guesses,
-    ];
+    const updatedGuesses = [newGuess, ...guesses];
 
     setGuesses(updatedGuesses);
     addGuess("podium_guesses", newGuess);
-    setFoundIds(prev => [
-      ...prev,
-      cubeur.id,
-    ]);
+    setFoundIds(prev => [...prev, cubeur.id]);
+
+    if (data.hints) {
+      setHints(data.hints);
+    }
 
     if (data.correct) {
-
       const newPodium = {
         ...podium,
         [data.position]: {
@@ -285,19 +257,10 @@ function GuessPodium() {
 
       setPodium(newPodium);
 
-      if (
-        newPodium[1] &&
-        newPodium[2] &&
-        newPodium[3]
-      ) {
-
+      if (newPodium[1] && newPodium[2] && newPodium[3]) {
         saveDone("podium_done");
-
         setDone(true);
-
-        setVictory({
-          name: "le podium",
-        });
+        setVictory({ name: "le podium" });
       }
     }
 
@@ -478,6 +441,7 @@ function GuessPodium() {
             podium={podium}
             guesses={guesses}
             eventSlug={challenge.podium_event?.slug}
+            hints={hints}
           />
 
         </div>

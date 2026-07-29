@@ -7,7 +7,7 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCubeur } from '../components/games/cubeurColumns';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint } from '../utils/localProgress';
 
 
 function YesterdayCubeur() {
@@ -43,8 +43,16 @@ function GuessCubeur() {
   const [selectedIndex,  setSelectedIndex] = useState(-1);
   const [victory, setVictory] = useState(null);
   
+  const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur_guesses"));
+  const [revealedHint,   setRevealedHint]   = useState(null);
+  const [revealedTiers,  setRevealedTiers]  = useState(0);
+
   const inputRef    = useRef(null);
   const dropdownRef = useRef(null);
+
+  const HINT_INTERVAL = 5;
+  const unlockedTiers = Math.floor(guesses.length / HINT_INTERVAL);
+  const hintAvailable = unlockedTiers > revealedTiers;
 
   useEffect(() => {
     if (done) {
@@ -85,18 +93,14 @@ function GuessCubeur() {
 
   useEffect(() => {
     const saved = getGuesses("cubeur_guesses");
-    console.log("saved guesses:", saved);
 
     const previousVictory = saved.find(g => g.correct);
-    console.log("previous victory:", previousVictory);
 
     if (!previousVictory) return;
 
     fetch(API_URLS.cubeurDetail(previousVictory.id))
       .then(r => r.json())
       .then(data => {
-        console.log("cubeur detail:", data);
-
         setVictory({
           name: data.name,
           wca_id: data.wca_id,
@@ -115,14 +119,20 @@ function GuessCubeur() {
     const res = await fetch(API_URLS.guessCubeur, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ cubeur_id: cubeur.id }),
     });
 
     const data = await res.json();
+    console.log("data.hint reçu:", data.hint);
     const newGuess = { id: cubeur.id, name: data.guessed_name, comparison: data.comparison };
     const updated = [newGuess, ...guesses];
 
     setGuesses(updated);
+    
+    const hint = data.hint ?? null;
+    setLatestHint(hint);
+    saveLatestHint("cubeur_guesses", hint);
 
     if (data.correct) {
       saveDone("cubeur_done");
@@ -142,6 +152,13 @@ function GuessCubeur() {
     });
 
     inputRef.current?.focus();
+  };
+
+  const revealHint = () => {
+    console.log("hintAvailable:", hintAvailable, "latestHint:", latestHint);
+    if (!hintAvailable) return;
+    setRevealedHint(latestHint);
+    setRevealedTiers(unlockedTiers);
   };
 
   return (
@@ -193,64 +210,86 @@ function GuessCubeur() {
           />
         )}
 
-        {victory && console.log(victory.avatar_url)}
-
         {/* ── INPUT ── */}
         {!done && (
-          <div className="px-2 md:px-5 py-4 flex justify-center">
-            <div className="w-full md:w-1/2 relative" ref={dropdownRef}>
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
-                🔍
-              </span>
-              <input
-                ref={inputRef}
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                placeholder="Ex : Jonathan Dammann…"
-                autoComplete="off"
-                spellCheck={false}
-                onKeyDown={e => {
-                  if (e.key === 'ArrowDown') {
-                    e.preventDefault();
-                    setSelectedIndex(i => Math.min(i + 1, results.length - 1));
-                  } else if (e.key === 'ArrowUp') {
-                    e.preventDefault();
-                    setSelectedIndex(i => Math.max(i - 1, -1));
-                  } else if (e.key === 'Enter' && selectedIndex >= 0) {
-                    e.preventDefault();
-                    submitGuess(results[selectedIndex]);
-                  }
-                }}
-                className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
-              />
+          <div className="px-2 md:px-5 py-4 flex flex-col items-center gap-2">
 
-              {results.length > 0 && (
-                <ul
-                  role="listbox"
-                  className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg"
-                >
-                  {results.map((c, i) => (
-                    <li
-                      key={c.id}
-                      role="option"
-                      aria-selected={i === selectedIndex}
-                      onMouseDown={() => submitGuess(c)}
-                      onMouseEnter={() => setSelectedIndex(i)}
-                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
-                        ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
-                    >
-                      <span className="font-body text-sm font-medium flex-1 text-black">
-                        {c.first_name} {c.last_name}
-                      </span>
-                      {c.country_iso2 && (
-                        <span className="font-body text-xs text-black/40">
-                          {c.country_iso2}
+            {revealedHint && (
+              <div className="w-full md:w-1/2 text-center">
+                <span className="font-body text-sm text-white/70">
+                  Indice : <span className="font-bold text-cubdle-yellow">{revealedHint}...</span>
+                </span>
+              </div>
+            )}
+
+            <div className="w-full md:w-1/2 relative flex items-center gap-2" ref={dropdownRef}>
+              <div className="relative flex-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
+                  🔍
+                </span>
+                <input
+                  ref={inputRef}
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                  placeholder="Ex : Jonathan Dammann…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setSelectedIndex(i => Math.max(i - 1, -1));
+                    } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                      e.preventDefault();
+                      submitGuess(results[selectedIndex]);
+                    }
+                  }}
+                  className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+                />
+
+                {results.length > 0 && (
+                  <ul
+                    role="listbox"
+                    className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg"
+                  >
+                    {results.map((c, i) => (
+                      <li
+                        key={c.id}
+                        role="option"
+                        aria-selected={i === selectedIndex}
+                        onMouseDown={() => submitGuess(c)}
+                        onMouseEnter={() => setSelectedIndex(i)}
+                        className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
+                          ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
+                      >
+                        <span className="font-body text-sm font-medium flex-1 text-black">
+                          {c.first_name} {c.last_name}
                         </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+                        {c.country_iso2 && (
+                          <span className="font-body text-xs text-black/40">
+                            {c.country_iso2}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={revealHint}
+                disabled={!hintAvailable}
+                title={hintAvailable ? "Révéler un indice" : "Encore quelques essais avant le prochain indice"}
+                className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border-2 border-black text-lg transition-all
+                  ${hintAvailable
+                    ? 'bg-cubdle-yellow hover:scale-105 active:scale-95 cursor-pointer'
+                    : 'bg-white/20 text-white/30 cursor-not-allowed opacity-50'}`}
+              >
+                💡
+              </button>
             </div>
           </div>
         )}

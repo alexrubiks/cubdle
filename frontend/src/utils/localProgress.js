@@ -127,3 +127,14 @@ export function saveGuess(field, value) {
 export function resetProgress() {
   localStorage.removeItem(getStorageKey());
 }
+
+export function saveLatestHint(field, hint) {
+  const progress = loadProgress();
+  progress[`${field}_latest_hint`] = hint;
+  saveProgress(progress);
+}
+
+export function getLatestHint(field) {
+  const progress = loadProgress();
+  return progress[`${field}_latest_hint`] ?? null;
+}
