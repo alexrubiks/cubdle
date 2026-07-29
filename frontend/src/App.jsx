@@ -24,7 +24,21 @@ export default function App() {
 
   const [user, setUser] = useState(null);
 
+  const handleUpdatePseudo = (updatedUser) => {
+    setUser(updatedUser);
+  };
+
   useEffect(() => {
+    // Mock dev : simule un utilisateur connecté sans passer par le flow OAuth
+    console.log(import.meta.env.VITE_MOCK_USER)
+    if (import.meta.env.VITE_MOCK_USER === "true") {
+      setUser({
+        wca_id: "2022TREM02",
+        pseudo: "Alexis Tremellat",
+      });
+      return;
+    }
+
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
@@ -108,6 +122,7 @@ export default function App() {
           user={user}
           onLogin={loginWCA}
           onLogout={logoutWCA}
+          onUpdatePseudo={handleUpdatePseudo}
         />
       )}
     </div>

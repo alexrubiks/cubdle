@@ -17,6 +17,7 @@ export const API_URLS = {
   authMe: `${API_BASE}auth/me/`,
   authWcaLogin: `${API_BASE}auth/wca/login/`,
   authLogout: `${API_BASE}auth/logout/`,
+  authUpdatePseudo: `${API_BASE}auth/update-pseudo/`,
   cubeurDetail: (id) => `${API_BASE}cubeurs/${id}/`,
   competitionDetail: (id) => `${API_BASE}competitions/${id}/`,
 };

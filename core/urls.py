@@ -5,6 +5,7 @@ urlpatterns = [
     path("auth/me/", views.me),
     path("auth/wca/login/", views.wca_login),
     path("auth/wca/callback/", views.wca_callback),
+    path("auth/update-pseudo/", views.update_pseudo),
 
     path('daily/', views.daily_challenge),
     path('yesterday/', views.yesterday_challenge),

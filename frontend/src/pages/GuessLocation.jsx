@@ -216,7 +216,7 @@ function GuessLocation() {
             </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-8">
+          <span className="font-body text-2xl text-white/60 mt-12">
             Devine la localisation
           </span>
 

@@ -194,7 +194,7 @@ function GuessCubeur() {
             </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-8">Devine le cubeur</span>
+          <span className="font-body text-2xl text-white/60 mt-12">Devine le cubeur</span>
         </div>
 
         {/* ── VICTORY ── */}

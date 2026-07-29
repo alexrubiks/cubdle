@@ -112,6 +112,25 @@ def wca_callback(request):
         f"https://cubdle.alexrubiks.fr/auth/callback?{params}"
     )
 
+@api_view(["PATCH"])
+def update_pseudo(request):
+    pseudo = request.data.get("pseudo", "").strip()
+
+    if not pseudo:
+        return Response({"error": "Le pseudo ne peut pas être vide."}, status=400)
+
+    if len(pseudo) > 30:
+        return Response({"error": "Le pseudo est trop long (30 caractères max)."}, status=400)
+
+    user = request.user
+    user.pseudo = pseudo
+    user.save()
+
+    return Response({
+        "wca_id": user.wca_id,
+        "pseudo": user.pseudo,
+    })
+
 ################################################################################
 #####  DAILY  ##################################################################
 ################################################################################
