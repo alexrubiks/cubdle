@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { decodeJWT } from './components/auth/jwt';
 import Home from './pages/Home';
 import GuessCubeur from './pages/GuessCubeur';
 import GuessPodium from './pages/GuessPodium';
@@ -25,19 +26,27 @@ export default function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("access_token");
+    if (!token) return;
 
-    if (!token) {
-      return;
+    const decoded = decodeJWT(token);
+    if (decoded) {
+      // Affichage optimiste immédiat
+      setUser({ wca_id: decoded.wca_id, pseudo: decoded.pseudo });
     }
 
+    // Validation réelle en tâche de fond
     fetch(API_URLS.authMe, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { Authorization: `Bearer ${token}` },
     })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => setUser(data))
-      .catch(() => {});
+      .then((res) => {
+        if (!res.ok) throw new Error("Token invalide");
+        return res.json();
+      })
+      .then((data) => setUser(data))
+      .catch(() => {
+        localStorage.removeItem("access_token");
+        setUser(null);
+      });
   }, []);
 
   const loginWCA = () => {

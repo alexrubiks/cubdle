@@ -2,6 +2,10 @@ from django.urls import path
 from core import views
 
 urlpatterns = [
+    path("auth/me/", views.me),
+    path("auth/wca/login/", views.wca_login),
+    path("auth/wca/callback/", views.wca_callback),
+
     path('daily/', views.daily_challenge),
     path('yesterday/', views.yesterday_challenge),
     path("sync-progress/", views.sync_progress),
@@ -17,7 +21,4 @@ urlpatterns = [
 
     path('cubeurs/search/', views.cubeur_search),
     path('competitions/search/', views.competition_search),
-    
-    path("auth/wca/login/", views.wca_login),
-    path("auth/wca/callback/", views.wca_callback),
 ]

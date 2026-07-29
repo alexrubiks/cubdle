@@ -45,8 +45,8 @@ SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
 @api_view(["GET"])
 def me(request):
     return Response({
-        "wca_id": request.auth["wca_id"],
-        "pseudo": request.auth["pseudo"],
+        "wca_id": request.user.wca_id,
+        "pseudo": request.user.pseudo,
     })
 
 def wca_login(request):

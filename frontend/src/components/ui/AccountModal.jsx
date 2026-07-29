@@ -20,17 +20,7 @@ export default function AccountModal({ onClose, user, onLogin, onLogout }) {
 
             <button
               onClick={onLogin}
-              className="
-                w-full
-                py-3
-                bg-cubdle-yellow
-                border-4
-                border-black
-                rounded-xl
-                font-title
-                font-extrabold
-                hover:opacity-90
-              "
+              className="w-full py-3 bg-cubdle-yellow border-4 border-black rounded-xl font-title font-extrabold hover:opacity-90"
             >
               Se connecter avec la WCA
             </button>
@@ -39,32 +29,17 @@ export default function AccountModal({ onClose, user, onLogin, onLogout }) {
 
             <div className="flex flex-col gap-3">
 
-              <div className="
-                bg-black/5
-                rounded-xl
-                p-3
-                font-body
-                text-sm
-              ">
+              <div className=" bg-black/5 rounded-xl p-3 font-body text-sm">
                 Connecté en tant que :
                 <br />
                 <span className="font-bold">
-                  {user.name}
+                  {user.pseudo}
                 </span>
               </div>
 
               <button
                 onClick={onLogout}
-                className="
-                  w-full
-                  py-3
-                  bg-white
-                  border-4
-                  border-black
-                  rounded-xl
-                  font-title
-                  font-extrabold
-                "
+                className=" w-full py-3 bg-white border-4 border-black rounded-xl font-title font-extrabold"
               >
                 Se déconnecter
               </button>
