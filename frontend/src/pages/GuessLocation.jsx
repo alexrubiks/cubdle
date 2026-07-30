@@ -6,6 +6,9 @@ import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import GameNavCard from '../components/ui/GameNavCard';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { saveGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
 
 
@@ -126,6 +129,9 @@ function LocationMap({
 
 
 function GuessLocation() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   const [challenge, setChallenge] = useState(null);
   const savedGuess = getGuesses("location_guess");
   const [guessPosition, setGuessPosition] = useState(() => {
@@ -260,6 +266,7 @@ function GuessLocation() {
               </div>
             }
             link={`https://www.worldcubeassociation.org/competitions/${challenge.location_competition_id}`}
+            onLeaderboard={() => setShowLeaderboard(true)}
           />
         )}
 
@@ -297,6 +304,24 @@ function GuessLocation() {
             )}
           </div>
         </div>
+
+        {/* ── BOUTONS ── */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal 
+            onClose={() => setShowLeaderboard(false)}
+            initialGame="location"
+          />
+        )}
+        
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="location" onClose={() => setShowHowToPlay(false)} />
+        )}
+        
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Trophy } from 'lucide-react';
 
 function Countdown() {
   const [timeLeft, setTimeLeft] = useState('');
@@ -67,7 +68,7 @@ function ShareBlock({ guesses, buildShareText, shareData }) {
 }
 
 
-export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats, link, avatarUrl }) {
+export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats, link, avatarUrl, onLeaderboard }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -131,14 +132,35 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
 
         <div className="w-full h-[2px] bg-black/10 rounded-full" />
 
-        <div className="flex flex-col items-center gap-1">
-          <span className="font-body text-xs text-black/40 uppercase tracking-wide">
-            Prochain défi dans
-          </span>
-          <Countdown />
-          <span className="font-body text-[10px] text-black/30">
-            Europe · UTC+2
-          </span>
+        <div className="flex items-center justify-center gap-4">
+
+          <div className="flex flex-col items-center gap-1">
+            <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+              Prochain défi dans
+            </span>
+
+            <Countdown />
+
+            <span className="font-body text-[10px] text-black/30">
+              Europe · UTC+2
+            </span>
+          </div>
+
+          <button
+            onClick={onLeaderboard}
+            className="
+              flex h-11 w-11 items-center justify-center
+              rounded-xl border-2 border-black
+              bg-cubdle-yellow
+              transition-transform
+              hover:scale-105
+              active:scale-95
+            "
+            title="Classement du jour"
+          >
+            <Trophy size={20} />
+          </button>
+
         </div>
 
         {nextTo && (

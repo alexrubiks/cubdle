@@ -16,6 +16,7 @@ export const API_URLS = {
   yesterday: `${API_BASE}yesterday/`,
   progressSync: `${API_BASE}progress/sync/`,
   scoresSubmit: `${API_BASE}scores/submit/`,
+  leaderboard: `${API_BASE}leaderboard/`,
   authMe: `${API_BASE}auth/me/`,
   authWcaLogin: `${API_BASE}auth/wca/login/`,
   authLogout: `${API_BASE}auth/logout/`,

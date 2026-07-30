@@ -1,3 +1,7 @@
+import { useState } from 'react';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import MenuButton from '../components/ui/MenuButton';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { Link } from 'react-router-dom';
@@ -41,6 +45,8 @@ const MENU_ITEMS = [
 ];
 
 export default function Home() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   return (
     <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
@@ -71,6 +77,21 @@ export default function Home() {
             />
           ))}
         </div>
+
+        {/* BOUTONS */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal onClose={() => setShowLeaderboard(false)} />
+        )}
+
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="general" onClose={() => setShowHowToPlay(false)} />
+        )}
+
       </div>
     </div>
   );

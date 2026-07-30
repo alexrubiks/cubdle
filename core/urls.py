@@ -11,6 +11,7 @@ urlpatterns = [
     path('yesterday/', views.yesterday_challenge),
     path("progress/sync/", views.sync_daily_progress),
     path("scores/submit/", views.submit_score),
+    path("leaderboard/", views.daily_leaderboard),
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/competition/', views.guess_compet),

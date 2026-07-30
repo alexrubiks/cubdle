@@ -7,6 +7,9 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCubeur } from '../components/games/cubeurColumns';
 import GameNavCard from '../components/ui/GameNavCard';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
 
 
@@ -23,7 +26,7 @@ function YesterdayCubeur() {
   if (!name) return null;              // pas de données
 
   return (
-    <div className="flex flex-col items-center gap-1 h-[160px]">
+    <div className="flex flex-col items-center gap-1 h-[60px]">
       <span className="font-body font-bold text-xs text-black uppercase tracking-wide">
         Le cubeur d'hier était
       </span>
@@ -36,6 +39,9 @@ function YesterdayCubeur() {
 
 
 function GuessCubeur() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   const [query,          setQuery]   = useState('');
   const [results,        setResults] = useState([]);
   const [guesses,        setGuesses] = useState(getGuesses("cubeur_guesses"));
@@ -208,6 +214,7 @@ function GuessCubeur() {
             nextTo="/competition"
             buildShareText={buildShareTextCubeur}
             link={`https://www.worldcubeassociation.org/persons/${victory.wca_id}`}
+            onLeaderboard={() => setShowLeaderboard(true)}
           />
         )}
 
@@ -304,6 +311,20 @@ function GuessCubeur() {
 
         {/* ── CUBEUR D'HIER ── */}
         <YesterdayCubeur />
+
+        {/* ── BOUTONS ── */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal onClose={() => setShowLeaderboard(false)} />
+        )}
+
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="cubeur" onClose={() => setShowHowToPlay(false)} />
+        )}
       </div>
     </div>
   );

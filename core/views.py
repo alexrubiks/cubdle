@@ -848,16 +848,19 @@ def _haversine(lat1, lon1, lat2, lon2):
 
 
 def _location_score(distance_m, max_score=5000, scale=100000):
-    """Score décroissance exponentielle, calibré pour la France (~1000km de diagonale)"""
-    return round(max_score * math.exp(-distance_m / scale))
+    if distance_m <= 15:
+        return max_score
+
+    adjusted_distance = distance_m - 15
+
+    return round(
+        max_score * math.exp(-adjusted_distance / scale)
+    )
 
 
-def get_daily_progress(user):
-    return DailyProgress.objects.get_or_create(
-        user=user,
-        date=date.today()
-    )[0]
-
+################################################################################
+#####  PROGRESS  ###############################################################
+################################################################################
 
 GAME_LIST_FIELDS = [
     "cubeur_guesses",
@@ -875,9 +878,6 @@ DONE_FIELDS = [
     "location_done",
 ]
 
-################################################################################
-#####  PROGRESS  ###############################################################
-################################################################################
 
 GAME_FIELDS = {
     "cubeur": ("cubeur_guesses", "cubeur_done", list),
@@ -886,6 +886,13 @@ GAME_FIELDS = {
     "podium": ("podium_guesses", "podium_done", list),
     "location": ("location_guess", "location_done", dict),
 }
+
+
+def get_daily_progress(user):
+    return DailyProgress.objects.get_or_create(
+        user=user,
+        date=date.today()
+    )[0]
 
 
 @api_view(["POST"])
@@ -965,3 +972,43 @@ def submit_score(request):
         })
 
     return Response({"score": score.score}, status=201)
+
+
+GAME_SORT_ORDER = {
+    "cubeur": "asc",
+    "compet": "asc",
+    "ranking": "asc",
+    "podium": "asc",
+    "location": "desc",
+}
+
+
+@api_view(["GET"])
+def daily_leaderboard(request):
+    game_slug = request.GET.get("game")
+
+    if game_slug not in GAME_SORT_ORDER:
+        return Response({"error": "Jeu invalide."}, status=400)
+
+    try:
+        game = Game.objects.get(slug=game_slug)
+    except Game.DoesNotExist:
+        return Response({"error": "Jeu introuvable."}, status=404)
+
+    today = timezone.localdate()
+    order = "score" if GAME_SORT_ORDER[game_slug] == "asc" else "-score"
+
+    scores = (
+        Score.objects
+        .filter(game=game, date=today)
+        .select_related("user")
+        .order_by(order)
+    )
+
+    return Response([
+        {
+            "pseudo": s.user.pseudo,
+            "score": s.score,
+        }
+        for s in scores
+    ])

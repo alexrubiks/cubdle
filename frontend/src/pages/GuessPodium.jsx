@@ -5,6 +5,9 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
@@ -101,6 +104,9 @@ function PodiumTable({ podium, guesses, eventSlug, hints }) {
 
 
 function GuessPodium() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   const [challenge, setChallenge] = useState(null);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
@@ -325,6 +331,7 @@ function GuessPodium() {
             shareData={challenge}
             buildShareText={buildShareTextPodium}
             link={`https://www.worldcubeassociation.org/competitions/${challenge.podium_competition_id}/results/all?event=${challenge.podium_event?.slug}`}
+            onLeaderboard={() => setShowLeaderboard(true)}
           />
 
         )}
@@ -446,6 +453,24 @@ function GuessPodium() {
           />
 
         </div>
+
+        {/* ── BOUTONS ── */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal 
+            onClose={() => setShowLeaderboard(false)}
+            initialGame="podium"
+          />
+        )}
+
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="podium" onClose={() => setShowHowToPlay(false)} />
+        )}
+
       </div>
     </div>
   );

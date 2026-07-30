@@ -7,6 +7,9 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCompet } from '../components/games/competColumns';
 import GameNavCard from '../components/ui/GameNavCard';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
 
 
@@ -23,7 +26,7 @@ function YesterdayCompet() {
   if (!name) return null;              // pas de données
 
   return (
-    <div className="flex flex-col items-center gap-1 h-[160px]">
+    <div className="flex flex-col items-center gap-1 h-[60px]">
       <span className="font-body font-bold text-xs text-black uppercase tracking-wide">
         La compétition d'hier était
       </span>
@@ -36,6 +39,9 @@ function YesterdayCompet() {
 
 
 function GuessCompet() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   const [query,          setQuery]   = useState('');
   const [results,        setResults] = useState([]);
   const [guesses,        setGuesses] = useState(getGuesses("compet_guesses"));
@@ -206,6 +212,7 @@ function GuessCompet() {
             nextTo="/ranking"
             buildShareText={buildShareTextCompet}
             link={`https://www.worldcubeassociation.org/competitions/${victory.wca_id}`}
+            onLeaderboard={() => setShowLeaderboard(true)}
           />
         )}
 
@@ -302,6 +309,23 @@ function GuessCompet() {
 
         {/* ── COMPÉT D'HIER ── */}
         <YesterdayCompet />
+
+        {/* ── BOUTONS ── */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal 
+            onClose={() => setShowLeaderboard(false)}
+            initialGame="compet"
+          />
+        )}
+
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="compet" onClose={() => setShowHowToPlay(false)} />
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,9 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
+import ActionButtons from '../components/ui/ActionButtons';
+import LeaderboardModal from '../components/ui/LeaderboardModal';
+import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
 
 function buildShareTextRanking(guesses, challenge) {
@@ -146,6 +149,9 @@ function RankingTable({ challenge, guesses, solution }) {
 }
 
 function GuessRanking() {
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showHowToPlay, setShowHowToPlay] = useState(false);
+
   const [challenge, setChallenge] = useState(null);
   const [rank, setRank] = useState('');
   const [guesses, setGuesses] = useState(getGuesses("ranking_guesses"));
@@ -302,6 +308,7 @@ function GuessRanking() {
             shareData={challenge}
             buildShareText={buildShareTextRanking}
             link={`https://www.worldcubeassociation.org/persons/${victory.wca_id}`}
+            onLeaderboard={() => setShowLeaderboard(true)}
           />
         )}
 
@@ -363,6 +370,24 @@ function GuessRanking() {
           />
 
         </div>
+
+        {/* ── BOUTONS ── */}
+        <ActionButtons
+          onLeaderboard={() => setShowLeaderboard(true)}
+          onHowToPlay={() => setShowHowToPlay(true)}
+        />
+
+        {showLeaderboard && (
+          <LeaderboardModal 
+            onClose={() => setShowLeaderboard(false)}
+            initialGame="ranking"
+          />
+        )}
+
+        {showHowToPlay && (
+          <HowToPlayModal gameKey="ranking" onClose={() => setShowHowToPlay(false)} />
+        )}
+
       </div>
     </div>
   );
