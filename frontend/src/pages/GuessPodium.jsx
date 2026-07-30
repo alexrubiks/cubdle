@@ -5,13 +5,13 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, saveLatestHint, getLatestHint } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
     '🎯 Cubdle — Devine le Podium 🥇🥈🏅',
     `${challenge.podium_competition_name} - ${challenge.podium_event?.name}`,
-        '',
+    '',
     `Trouvé en ${guesses.length - 3} erreur${guesses.length - 3 > 1 ? 's' : ''} !`,
     '',
     'https://cubdle.alexrubiks.fr',
@@ -261,6 +261,7 @@ function GuessPodium() {
         saveDone("podium_done");
         setDone(true);
         setVictory({ name: "le podium" });
+        submitScore("podium", updatedGuesses.length - 3);
       }
     }
 

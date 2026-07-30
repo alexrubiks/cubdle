@@ -9,7 +9,8 @@ urlpatterns = [
 
     path('daily/', views.daily_challenge),
     path('yesterday/', views.yesterday_challenge),
-    path("sync-progress/", views.sync_progress),
+    path("progress/sync/", views.sync_daily_progress),
+    path("scores/submit/", views.submit_score),
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/competition/', views.guess_compet),

@@ -7,7 +7,7 @@ import VictoryCard from '../components/ui/VictoryCard';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { buildShareTextCubeur } from '../components/games/cubeurColumns';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
 
 
 function YesterdayCubeur() {
@@ -142,6 +142,7 @@ function GuessCubeur() {
         wca_id: cubeur.wca_id,
         avatar_url: cubeur.avatar_url,
       });
+      submitScore("cubeur", guesses.length + 1);
     }
 
     addGuess("cubeur_guesses", {

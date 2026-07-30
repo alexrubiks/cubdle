@@ -15,7 +15,7 @@ import AboutModal from './components/ui/AboutModal';
 import AccountModal from './components/ui/AccountModal';
 import AuthCallback from './components/auth/AuthCallback';
 import { API_URLS } from './utils';
-
+import { loadProgress, saveProgress, resetProgress } from "./utils/localProgress";
 
 
 export default function App() {
@@ -28,9 +28,33 @@ export default function App() {
     setUser(updatedUser);
   };
 
+  const syncProgress = async (token) => {
+    const localProgress = loadProgress();
+
+    try {
+      const res = await fetch(API_URLS.progressSync, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ local_progress: localProgress }),
+      });
+
+      if (!res.ok) throw new Error("Sync échouée");
+
+      const merged = await res.json();
+      const current = loadProgress();
+      saveProgress({ ...current, ...merged });
+
+    } catch {
+      // échec réseau : on garde le localStorage tel quel, rien ne change
+    }
+  };
+
+
   useEffect(() => {
     // Mock dev : simule un utilisateur connecté sans passer par le flow OAuth
-    console.log(import.meta.env.VITE_MOCK_USER)
     if (import.meta.env.VITE_MOCK_USER === "true") {
       setUser({
         wca_id: "2022TREM02",
@@ -44,11 +68,9 @@ export default function App() {
 
     const decoded = decodeJWT(token);
     if (decoded) {
-      // Affichage optimiste immédiat
       setUser({ wca_id: decoded.wca_id, pseudo: decoded.pseudo });
     }
 
-    // Validation réelle en tâche de fond
     fetch(API_URLS.authMe, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -56,7 +78,10 @@ export default function App() {
         if (!res.ok) throw new Error("Token invalide");
         return res.json();
       })
-      .then((data) => setUser(data))
+      .then(async (data) => {
+        setUser(data);
+        await syncProgress(token);
+      })
       .catch(() => {
         localStorage.removeItem("access_token");
         setUser(null);
@@ -69,7 +94,9 @@ export default function App() {
 
   const logoutWCA = () => {
     localStorage.removeItem("access_token");
+    resetProgress();
     setUser(null);
+    window.location.reload();
   };
 
   useEffect(() => {

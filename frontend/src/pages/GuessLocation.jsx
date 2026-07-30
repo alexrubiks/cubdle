@@ -6,7 +6,7 @@ import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import GameNavCard from '../components/ui/GameNavCard';
-import { saveGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+import { saveGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
 
 
 const guessIcon = L.divIcon({
@@ -179,6 +179,7 @@ function GuessLocation() {
     setResult(data);
     setDone(true);
 
+    submitScore("location", data.score);
   };
 
   if (!challenge) return null;

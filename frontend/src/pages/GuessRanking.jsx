@@ -5,13 +5,13 @@ import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
 import { formatRankingScore } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
-import { addGuess, saveDone, getGuesses, getDone } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
 
 function buildShareTextRanking(guesses, challenge) {
   return [
     '🎯 Cubdle — Devine le Classement 1️⃣',
     `${challenge.ranking_cubeur.name} - ${challenge.ranking_event.name} ${challenge.ranking_event.slug != "333mbf" ? '- ' + challenge.ranking_result_type : ''}`,
-        '',
+    '',
     `Trouvé en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !`,
     '',
     'https://cubdle.alexrubiks.fr',
@@ -233,19 +233,17 @@ function GuessRanking() {
 
     if (data.correct) {
       saveDone("ranking_done");
-
       setDone(true);
-
       setSolution({
         rank: data.rank,
         score: data.score,
         persons: data.persons_at_rank ?? [],
       });
-
       setVictory({
         name: challenge.ranking_cubeur.name,
         wca_id: challenge.ranking_cubeur.wca_id,
       });
+      submitScore("ranking", guesses.length + 1)
     }
 
     setRank('');

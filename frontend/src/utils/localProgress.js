@@ -1,3 +1,5 @@
+import { API_URLS } from "../utils";
+
 const STORAGE_PREFIX = "cubdle_progress";
 
 const DEFAULT_PROGRESS = {
@@ -137,4 +139,22 @@ export function saveLatestHint(field, hint) {
 export function getLatestHint(field) {
   const progress = loadProgress();
   return progress[`${field}_latest_hint`] ?? null;
+}
+
+export async function submitScore(game, score) {
+  const token = localStorage.getItem("access_token");
+  if (!token) return; // pas connecté, pas de sauvegarde serveur
+
+  try {
+    await fetch(API_URLS.scoresSubmit, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ game, score }),
+    });
+  } catch {
+    // échec silencieux, non bloquant pour le jeu
+  }
 }
