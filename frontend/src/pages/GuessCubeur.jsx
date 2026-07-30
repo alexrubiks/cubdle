@@ -71,13 +71,22 @@ function GuessCubeur() {
       return;
     }
 
-    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}`)
+    const controller = new AbortController();
+
+    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}`, {
+      signal: controller.signal
+    })
       .then(r => r.json())
       .then(data =>
         setResults(
           data.filter(c => !guesses.find(g => g.id === c.id))
         )
-      );
+      )
+      .catch(err => {
+        if (err.name !== 'AbortError') console.error(err);
+      });
+
+    return () => controller.abort();
 
   }, [query, guesses, done]);
 

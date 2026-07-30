@@ -77,13 +77,22 @@ function GuessCompet() {
       return;
     }
 
-    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`)
+    const controller = new AbortController();
+
+    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`, {
+      signal: controller.signal
+    })
       .then(r => r.json())
       .then(data =>
         setResults(
           data.filter(c => !guesses.find(g => g.id === c.id))
         )
-      );
+      )
+      .catch(err => {
+        if (err.name !== 'AbortError') console.error(err);
+      });
+
+    return () => controller.abort();
 
   }, [query, guesses, done]);
 
