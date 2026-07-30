@@ -78,16 +78,13 @@ function GuessCompet() {
     }
 
     const controller = new AbortController();
+    const excludeIds = guesses.map(g => g.id).join(',');
 
-    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_count=${guesses.length}`, {
+    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}`, {
       signal: controller.signal
     })
       .then(r => r.json())
-      .then(data =>
-        setResults(
-          data.filter(c => !guesses.find(g => g.id === c.id))
-        )
-      )
+      .then(data => setResults(data))
       .catch(err => {
         if (err.name !== 'AbortError') console.error(err);
       });

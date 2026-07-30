@@ -224,11 +224,16 @@ def cubeur_search(request):
     terms = query_norm.split()
 
     active_only = request.query_params.get("active_only", "true").lower() == "true"
+    exclude_ids = request.query_params.get("exclude_ids", "")
+    exclude_ids = [int(i) for i in exclude_ids.split(",") if i.strip().isdigit()]
 
     cubeurs = Cubeur.objects.all()
 
     if active_only:
         cubeurs = cubeurs.filter(is_active=True)
+
+    if exclude_ids:
+        cubeurs = cubeurs.exclude(id__in=exclude_ids)
 
     results = []
 
@@ -268,10 +273,13 @@ def competition_search(request):
     query_norm = normalize(query)
     terms = query_norm.split()
 
-    already_guessed = int(request.query_params.get('exclude_count', 0))
-    limit = 10 + already_guessed
+    exclude_ids = request.query_params.get("exclude_ids", "")
+    exclude_ids = [int(i) for i in exclude_ids.split(",") if i.strip().isdigit()]
 
     competitions = Competition.objects.all()
+
+    if exclude_ids:
+        competitions = competitions.exclude(id__in=exclude_ids)
 
     results = []
 
@@ -296,7 +304,7 @@ def competition_search(request):
     results.sort(key=lambda x: (x[0], x[2]))
 
     serializer = CompetitionSearchSerializer(
-        [competition for _, _, _, competition in results[:limit]],
+        [competition for _, _, _, competition in results[:10]],
         many=True
     )
     return Response(serializer.data)

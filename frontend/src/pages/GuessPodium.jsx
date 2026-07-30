@@ -175,16 +175,13 @@ function GuessPodium() {
     }
 
     const controller = new AbortController();
+    const excludeIds = foundIds.join(',');
 
-    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&active_only=false`, {
+    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&active_only=false&exclude_ids=${excludeIds}`, {
       signal: controller.signal
     })
       .then(r => r.json())
-      .then(data =>
-        setResults(
-          data.filter(c => !foundIds.includes(c.id))
-        )
-      )
+      .then(data => setResults(data))
       .catch(err => {
         if (err.name !== 'AbortError') console.error(err);
       });
