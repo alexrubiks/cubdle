@@ -931,6 +931,8 @@ def serialize_progress(progress):
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def daily_progress(request):
+    print(request.data)
+    
     progress = get_daily_progress(request.user)
 
     if request.method == "POST":
@@ -945,6 +947,7 @@ def daily_progress(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def sync_daily_progress(request):
+    print(request.data)
     """
     Fusionne le localStorage envoyé par le front avec le DailyProgress
     du jour en base. Pour chaque jeu, si des guesses existent déjà en
