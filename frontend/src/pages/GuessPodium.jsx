@@ -111,6 +111,7 @@ function GuessPodium() {
 
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const [victory, setVictory] = useState(null);
 
@@ -200,94 +201,103 @@ function GuessPodium() {
   }, []);
 
   const submitGuess = async (cubeur) => {
-    if (done) return;
+    if (done || submitting) return;
 
-    const res = await fetch(API_URLS.guessPodium, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      credentials: "include",
-      body: JSON.stringify({
-        cubeur_id: cubeur.id,
-      }),
-    });
+    setSubmitting(true);
 
-    const data = await res.json();
-
-    setQuery("");
-    setResults([]);
-    setSelectedIndex(-1);
-
-    if (data.hints !== undefined) {
-      setHints(data.hints);
-      saveLatestHint(
-        "podium",
-        data.hints
-      );
-    }
-
-    const newGuess = {
-      id: cubeur.id,
-      name: data.name,
-      correct: data.correct,
-      position: data.position ?? null,
-      score: data.score ?? null,
-      in_final: data.in_final,
-    };
-
-    const updatedGuesses = [
-      newGuess,
-      ...guesses,
-    ];
-
-    setGuesses(updatedGuesses);
-
-    addGuess(
-      "podium_guesses",
-      newGuess
-    );
-
-    setFoundIds(prev => [
-      ...prev,
-      cubeur.id,
-    ]);
-
-    if (data.correct) {
-
-      const newPodium = {
-        ...podium,
-        [data.position]: {
-          id: cubeur.id,
-          name: data.name,
-          score: data.score,
-          position: data.position,
+    try {
+      const res = await fetch(API_URLS.guessPodium, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      };
+        credentials: "include",
+        body: JSON.stringify({
+          cubeur_id: cubeur.id,
+        }),
+      });
 
-      setPodium(newPodium);
+      const data = await res.json();
 
-      if (
-        newPodium[1] &&
-        newPodium[2] &&
-        newPodium[3]
-      ) {
-        saveDone("podium_done");
+      setQuery("");
+      setResults([]);
+      setSelectedIndex(-1);
 
-        setDone(true);
-
-        setVictory({
-          name: "le podium",
-        });
-
-        submitScore(
+      if (data.hints !== undefined) {
+        setHints(data.hints);
+        saveLatestHint(
           "podium",
-          updatedGuesses.length - 3
+          data.hints
         );
       }
-    }
 
-    inputRef.current?.focus();
+      const newGuess = {
+        id: cubeur.id,
+        name: data.name,
+        correct: data.correct,
+        position: data.position ?? null,
+        score: data.score ?? null,
+        in_final: data.in_final,
+      };
+
+      const updatedGuesses = [
+        newGuess,
+        ...guesses,
+      ];
+
+      setGuesses(updatedGuesses);
+
+      addGuess(
+        "podium_guesses",
+        newGuess
+      );
+
+      setFoundIds(prev => [
+        ...prev,
+        cubeur.id,
+      ]);
+
+      if (data.correct) {
+
+        const newPodium = {
+          ...podium,
+          [data.position]: {
+            id: cubeur.id,
+            name: data.name,
+            score: data.score,
+            position: data.position,
+          },
+        };
+
+        setPodium(newPodium);
+
+        if (
+          newPodium[1] &&
+          newPodium[2] &&
+          newPodium[3]
+        ) {
+          saveDone("podium_done");
+
+          setDone(true);
+
+          setVictory({
+            name: "le podium",
+          });
+
+          submitScore(
+            "podium",
+            updatedGuesses.length - 3
+          );
+        }
+      }
+
+    } catch (error) {
+      console.error("Erreur pendant le guess podium :", error);
+
+    } finally {
+      setSubmitting(false);
+      inputRef.current?.focus();
+    }
   };
 
   if (!challenge) return null;
@@ -373,7 +383,7 @@ function GuessPodium() {
                 placeholder="Ex : Max Park..."
                 autoComplete="off"
                 spellCheck={false}
-
+                disabled={submitting}
                 onKeyDown={e => {
                   if (e.key === 'ArrowDown') {
                     e.preventDefault();
@@ -389,14 +399,18 @@ function GuessPodium() {
                       Math.max(i - 1, -1)
                     );
 
-                  } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                  } else if (
+                    e.key === 'Enter' &&
+                    selectedIndex >= 0 &&
+                    !submitting
+                  ) {
                     e.preventDefault();
 
                     submitGuess(results[selectedIndex]);
                   }
                 }}
 
-                className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+                className={`w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors ${submitting ? "opacity-50" : ""}`}
               />
 
               {results.length > 0 && (
@@ -408,7 +422,11 @@ function GuessPodium() {
                       key={c.id}
                       role="option"
                       aria-selected={i === selectedIndex}
-                      onMouseDown={() => submitGuess(c)}
+                      onMouseDown={() => {
+                        if (!submitting) {
+                          submitGuess(c);
+                        }
+                      }}
                       onMouseEnter={() => setSelectedIndex(i)}
                       className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors font-body text-sm
                         ${

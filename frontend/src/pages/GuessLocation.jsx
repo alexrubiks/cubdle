@@ -9,7 +9,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { saveGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
+import { saveGuess, saveDone, submitScore, refreshFromServer } from '../utils/localProgress';
 
 
 const guessIcon = L.divIcon({

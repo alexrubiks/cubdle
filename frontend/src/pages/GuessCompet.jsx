@@ -47,6 +47,7 @@ function GuessCompet() {
 
   const [guesses, setGuesses] = useState(() => getGuesses("compet_guesses"));
   const [done, setDone] = useState(() => getDone("compet_done"));
+  const [submitting, setSubmitting] = useState(false);
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [victory, setVictory] = useState(null);
@@ -87,7 +88,6 @@ function GuessCompet() {
     });
   }, []);
 
-
   // SEARCH
   useEffect(() => {
     if (done) {
@@ -124,12 +124,10 @@ function GuessCompet() {
 
   }, [query, guesses, done]);
 
-
   // RESET SELECTION
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);
-
 
   // CLICK OUTSIDE
   useEffect(() => {
@@ -156,79 +154,78 @@ function GuessCompet() {
 
   }, []);
 
-
   const submitGuess = async (compet) => {
+    if (done || submitting) return;
+
+    setSubmitting(true);
+
     setQuery('');
     setResults([]);
 
-    if (done) return;
-
-
-    const res = await fetch(API_URLS.guessCompet, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      credentials: 'include',
-      body: JSON.stringify({
-        competition_id: compet.id
-      }),
-    });
-
-
-    const data = await res.json();
-
-
-    if (data.hint !== undefined) {
-      setLatestHint(data.hint);
-      saveLatestHint(
-        "compet",
-        data.hint
-      );
-    }
-
-
-    const newGuess = {
-      id: compet.id,
-      name: data.guessed_name,
-      comparison: data.comparison,
-      correct: data.correct,
-    };
-
-
-    const updated = [
-      newGuess,
-      ...guesses
-    ];
-
-
-    setGuesses(updated);
-
-    addGuess(
-      "compet_guesses",
-      newGuess
-    );
-
-
-    if (data.correct) {
-      saveDone("compet_done");
-      setDone(true);
-
-      setVictory({
-        name: data.guessed_name,
-        wca_id: compet.wca_id,
+    try {
+      const res = await fetch(API_URLS.guessCompet, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          competition_id: compet.id
+        }),
       });
 
-      submitScore(
-        "compet",
-        updated.length
+      const data = await res.json();
+
+      if (data.hint !== undefined) {
+        setLatestHint(data.hint);
+        saveLatestHint(
+          "compet",
+          data.hint
+        );
+      }
+
+      const newGuess = {
+        id: compet.id,
+        name: data.guessed_name,
+        comparison: data.comparison,
+        correct: data.correct,
+      };
+
+      const updated = [
+        newGuess,
+        ...guesses
+      ];
+
+      setGuesses(updated);
+
+      addGuess(
+        "compet_guesses",
+        newGuess
       );
+
+      if (data.correct) {
+        saveDone("compet_done");
+        setDone(true);
+
+        setVictory({
+          name: data.guessed_name,
+          wca_id: compet.wca_id,
+        });
+
+        submitScore(
+          "compet",
+          updated.length
+        );
+      }
+
+    } catch (error) {
+      console.error("Erreur pendant le guess compétition :", error);
+
+    } finally {
+      setSubmitting(false);
+      inputRef.current?.focus();
     }
-
-
-    inputRef.current?.focus();
   };
-
 
   const revealHint = () => {
     if (!hintAvailable) return;
@@ -310,6 +307,7 @@ function GuessCompet() {
                   placeholder="Ex : Chevry Miel 2025…"
                   autoComplete="off"
                   spellCheck={false}
+                  disabled={submitting}
                   onKeyDown={e => {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
@@ -322,7 +320,7 @@ function GuessCompet() {
                       submitGuess(results[selectedIndex]);
                     }
                   }}
-                  className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+                  className={`${submitting ? "opacity-50" : ""} w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
 
                 {results.length > 0 && (
@@ -335,7 +333,7 @@ function GuessCompet() {
                         key={c.id}
                         role="option"
                         aria-selected={i === selectedIndex}
-                        onMouseDown={() => submitGuess(c)}
+                        onMouseDown={() => !submitting && submitGuess(c)}
                         onMouseEnter={() => setSelectedIndex(i)}
                         className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
                           ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}

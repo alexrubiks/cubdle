@@ -157,6 +157,7 @@ function GuessRanking() {
 
   const [guesses, setGuesses] = useState(() => getGuesses("ranking_guesses"));
   const [done, setDone] = useState(() => getDone("ranking_done"));
+  const [submitting, setSubmitting] = useState(false);
 
   const [victory, setVictory] = useState(null);
 
@@ -221,7 +222,7 @@ function GuessRanking() {
   }, [challenge]);
 
   const submitGuess = async () => {
-    if (done) return;
+    if (done || submitting) return;
 
     const value = Number(rank);
 
@@ -237,63 +238,71 @@ function GuessRanking() {
       return;
     }
 
-    const res = await fetch(API_URLS.guessRanking, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    setSubmitting(true);
+
+    try {
+      const res = await fetch(API_URLS.guessRanking, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rank: value,
+        }),
+      });
+
+      const data = await res.json();
+
+      const newGuess = {
         rank: value,
-      }),
-    });
-
-    const data = await res.json();
-
-    const newGuess = {
-      rank: value,
-      blockedRanks: data.blocked_ranks ?? [],
-      persons: data.persons_at_rank ?? [],
-      direction: data.direction,
-      correct: data.correct,
-      score: data.score ?? null,
-    };
-
-    const updated = [
-      newGuess,
-      ...guesses.filter(g => g.rank !== value),
-    ];
-
-    setGuesses(updated);
-
-    addGuess(
-      "ranking_guesses",
-      newGuess
-    );
-
-    if (data.correct) {
-      saveDone("ranking_done");
-      setDone(true);
-
-      setSolution({
-        rank: data.rank,
-        score: data.score,
+        blockedRanks: data.blocked_ranks ?? [],
         persons: data.persons_at_rank ?? [],
-      });
+        direction: data.direction,
+        correct: data.correct,
+        score: data.score ?? null,
+      };
 
-      setVictory({
-        name: challenge.ranking_cubeur.name,
-        wca_id: challenge.ranking_cubeur.wca_id,
-      });
+      const updated = [
+        newGuess,
+        ...guesses.filter(g => g.rank !== value),
+      ];
 
-      submitScore(
-        "ranking",
-        updated.length
+      setGuesses(updated);
+
+      addGuess(
+        "ranking_guesses",
+        newGuess
       );
+
+      if (data.correct) {
+        saveDone("ranking_done");
+        setDone(true);
+
+        setSolution({
+          rank: data.rank,
+          score: data.score,
+          persons: data.persons_at_rank ?? [],
+        });
+
+        setVictory({
+          name: challenge.ranking_cubeur.name,
+          wca_id: challenge.ranking_cubeur.wca_id,
+        });
+
+        submitScore(
+          "ranking",
+          updated.length
+        );
+      }
+
+      setRank('');
+
+    } catch (error) {
+      console.error("Erreur pendant le guess ranking :", error);
+    } finally {
+      setSubmitting(false);
+      inputRef.current?.focus();
     }
-
-    setRank('');
-
-    inputRef.current?.focus();
   };
 
   return (
@@ -363,12 +372,13 @@ function GuessRanking() {
                 value={rank}
                 onChange={e => setRank(e.target.value)}
                 onKeyDown={e => {
-                  if (e.key === 'Enter') {
+                  if (e.key === 'Enter' && !submitting) {
                     submitGuess();
                   }
                 }}
                 placeholder="un nombre entre 1 et 100..."
-                className="w-full px-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+                disabled={submitting}
+                className={`w-full px-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors ${submitting ? "opacity-50" : ""}`}
               />
             </div>
           </div>

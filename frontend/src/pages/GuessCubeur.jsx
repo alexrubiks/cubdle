@@ -47,6 +47,7 @@ function GuessCubeur() {
 
   const [guesses, setGuesses] = useState(() => getGuesses("cubeur_guesses"));
   const [done, setDone] = useState(() => getDone("cubeur_done"));
+  const [submitting, setSubmitting] = useState(false);
   const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur"));
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -133,52 +134,63 @@ function GuessCubeur() {
 
 
   const submitGuess = async (cubeur) => {
+    if (done || submitting) return;
+
+    setSubmitting(true);
+
     setQuery('');
     setResults([]);
 
-    if (done) return;
-
-    const res = await fetch(API_URLS.guessCubeur, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ cubeur_id: cubeur.id }),
-    });
-
-    const data = await res.json();
-
-    const newGuess = {
-      id: cubeur.id,
-      name: data.guessed_name,
-      comparison: data.comparison,
-      correct: data.correct,
-    };
-
-    const updated = [newGuess, ...guesses];
-
-    setGuesses(updated);
-
-    if (data.correct) {
-      submitScore("cubeur", updated.length);
-    }
-
-    if (data.hint !== undefined) {
-      setLatestHint(data.hint);
-      saveLatestHint("cubeur", data.hint);
-    }
-    addGuess("cubeur_guesses", newGuess);
-
-    if (data.correct) {
-      saveDone("cubeur_done");
-      setDone(true);
-      setVictory({
-        name: data.guessed_name,
-        wca_id: cubeur.wca_id,
-        avatar_url: cubeur.avatar_url,
+    try {
+      const res = await fetch(API_URLS.guessCubeur, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ cubeur_id: cubeur.id }),
       });
-    }
 
-    inputRef.current?.focus();
+      const data = await res.json();
+
+      const newGuess = {
+        id: cubeur.id,
+        name: data.guessed_name,
+        comparison: data.comparison,
+        correct: data.correct,
+      };
+
+      const updated = [newGuess, ...guesses];
+
+      setGuesses(updated);
+
+      if (data.correct) {
+        submitScore("cubeur", updated.length);
+      }
+
+      if (data.hint !== undefined) {
+        setLatestHint(data.hint);
+        saveLatestHint("cubeur", data.hint);
+      }
+
+      addGuess("cubeur_guesses", newGuess);
+
+      if (data.correct) {
+        saveDone("cubeur_done");
+        setDone(true);
+        setVictory({
+          name: data.guessed_name,
+          wca_id: cubeur.wca_id,
+          avatar_url: cubeur.avatar_url,
+        });
+      }
+
+      inputRef.current?.focus();
+
+    } catch (error) {
+      console.error("Erreur pendant le guess :", error);
+
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const revealHint = () => {
@@ -262,6 +274,7 @@ function GuessCubeur() {
                   placeholder="Ex : Jonathan Dammann…"
                   autoComplete="off"
                   spellCheck={false}
+                  disabled={submitting}
                   onKeyDown={e => {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
@@ -274,7 +287,7 @@ function GuessCubeur() {
                       submitGuess(results[selectedIndex]);
                     }
                   }}
-                  className="w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors"
+                  className={`${submitting ? "opacity-50" : ""} w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
 
                 {results.length > 0 && (
@@ -287,7 +300,7 @@ function GuessCubeur() {
                         key={c.id}
                         role="option"
                         aria-selected={i === selectedIndex}
-                        onMouseDown={() => submitGuess(c)}
+                        onMouseDown={() => !submitting && submitGuess(c)}
                         onMouseEnter={() => setSelectedIndex(i)}
                         className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
                           ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
