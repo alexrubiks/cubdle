@@ -877,7 +877,6 @@ GAME_LIST_FIELDS = [
     "podium_guesses",
 ]
 
-
 DONE_FIELDS = [
     "cubeur_done",
     "compet_done",
@@ -885,7 +884,6 @@ DONE_FIELDS = [
     "podium_done",
     "location_done",
 ]
-
 
 GAME_FIELDS = {
     "cubeur": ("cubeur_guesses", "cubeur_done", list),
@@ -895,15 +893,57 @@ GAME_FIELDS = {
     "location": ("location_guess", "location_done", dict),
 }
 
+HINT_FIELDS = [
+    "cubeur_latest_hint",
+    "compet_latest_hint",
+    "podium_latest_hint",
+]
+
 
 def get_daily_progress(user):
     return DailyProgress.objects.get_or_create(
         user=user,
-        date=date.today()
+        date=timezone.localdate(),
     )[0]
 
 
+def serialize_progress(progress):
+    return {
+        "date": str(progress.date),
+
+        "cubeur_guesses": progress.cubeur_guesses,
+        "compet_guesses": progress.compet_guesses,
+        "ranking_guesses": progress.ranking_guesses,
+        "podium_guesses": progress.podium_guesses,
+        "location_guess": progress.location_guess,
+
+        "cubeur_latest_hint": progress.cubeur_latest_hint,
+        "compet_latest_hint": progress.compet_latest_hint,
+        "podium_latest_hint": progress.podium_latest_hint,
+
+        "cubeur_done": progress.cubeur_done,
+        "compet_done": progress.compet_done,
+        "ranking_done": progress.ranking_done,
+        "podium_done": progress.podium_done,
+        "location_done": progress.location_done,
+    }
+
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def daily_progress(request):
+    progress = get_daily_progress(request.user)
+
+    if request.method == "POST":
+        for field in GAME_LIST_FIELDS + ["location_guess"] + DONE_FIELDS + HINT_FIELDS:
+            if field in request.data:
+                setattr(progress, field, request.data[field])
+        progress.save()
+
+    return Response(serialize_progress(progress))
+
+
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def sync_daily_progress(request):
     """
     Fusionne le localStorage envoyé par le front avec le DailyProgress
@@ -911,13 +951,8 @@ def sync_daily_progress(request):
     base (le jeu est "commencé"), le localStorage est ignoré pour ce jeu.
     Renvoie l'état fusionné complet.
     """
-    today = timezone.localdate()
     local_data = request.data.get("local_progress") or {}
-
-    progress, _ = DailyProgress.objects.get_or_create(
-        user=request.user,
-        date=today,
-    )
+    progress = get_daily_progress(request.user)
 
     updated = False
 
@@ -925,7 +960,6 @@ def sync_daily_progress(request):
         current_guesses = getattr(progress, guesses_field)
 
         if current_guesses != empty_type():
-            # Le jeu est déjà commencé en base : on ignore le localStorage
             continue
 
         local_guesses = local_data.get(guesses_field, empty_type())
@@ -936,24 +970,26 @@ def sync_daily_progress(request):
             setattr(progress, done_field, local_done)
             updated = True
 
+    for field in HINT_FIELDS:
+        current_hint = getattr(progress, field)
+
+        if current_hint:
+            continue
+
+        local_hint = local_data.get(field)
+
+        if local_hint:
+            setattr(progress, field, local_hint)
+            updated = True
+
     if updated:
         progress.save()
 
-    return Response({
-        "date": str(progress.date),
-        "cubeur_guesses": progress.cubeur_guesses,
-        "compet_guesses": progress.compet_guesses,
-        "ranking_guesses": progress.ranking_guesses,
-        "podium_guesses": progress.podium_guesses,
-        "location_guess": progress.location_guess,
-        "cubeur_done": progress.cubeur_done,
-        "compet_done": progress.compet_done,
-        "ranking_done": progress.ranking_done,
-        "podium_done": progress.podium_done,
-        "location_done": progress.location_done,
-    })
+    return Response(serialize_progress(progress))
+
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def submit_score(request):
     game_slug = request.data.get("game")  # "cubeur", "compet", "ranking", "podium", "location"
     score_value = request.data.get("score")
@@ -966,7 +1002,7 @@ def submit_score(request):
     except Game.DoesNotExist:
         return Response({"error": "Jeu introuvable."}, status=404)
 
-    score, created = Score.objects.get_or_create(
+    score, created = Score.objects.update_or_create(
         user=request.user,
         game=game,
         date=timezone.localdate(),

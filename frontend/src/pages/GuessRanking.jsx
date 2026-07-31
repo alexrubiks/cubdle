@@ -8,7 +8,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, submitScore } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, submitScore, refreshFromServer } from '../utils/localProgress';
 
 function buildShareTextRanking(guesses, challenge) {
   return [
@@ -154,9 +154,12 @@ function GuessRanking() {
 
   const [challenge, setChallenge] = useState(null);
   const [rank, setRank] = useState('');
-  const [guesses, setGuesses] = useState(getGuesses("ranking_guesses"));
-  const [done, setDone] = useState(getDone("ranking_done"));
+
+  const [guesses, setGuesses] = useState(() => getGuesses("ranking_guesses"));
+  const [done, setDone] = useState(() => getDone("ranking_done"));
+
   const [victory, setVictory] = useState(null);
+
   const [solution, setSolution] = useState(() => {
     const win = getGuesses("ranking_guesses")
       .find(g => g.correct);
@@ -172,12 +175,36 @@ function GuessRanking() {
 
   const inputRef = useRef(null);
 
+  // SYNCHRO SERVEUR
+  useEffect(() => {
+    refreshFromServer().then((progress) => {
+      const savedGuesses = progress.ranking_guesses;
+
+      setGuesses(savedGuesses);
+      setDone(progress.ranking_done);
+
+      const previousVictory = savedGuesses.find(
+        g => g.correct
+      );
+
+      if (!previousVictory) return;
+
+      setSolution({
+        rank: previousVictory.rank,
+        score: previousVictory.score,
+        persons: previousVictory.persons ?? [],
+      });
+    });
+  }, []);
+
+  // CHALLENGE
   useEffect(() => {
     fetch(API_URLS.daily)
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
 
+  // RESTAURE LA VICTOIRE QUAND LE CHALLENGE EST CHARGE
   useEffect(() => {
     if (!challenge) return;
 
@@ -202,14 +229,18 @@ function GuessRanking() {
       return;
     }
 
-    if (guesses.some(g => g.blockedRanks.includes(value))) {
+    if (
+      guesses.some(g =>
+        g.blockedRanks?.includes(value)
+      )
+    ) {
       return;
     }
 
     const res = await fetch(API_URLS.guessRanking, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         rank: value,
@@ -227,10 +258,12 @@ function GuessRanking() {
       score: data.score ?? null,
     };
 
-    setGuesses(prev => [
+    const updated = [
       newGuess,
-      ...prev.filter(g => g.rank !== value),
-    ]);
+      ...guesses.filter(g => g.rank !== value),
+    ];
+
+    setGuesses(updated);
 
     addGuess(
       "ranking_guesses",
@@ -240,24 +273,28 @@ function GuessRanking() {
     if (data.correct) {
       saveDone("ranking_done");
       setDone(true);
+
       setSolution({
         rank: data.rank,
         score: data.score,
         persons: data.persons_at_rank ?? [],
       });
+
       setVictory({
         name: challenge.ranking_cubeur.name,
         wca_id: challenge.ranking_cubeur.wca_id,
       });
-      submitScore("ranking", guesses.length + 1)
+
+      submitScore(
+        "ranking",
+        updated.length
+      );
     }
 
     setRank('');
 
     inputRef.current?.focus();
   };
-
-  if (!challenge) return null;
 
   return (
     <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">

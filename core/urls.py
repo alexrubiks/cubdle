@@ -9,6 +9,7 @@ urlpatterns = [
 
     path('daily/', views.daily_challenge),
     path('yesterday/', views.yesterday_challenge),
+    path("progress/", views.daily_progress),
     path("progress/sync/", views.sync_daily_progress),
     path("scores/submit/", views.submit_score),
     path("leaderboard/", views.daily_leaderboard),

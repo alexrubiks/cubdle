@@ -10,7 +10,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer } from '../utils/localProgress';
 
 
 function YesterdayCompet() {
@@ -42,30 +42,53 @@ function GuessCompet() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
-  const [query,          setQuery]   = useState('');
-  const [results,        setResults] = useState([]);
-  const [guesses,        setGuesses] = useState(getGuesses("compet_guesses"));
-  const [done,           setDone]    = useState(getDone("compet_done"));
-  const [selectedIndex,  setSelectedIndex] = useState(-1);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+
+  const [guesses, setGuesses] = useState(() => getGuesses("compet_guesses"));
+  const [done, setDone] = useState(() => getDone("compet_done"));
+
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [victory, setVictory] = useState(null);
 
-  const inputRef    = useRef(null);
-  const dropdownRef = useRef(null);
+  const [latestHint, setLatestHint] = useState(() => getLatestHint("compet_guesses"));
+  const [revealedHint, setRevealedHint] = useState(null);
+  const [revealedTiers, setRevealedTiers] = useState(0);
 
-  const [latestHint,     setLatestHint]     = useState(() => getLatestHint("compet_guesses"));
-  const [revealedHint,   setRevealedHint]   = useState(null);
-  const [revealedTiers,  setRevealedTiers]  = useState(0);
+  const inputRef = useRef(null);
+  const dropdownRef = useRef(null);
 
   const HINT_INTERVAL = 5;
   const unlockedTiers = Math.floor(guesses.length / HINT_INTERVAL);
   const hintAvailable = unlockedTiers > revealedTiers;
 
-  const revealHint = () => {
-    if (!hintAvailable) return;
-    setRevealedHint(latestHint);
-    setRevealedTiers(unlockedTiers);
-  };
 
+  // SYNCHRO SERVEUR
+  useEffect(() => {
+    refreshFromServer().then((progress) => {
+      setGuesses(progress.compet_guesses);
+      setDone(progress.compet_done);
+      setLatestHint(progress.compet_guesses_latest_hint ?? null);
+
+      const previousVictory = progress.compet_guesses.find(
+        g => g.correct
+      );
+
+      if (!previousVictory) return;
+
+      fetch(API_URLS.competitionDetail(previousVictory.id))
+        .then(r => r.json())
+        .then(data => {
+          setVictory({
+            name: data.name,
+            wca_id: data.wca_id,
+          });
+        });
+    });
+  }, []);
+
+
+  // SEARCH
   useEffect(() => {
     if (done) {
       setResults([]);
@@ -78,53 +101,61 @@ function GuessCompet() {
     }
 
     const controller = new AbortController();
-    const excludeIds = guesses.map(g => g.id).join(',');
 
-    fetch(`${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}`, {
-      signal: controller.signal
-    })
+    const excludeIds = guesses
+      .map(g => g.id)
+      .join(',');
+
+    fetch(
+      `${API_URLS.competitions}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}`,
+      {
+        signal: controller.signal
+      }
+    )
       .then(r => r.json())
       .then(data => setResults(data))
       .catch(err => {
-        if (err.name !== 'AbortError') console.error(err);
+        if (err.name !== 'AbortError') {
+          console.error(err);
+        }
       });
 
     return () => controller.abort();
 
   }, [query, guesses, done]);
 
+
+  // RESET SELECTION
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);
 
+
+  // CLICK OUTSIDE
   useEffect(() => {
     function handleClickOutside(e) {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(e.target) &&
         !inputRef.current.contains(e.target)
-      ) setResults([]);
+      ) {
+        setResults([]);
+      }
     }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
-  useEffect(() => {
-    const previousVictory = getGuesses("compet_guesses")
-      .find(g => g.correct);
+    document.addEventListener(
+      'mousedown',
+      handleClickOutside
+    );
 
-    if (!previousVictory) return;
-
-    fetch(API_URLS.competitionDetail(previousVictory.id))
-      .then(r => r.json())
-      .then(data => {
-        setVictory({
-          name: data.name,
-          wca_id: data.wca_id,
-        });
-      });
+    return () =>
+      document.removeEventListener(
+        'mousedown',
+        handleClickOutside
+      );
 
   }, []);
+
 
   const submitGuess = async (compet) => {
     setQuery('');
@@ -132,45 +163,78 @@ function GuessCompet() {
 
     if (done) return;
 
+
     const res = await fetch(API_URLS.guessCompet, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       credentials: 'include',
-      body: JSON.stringify({ competition_id: compet.id }),
+      body: JSON.stringify({
+        competition_id: compet.id
+      }),
     });
 
-    const data = await res.json();
-    
-    const hint = data.hint ?? null;
-    setLatestHint(hint);
-    saveLatestHint("compet_guesses", hint);
 
-    const newGuess = { id: compet.id, name: data.guessed_name, comparison: data.comparison };
-    const updated = [newGuess, ...guesses];
+    const data = await res.json();
+
+
+    if (data.hint !== undefined) {
+      setLatestHint(data.hint);
+      saveLatestHint(
+        "compet",
+        data.hint
+      );
+    }
+
+
+    const newGuess = {
+      id: compet.id,
+      name: data.guessed_name,
+      comparison: data.comparison,
+      correct: data.correct,
+    };
+
+
+    const updated = [
+      newGuess,
+      ...guesses
+    ];
+
 
     setGuesses(updated);
+
+    addGuess(
+      "compet_guesses",
+      newGuess
+    );
+
 
     if (data.correct) {
       saveDone("compet_done");
       setDone(true);
+
       setVictory({
         name: data.guessed_name,
         wca_id: compet.wca_id,
       });
-      submitScore("compet", guesses.length + 1);
+
+      submitScore(
+        "compet",
+        updated.length
+      );
     }
 
-    addGuess(
-      "compet_guesses",
-      {
-        id: compet.id,
-        name: data.guessed_name,
-        comparison: data.comparison,
-        correct: data.correct,
-      }
-    );
 
     inputRef.current?.focus();
+  };
+
+
+  const revealHint = () => {
+    if (!hintAvailable) return;
+
+    setRevealedHint(latestHint);
+    setRevealedTiers(unlockedTiers);
   };
 
   return (

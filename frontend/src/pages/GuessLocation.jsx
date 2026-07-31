@@ -133,38 +133,48 @@ function GuessLocation() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const [challenge, setChallenge] = useState(null);
-  const savedGuess = getGuesses("location_guess");
-  const [guessPosition, setGuessPosition] = useState(() => {
-    if (!savedGuess?.latitude || !savedGuess?.longitude) return null;
 
-    return [
-      savedGuess.latitude,
-      savedGuess.longitude,
-    ];
-  });
+  const [guessPosition, setGuessPosition] = useState(null);
+  const [result, setResult] = useState(null);
+  const [done, setDone] = useState(false);
 
-  const [result, setResult] = useState(() => {
-    if (!savedGuess?.result) return null;
-
-    return savedGuess.result;
-  });
-
-  const [done, setDone] = useState(getDone("location_done"));
-
+  // CHALLENGE
   useEffect(() => {
     fetch(API_URLS.daily)
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
 
-  const submitGuess = async () => {
+  // SYNCHRO SERVEUR
+  useEffect(() => {
+    refreshFromServer().then((progress) => {
+      const saved = progress.location_guess;
 
-    if (!guessPosition) return;
+      if (
+        saved?.latitude != null &&
+        saved?.longitude != null
+      ) {
+        setGuessPosition([
+          saved.latitude,
+          saved.longitude,
+        ]);
+      }
+
+      if (saved?.result) {
+        setResult(saved.result);
+      }
+
+      setDone(progress.location_done);
+    });
+  }, []);
+
+  const submitGuess = async () => {
+    if (!guessPosition || done) return;
 
     const res = await fetch(API_URLS.guessLocation, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify({
         latitude: guessPosition[0],

@@ -10,7 +10,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer } from '../utils/localProgress';
 
 
 function YesterdayCubeur() {
@@ -42,24 +42,50 @@ function GuessCubeur() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
-  const [query,          setQuery]   = useState('');
-  const [results,        setResults] = useState([]);
-  const [guesses,        setGuesses] = useState(getGuesses("cubeur_guesses"));
-  const [done,           setDone]    = useState(getDone("cubeur_done"));
-  const [selectedIndex,  setSelectedIndex] = useState(-1);
-  const [victory, setVictory] = useState(null);
-  
-  const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur_guesses"));
-  const [revealedHint,   setRevealedHint]   = useState(null);
-  const [revealedTiers,  setRevealedTiers]  = useState(0);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
 
-  const inputRef    = useRef(null);
+  const [guesses, setGuesses] = useState(() => getGuesses("cubeur_guesses"));
+  const [done, setDone] = useState(() => getDone("cubeur_done"));
+  const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur_guesses"));
+
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [victory, setVictory] = useState(null);
+
+  const [revealedHint, setRevealedHint] = useState(null);
+  const [revealedTiers, setRevealedTiers] = useState(0);
+
+  const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
   const HINT_INTERVAL = 5;
   const unlockedTiers = Math.floor(guesses.length / HINT_INTERVAL);
   const hintAvailable = unlockedTiers > revealedTiers;
 
+  // SYNCHRO SERVEUR
+  useEffect(() => {
+    refreshFromServer().then((progress) => {
+      setGuesses(progress.cubeur_guesses);
+      setDone(progress.cubeur_done);
+      setLatestHint(progress.cubeur_guesses_latest_hint ?? null);
+
+      const previousVictory = progress.cubeur_guesses.find(g => g.correct);
+
+      if (!previousVictory) return;
+
+      fetch(API_URLS.cubeurDetail(previousVictory.id))
+        .then(r => r.json())
+        .then(data => {
+          setVictory({
+            name: data.name,
+            wca_id: data.wca_id,
+            avatar_url: data.avatar_url,
+          });
+        });
+    });
+  }, []);
+
+  // SEARCH
   useEffect(() => {
     if (done) {
       setResults([]);
@@ -87,10 +113,12 @@ function GuessCubeur() {
 
   }, [query, guesses, done]);
 
+  // RESET SELECTION
   useEffect(() => {
     setSelectedIndex(-1);
   }, [results]);
 
+  // CLICK OUTSIDE
   useEffect(() => {
     function handleClickOutside(e) {
       if (
@@ -103,24 +131,6 @@ function GuessCubeur() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    const saved = getGuesses("cubeur_guesses");
-
-    const previousVictory = saved.find(g => g.correct);
-
-    if (!previousVictory) return;
-
-    fetch(API_URLS.cubeurDetail(previousVictory.id))
-      .then(r => r.json())
-      .then(data => {
-        setVictory({
-          name: data.name,
-          wca_id: data.wca_id,
-          avatar_url: data.avatar_url,
-        });
-      });
-
-  }, []);
 
   const submitGuess = async (cubeur) => {
     setQuery('');
@@ -136,15 +146,27 @@ function GuessCubeur() {
     });
 
     const data = await res.json();
-    console.log("data.hint reçu:", data.hint);
-    const newGuess = { id: cubeur.id, name: data.guessed_name, comparison: data.comparison };
+
+    const newGuess = {
+      id: cubeur.id,
+      name: data.guessed_name,
+      comparison: data.comparison,
+      correct: data.correct,
+    };
+
     const updated = [newGuess, ...guesses];
 
     setGuesses(updated);
-    
-    const hint = data.hint ?? null;
-    setLatestHint(hint);
-    saveLatestHint("cubeur_guesses", hint);
+
+    if (data.correct) {
+      submitScore("cubeur", updated.length);
+    }
+
+    if (data.hint !== undefined) {
+      setLatestHint(data.hint);
+      saveLatestHint("cubeur", data.hint);
+    }
+    addGuess("cubeur_guesses", newGuess);
 
     if (data.correct) {
       saveDone("cubeur_done");
@@ -154,15 +176,7 @@ function GuessCubeur() {
         wca_id: cubeur.wca_id,
         avatar_url: cubeur.avatar_url,
       });
-      submitScore("cubeur", guesses.length + 1);
     }
-
-    addGuess("cubeur_guesses", {
-      id: cubeur.id,
-      name: data.guessed_name,
-      comparison: data.comparison,
-      correct: data.correct,
-    });
 
     inputRef.current?.focus();
   };

@@ -5,24 +5,28 @@ if (!API_BASE) {
 }
 
 export const API_URLS = {
+  authMe: `${API_BASE}auth/me/`,
+  authWcaLogin: `${API_BASE}auth/wca/login/`,
+  authUpdatePseudo: `${API_BASE}auth/update-pseudo/`,
+
+  daily: `${API_BASE}daily/`,
+  yesterday: `${API_BASE}yesterday/`,
+  dailyProgress: `${API_BASE}progress/`,
+  progressSync: `${API_BASE}progress/sync/`,
+  scoresSubmit: `${API_BASE}scores/submit/`,
+  leaderboard: `${API_BASE}leaderboard/`,
+
   guessCubeur: `${API_BASE}guess/cubeur/`,
   guessRanking: `${API_BASE}guess/ranking/`,
   guessPodium: `${API_BASE}guess/podium/`,
   guessLocation: `${API_BASE}guess/location/`,
   guessCompet: `${API_BASE}guess/competition/`,
-  cubeurs: `${API_BASE}cubeurs/`,
-  competitions: `${API_BASE}competitions/`,
-  daily: `${API_BASE}daily/`,
-  yesterday: `${API_BASE}yesterday/`,
-  progressSync: `${API_BASE}progress/sync/`,
-  scoresSubmit: `${API_BASE}scores/submit/`,
-  leaderboard: `${API_BASE}leaderboard/`,
-  authMe: `${API_BASE}auth/me/`,
-  authWcaLogin: `${API_BASE}auth/wca/login/`,
-  authLogout: `${API_BASE}auth/logout/`,
-  authUpdatePseudo: `${API_BASE}auth/update-pseudo/`,
+  
   cubeurDetail: (id) => `${API_BASE}cubeurs/${id}/`,
   competitionDetail: (id) => `${API_BASE}competitions/${id}/`,
+
+  cubeurs: `${API_BASE}cubeurs/`,
+  competitions: `${API_BASE}competitions/`,
 };
 
 export const EVENTS_SINGLE = new Set(['333bf', '444bf', '555bf', '333mbf']);

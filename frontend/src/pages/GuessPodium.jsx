@@ -108,34 +108,45 @@ function GuessPodium() {
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
   const [challenge, setChallenge] = useState(null);
+
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
+
   const [victory, setVictory] = useState(null);
-  const [guesses, setGuesses] = useState(getGuesses("podium_guesses"));
-  const [foundIds, setFoundIds] = useState(() => getGuesses("podium_guesses").map(g => g.id));
-  const [done, setDone] = useState(() => {
-    const saved = getGuesses("podium_guesses") ?? [];
-    return (
-      saved.some(g => g.position === 1) &&
-      saved.some(g => g.position === 2) &&
-      saved.some(g => g.position === 3)
-    );
-  });
+
+  const [guesses, setGuesses] = useState(
+    () => getGuesses("podium_guesses")
+  );
+
+  const [foundIds, setFoundIds] = useState(
+    () => getGuesses("podium_guesses").map(g => g.id)
+  );
+
+  const [done, setDone] = useState(
+    () => getDone("podium_done")
+  );
+
 
   const [podium, setPodium] = useState(() => {
     const saved = getGuesses("podium_guesses") ?? [];
+
     return {
-      1: saved.find(p => p.position === 1) ?? null,
-      2: saved.find(p => p.position === 2) ?? null,
-      3: saved.find(p => p.position === 3) ?? null,
+      1: saved.find(g => g.position === 1) ?? null,
+      2: saved.find(g => g.position === 2) ?? null,
+      3: saved.find(g => g.position === 3) ?? null,
     };
   });
 
-  const [hints, setHints] = useState(() => getLatestHint("podium_guesses") ?? {});
+
+  const [hints, setHints] = useState(
+    () => getLatestHint("podium_guesses") ?? {}
+  );
+
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
+
 
   // CHALLENGE
   useEffect(() => {
@@ -144,75 +155,47 @@ function GuessPodium() {
       .then(data => setChallenge(data));
   }, []);
 
+
+  // SYNCHRO SERVEUR
   useEffect(() => {
-    if (!challenge) return;
+    refreshFromServer().then((progress) => {
+      const savedGuesses = progress.podium_guesses ?? [];
 
-    const saved = getGuesses("podium_guesses") ?? [];
+      setGuesses(savedGuesses);
+      setFoundIds(savedGuesses.map(g => g.id));
 
-    const hasPodium =
-      saved.some(g => g.position === 1) &&
-      saved.some(g => g.position === 2) &&
-      saved.some(g => g.position === 3);
-
-    if (!hasPodium) return;
-
-    setVictory({
-      name: "le podium",
-    });
-
-  }, [challenge]);
-
-  // SEARCH
-  useEffect(() => {
-    if (done) {
-      setResults([]);
-      return;
-    }
-
-    if (query.length < 2) {
-      setResults([]);
-      return;
-    }
-
-    const controller = new AbortController();
-    const excludeIds = foundIds.join(',');
-
-    fetch(`${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&active_only=false&exclude_ids=${excludeIds}`, {
-      signal: controller.signal
-    })
-      .then(r => r.json())
-      .then(data => setResults(data))
-      .catch(err => {
-        if (err.name !== 'AbortError') console.error(err);
-      });
-
-    return () => controller.abort();
-
-  }, [query, foundIds, done]);
-
-  // CLICK OUTSIDE
-  useEffect(() => {
-
-    function handleClickOutside(e) {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target) &&
-        !inputRef.current.contains(e.target)
-      ) {
-        setResults([]);
-      }
-    }
-
-    document.addEventListener(
-      'mousedown',
-      handleClickOutside
-    );
-
-    return () =>
-      document.removeEventListener(
-        'mousedown',
-        handleClickOutside
+      setHints(
+        progress.podium_guesses_latest_hint ?? {}
       );
+
+
+      const newPodium = {
+        1: savedGuesses.find(g => g.position === 1) ?? null,
+        2: savedGuesses.find(g => g.position === 2) ?? null,
+        3: savedGuesses.find(g => g.position === 3) ?? null,
+      };
+
+      setPodium(newPodium);
+
+
+      const finished =
+        progress.podium_done ||
+        (
+          newPodium[1] &&
+          newPodium[2] &&
+          newPodium[3]
+        );
+
+
+      setDone(!!finished);
+
+
+      if (finished) {
+        setVictory({
+          name: "le podium",
+        });
+      }
+    });
 
   }, []);
 
@@ -220,22 +203,29 @@ function GuessPodium() {
     if (done) return;
 
     const res = await fetch(API_URLS.guessPodium, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ cubeur_id: cubeur.id }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        cubeur_id: cubeur.id,
+      }),
     });
 
     const data = await res.json();
 
-    if (data.hints) {
-      setHints(data.hints);
-      saveLatestHint("podium_guesses", data.hints);
-    }
-
-    setQuery('');
+    setQuery("");
     setResults([]);
     setSelectedIndex(-1);
+
+    if (data.hints !== undefined) {
+      setHints(data.hints);
+      saveLatestHint(
+        "podium",
+        data.hints
+      );
+    }
 
     const newGuess = {
       id: cubeur.id,
@@ -246,17 +236,25 @@ function GuessPodium() {
       in_final: data.in_final,
     };
 
-    const updatedGuesses = [newGuess, ...guesses];
+    const updatedGuesses = [
+      newGuess,
+      ...guesses,
+    ];
 
     setGuesses(updatedGuesses);
-    addGuess("podium_guesses", newGuess);
-    setFoundIds(prev => [...prev, cubeur.id]);
 
-    if (data.hints) {
-      setHints(data.hints);
-    }
+    addGuess(
+      "podium_guesses",
+      newGuess
+    );
+
+    setFoundIds(prev => [
+      ...prev,
+      cubeur.id,
+    ]);
 
     if (data.correct) {
+
       const newPodium = {
         ...podium,
         [data.position]: {
@@ -269,11 +267,23 @@ function GuessPodium() {
 
       setPodium(newPodium);
 
-      if (newPodium[1] && newPodium[2] && newPodium[3]) {
+      if (
+        newPodium[1] &&
+        newPodium[2] &&
+        newPodium[3]
+      ) {
         saveDone("podium_done");
+
         setDone(true);
-        setVictory({ name: "le podium" });
-        submitScore("podium", updatedGuesses.length - 3);
+
+        setVictory({
+          name: "le podium",
+        });
+
+        submitScore(
+          "podium",
+          updatedGuesses.length - 3
+        );
       }
     }
 

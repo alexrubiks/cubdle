@@ -162,6 +162,10 @@ class DailyProgress(models.Model):
     podium_guesses = models.JSONField(default=list)
     location_guess = models.JSONField(default=dict)
 
+    cubeur_latest_hint = models.JSONField(default=None, null=True)
+    compet_latest_hint = models.JSONField(default=None, null=True)
+    podium_latest_hint = models.JSONField(default=dict)
+
     cubeur_done = models.BooleanField(default=False)
     compet_done = models.BooleanField(default=False)
     ranking_done = models.BooleanField(default=False)
