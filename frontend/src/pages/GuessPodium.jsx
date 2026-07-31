@@ -8,7 +8,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore } from '../utils/localProgress';
+import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore, refreshFromServer } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
