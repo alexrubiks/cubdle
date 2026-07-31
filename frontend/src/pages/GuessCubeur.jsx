@@ -162,10 +162,6 @@ function GuessCubeur() {
 
       setGuesses(updated);
 
-      if (data.correct) {
-        submitScore("cubeur", updated.length);
-      }
-
       if (data.hint !== undefined) {
         setLatestHint(data.hint);
         saveLatestHint("cubeur", data.hint);
@@ -181,6 +177,10 @@ function GuessCubeur() {
           wca_id: cubeur.wca_id,
           avatar_url: cubeur.avatar_url,
         });
+        submitScore(
+          "cubeur",
+          updated.length
+        );
       }
 
       inputRef.current?.focus();
