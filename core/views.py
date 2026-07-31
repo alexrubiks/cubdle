@@ -8,7 +8,6 @@ from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404
 from requests_oauthlib import OAuth2Session
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
@@ -929,10 +928,9 @@ def serialize_progress(progress):
     }
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
 def daily_progress(request):
     print(request.data)
-    
+
     progress = get_daily_progress(request.user)
 
     if request.method == "POST":
@@ -945,7 +943,6 @@ def daily_progress(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
 def sync_daily_progress(request):
     print(request.data)
     """
@@ -992,7 +989,6 @@ def sync_daily_progress(request):
 
 
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
 def submit_score(request):
     game_slug = request.data.get("game")  # "cubeur", "compet", "ranking", "podium", "location"
     score_value = request.data.get("score")
