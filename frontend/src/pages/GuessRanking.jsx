@@ -305,6 +305,8 @@ function GuessRanking() {
     }
   };
 
+  if (!challenge) return null;
+
   return (
     <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
       <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
