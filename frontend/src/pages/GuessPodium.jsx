@@ -127,7 +127,6 @@ function GuessPodium() {
     () => getDone("podium_done")
   );
 
-
   const [podium, setPodium] = useState(() => {
     const saved = getGuesses("podium_guesses") ?? [];
 
@@ -138,16 +137,13 @@ function GuessPodium() {
     };
   });
 
-
   const [hints, setHints] = useState(
     () => getLatestHint("podium") ?? {}
   );
 
-
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
-
 
   // CHALLENGE
   useEffect(() => {
@@ -156,6 +152,43 @@ function GuessPodium() {
       .then(data => setChallenge(data));
   }, []);
 
+  // SEARCH
+  useEffect(() => {
+    if (done) {
+      setResults([]);
+      return;
+    }
+
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const excludeIds = foundIds.join(',');
+
+    fetch(
+      `${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}`,
+      {
+        signal: controller.signal
+      }
+    )
+      .then(r => r.json())
+      .then(data => setResults(data))
+      .catch(err => {
+        if (err.name !== "AbortError") {
+          console.error(err);
+        }
+      });
+
+    return () => controller.abort();
+
+  }, [query, foundIds, done]);
+
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [results]);
 
   // SYNCHRO SERVEUR
   useEffect(() => {
