@@ -929,7 +929,8 @@ def serialize_progress(progress):
 
 @api_view(["GET", "POST"])
 def daily_progress(request):
-    print(request.data)
+    if not request.user:
+        return Response(status=401)
 
     progress = get_daily_progress(request.user)
 
@@ -944,13 +945,15 @@ def daily_progress(request):
 
 @api_view(["POST"])
 def sync_daily_progress(request):
-    print(request.data)
     """
     Fusionne le localStorage envoyé par le front avec le DailyProgress
     du jour en base. Pour chaque jeu, si des guesses existent déjà en
     base (le jeu est "commencé"), le localStorage est ignoré pour ce jeu.
     Renvoie l'état fusionné complet.
     """
+    if not request.user:
+        return Response(status=401)
+
     local_data = request.data.get("local_progress") or {}
     progress = get_daily_progress(request.user)
 
@@ -990,6 +993,9 @@ def sync_daily_progress(request):
 
 @api_view(["POST"])
 def submit_score(request):
+    if not request.user:
+        return Response(status=401)
+
     game_slug = request.data.get("game")  # "cubeur", "compet", "ranking", "podium", "location"
     score_value = request.data.get("score")
 
