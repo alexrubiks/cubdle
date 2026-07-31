@@ -965,7 +965,7 @@ def sync_daily_progress(request):
         local_guesses = local_data.get(guesses_field, empty_type())
         local_done = local_data.get(done_field, False)
 
-        if local_guesses != empty_type():
+        if local_guesses != empty_type() or local_done:
             setattr(progress, guesses_field, local_guesses)
             setattr(progress, done_field, local_done)
             updated = True

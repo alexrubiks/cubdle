@@ -51,7 +51,7 @@ function GuessCompet() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [victory, setVictory] = useState(null);
 
-  const [latestHint, setLatestHint] = useState(() => getLatestHint("compet_guesses"));
+  const [latestHint, setLatestHint] = useState(() => getLatestHint("compet"));
   const [revealedHint, setRevealedHint] = useState(null);
   const [revealedTiers, setRevealedTiers] = useState(0);
 
@@ -68,7 +68,7 @@ function GuessCompet() {
     refreshFromServer().then((progress) => {
       setGuesses(progress.compet_guesses);
       setDone(progress.compet_done);
-      setLatestHint(progress.compet_guesses_latest_hint ?? null);
+      setLatestHint(progress.compet_latest_hint ?? null);
 
       const previousVictory = progress.compet_guesses.find(
         g => g.correct

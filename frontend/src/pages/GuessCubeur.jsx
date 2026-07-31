@@ -47,7 +47,7 @@ function GuessCubeur() {
 
   const [guesses, setGuesses] = useState(() => getGuesses("cubeur_guesses"));
   const [done, setDone] = useState(() => getDone("cubeur_done"));
-  const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur_guesses"));
+  const [latestHint, setLatestHint] = useState(() => getLatestHint("cubeur"));
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [victory, setVictory] = useState(null);
@@ -67,7 +67,7 @@ function GuessCubeur() {
     refreshFromServer().then((progress) => {
       setGuesses(progress.cubeur_guesses);
       setDone(progress.cubeur_done);
-      setLatestHint(progress.cubeur_guesses_latest_hint ?? null);
+      setLatestHint(progress.cubeur_latest_hint ?? null);
 
       const previousVictory = progress.cubeur_guesses.find(g => g.correct);
 

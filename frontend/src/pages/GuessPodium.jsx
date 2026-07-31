@@ -139,7 +139,7 @@ function GuessPodium() {
 
 
   const [hints, setHints] = useState(
-    () => getLatestHint("podium_guesses") ?? {}
+    () => getLatestHint("podium") ?? {}
   );
 
 
@@ -165,7 +165,7 @@ function GuessPodium() {
       setFoundIds(savedGuesses.map(g => g.id));
 
       setHints(
-        progress.podium_guesses_latest_hint ?? {}
+        progress.podium_latest_hint ?? {}
       );
 
 
