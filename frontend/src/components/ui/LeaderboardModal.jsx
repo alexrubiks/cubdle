@@ -3,11 +3,48 @@ import { X, Trophy } from 'lucide-react';
 import { API_URLS } from '../../utils';
 
 const GAMES = [
-  { slug: "cubeur", label: "Cubeur", unit: "essais" },
-  { slug: "compet", label: "Compétition", unit: "essais" },
-  { slug: "ranking", label: "Classement", unit: "essais" },
-  { slug: "podium", label: "Podium", unit: "erreurs" },
-  { slug: "location", label: "Localisation", unit: "" },
+  { 
+    slug: "cubeur", 
+    label: "Cubeur", 
+    unit: "essais",
+    scoreLabels: {
+      1: "COUP DE BOL",
+      2: "PERFECT",
+    }
+  },
+  { 
+    slug: "compet", 
+    label: "Compétition", 
+    unit: "essais",
+    scoreLabels: {
+      1: "COUP DE BOL",
+      2: "PERFECT",
+    }
+  },
+  { 
+    slug: "ranking", 
+    label: "Classement", 
+    unit: "essais",
+    scoreLabels: {
+      1: "PERFECT",
+    }
+  },
+  { 
+    slug: "podium", 
+    label: "Podium", 
+    unit: "erreur",
+    scoreLabels: {
+      0: "PERFECT",
+    }
+  },
+  { 
+    slug: "location", 
+    label: "Localisation", 
+    unit: "",
+    scoreLabels: {
+      5000: "PERFECT",
+    }
+  },
 ];
 
 export default function LeaderboardModal({ 
@@ -41,12 +78,12 @@ export default function LeaderboardModal({
   }
 
   function formatScore(score, game) {
-    if (game.slug === "location" && score === 5000) {
-      return "PERFECT";
+    if (game.scoreLabels?.[score]) {
+      return game.scoreLabels[score];
     }
 
-    if (game.slug !== "location" && score === 1) {
-      return "PERFECT";
+    if (game.slug === "podium") {
+      return `${score} ${score > 1 ? "erreurs" : "erreur"}`;
     }
 
     return `${score} ${game.unit}`;
@@ -188,7 +225,9 @@ export default function LeaderboardModal({
                     font-body font-bold text-base
                     ${formatScore(entry.score, currentGame) === "PERFECT"
                       ? "text-green-500"
-                      : "text-sky-500"
+                      : formatScore(entry.score, currentGame) === "COUP DE BOL"
+                        ? "text-yellow-500"
+                        : "text-sky-500"
                     }
                   `}
                 >
