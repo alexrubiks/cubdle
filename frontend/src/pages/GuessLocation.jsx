@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
+import { Eye, EyeOff } from 'lucide-react';
 import L from 'leaflet';
 import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
@@ -40,6 +41,20 @@ const targetIcon = L.divIcon({
 });
 
 
+const otherGuessIcon = L.divIcon({
+  className: '',
+  html: `
+    <div style="
+      width:16px;
+      height:16px;
+      background:#A78BFA;
+      border:3px solid black;
+      border-radius:50%;
+    "></div>
+  `,
+});
+
+
 function buildShareTextLocation(_, shareData) {
   return [
     '🎯 Cubdle — Devine la Localisation 🌍',
@@ -53,31 +68,27 @@ function buildShareTextLocation(_, shareData) {
 }
 
 
-function LocationSelector({ setPosition, disabled }) {
-
+function LocationSelector({ setPosition, disabled, onMapClick }) {
   useMapEvents({
-
     click(e) {
+      onMapClick?.();
       if (disabled) return;
-
-      setPosition([
-        e.latlng.lat,
-        e.latlng.lng,
-      ]);
+      setPosition([e.latlng.lat, e.latlng.lng]);
     },
-
   });
-
   return null;
 }
 
 
 function LocationMap({
-  guessPosition,
-  setGuessPosition,
-  result,
-  done,
-}) {
+    guessPosition,
+    setGuessPosition,
+    result,
+    done,
+    otherGuesses,
+    showOthers,
+    onOtherGuessClick,
+  }) {
 
   const targetPosition = result
     ? [
@@ -88,41 +99,42 @@ function LocationMap({
 
 
   return (
-    <MapContainer
-      center={[46.6, 2.3]}
-      zoom={6}
-      scrollWheelZoom={true}
-      className="w-full h-full rounded-xl"
-    >
-      <TileLayer
-        attribution="&copy; OpenStreetMap"
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+    <MapContainer center={[46.6, 2.3]} zoom={6} scrollWheelZoom={true} className="w-full h-full rounded-xl">
+      <TileLayer attribution="&copy; OpenStreetMap" url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
       <LocationSelector
         setPosition={setGuessPosition}
         disabled={done}
+        onMapClick={() => onOtherGuessClick(null)}
       />
 
-      {guessPosition && (
-        <Marker
-          position={guessPosition}
-          icon={guessIcon}
-        />
-      )}
-
-      {targetPosition && (
-        <Marker
-          position={targetPosition}
-          icon={targetIcon}
-        />
-      )}
-
-      {guessPosition && targetPosition && (
+      {showOthers && targetPosition && otherGuesses.map((g, i) => (
         <Polyline
-          positions={[guessPosition, targetPosition]}
+          key={`line-${i}`}
+          positions={[[g.latitude, g.longitude], targetPosition]}
         />
-      )}
+      ))}
+
+      {showOthers && otherGuesses.map((g, i) => (
+        <Marker
+          key={i}
+          position={[g.latitude, g.longitude]}
+          icon={otherGuessIcon}
+          eventHandlers={{
+            click: (e) => {
+              onOtherGuessClick({
+                pseudo: g.pseudo,
+                x: e.originalEvent.clientX,
+                y: e.originalEvent.clientY,
+              });
+            },
+          }}
+        />
+      ))}
+
+      {guessPosition && <Marker position={guessPosition} icon={guessIcon} />}
+      {targetPosition && <Marker position={targetPosition} icon={targetIcon} />}
+      {guessPosition && targetPosition && <Polyline positions={[guessPosition, targetPosition]} />}
     </MapContainer>
   );
 }
@@ -137,6 +149,18 @@ function GuessLocation() {
   const [guessPosition, setGuessPosition] = useState(null);
   const [result, setResult] = useState(null);
   const [done, setDone] = useState(false);
+
+  const [otherGuesses, setOtherGuesses] = useState([]);
+  const [showOthers, setShowOthers] = useState(false);
+  const [popup, setPopup] = useState(null); // { pseudo, x, y }
+
+  useEffect(() => {
+    if (done) {
+      fetch(API_URLS.locationGuesses)
+        .then(r => r.json())
+        .then(setOtherGuesses);
+    }
+  }, [done]);
 
   // CHALLENGE
   useEffect(() => {
@@ -202,6 +226,18 @@ function GuessLocation() {
 
   return (
     <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
+      {popup && (
+        <div
+          className="fixed z-[9999] rounded bg-gray-900 text-white px-3 py-2 text-xs shadow-lg whitespace-nowrap"
+          style={{
+            left: popup.x,
+            top: popup.y,
+            transform: 'translate(-50%, -120%)',
+          }}
+        >
+          {popup.pseudo}
+        </div>
+      )}
       <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
 
         <div className="flex flex-col items-center">
@@ -292,15 +328,37 @@ function GuessLocation() {
         {/* MAP */}
         <div className="mx-auto w-full px-1 md:px-0 flex justify-center">
           <div className="w-full max-w-[900px] flex flex-col">
-            <div className="w-full aspect-[3/4] md:aspect-[3/2] border-4 border-black rounded-2xl overflow-hidden bg-white">
-              
+            <div className="relative w-full aspect-[3/4] md:aspect-[3/2] border-4 border-black rounded-2xl overflow-hidden bg-white">
+
               <LocationMap
                 guessPosition={guessPosition}
                 setGuessPosition={setGuessPosition}
                 result={result}
                 done={done}
+                otherGuesses={otherGuesses}
+                showOthers={showOthers}
+                onOtherGuessClick={setPopup}
               />
-              
+
+              {done && (
+                <button
+                  onClick={() => setShowOthers(v => !v)}
+                  className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 px-3 py-1.5 bg-white/90 backdrop-blur-sm rounded-lg text-xs font-body font-semibold text-black/70 hover:bg-white transition-colors shadow-sm"
+                >
+                  {showOthers ? (
+                    <>
+                      <EyeOff size={14} />
+                      Masquer les autres
+                    </>
+                  ) : (
+                    <>
+                      <Eye size={14} />
+                      Afficher les autres
+                    </>
+                  )}
+                </button>
+              )}
+
             </div>
 
             {!done && (

@@ -14,6 +14,7 @@ export const API_URLS = {
   dailyProgress: `${API_BASE}progress/`,
   progressSync: `${API_BASE}progress/sync/`,
   scoresSubmit: `${API_BASE}scores/submit/`,
+  locationGuesses: `${API_BASE}location-guesses/`,
   leaderboard: `${API_BASE}leaderboard/`,
 
   guessCubeur: `${API_BASE}guess/cubeur/`,

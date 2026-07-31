@@ -12,6 +12,7 @@ urlpatterns = [
     path("progress/", views.daily_progress),
     path("progress/sync/", views.sync_daily_progress),
     path("scores/submit/", views.submit_score),
+    path('location-guesses/', views.location_guesses),
     path("leaderboard/", views.daily_leaderboard),
 
     path('guess/cubeur/', views.guess_cubeur),

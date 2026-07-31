@@ -3,9 +3,11 @@ import { BrowserRouter } from 'react-router-dom';
 import "./index.css";
 import App from './App';
 import 'leaflet/dist/leaflet.css';
+import { Analytics } from '@vercel/analytics/react';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <BrowserRouter>
     <App />
+    <Analytics />
   </BrowserRouter>
 );

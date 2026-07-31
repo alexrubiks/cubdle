@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404
 from requests_oauthlib import OAuth2Session
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
@@ -863,6 +863,31 @@ def _location_score(distance_m, max_score=5000, scale=100000):
     return round(
         max_score * math.exp(-adjusted_distance / scale)
     )
+
+@api_view(['GET'])
+def location_guesses(request):
+    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    if challenge is None or challenge.location_competition is None:
+        return Response({"error": "Aucun défi disponible"}, status=404)
+
+    progresses = DailyProgress.objects.filter(
+        date=date.today(),
+        location_done=True,
+    ).exclude(
+        location_guess={},
+    ).select_related('user').values_list('user__pseudo', 'location_guess')
+
+    guesses = [
+        {
+            "pseudo": pseudo,
+            "latitude": g["latitude"],
+            "longitude": g["longitude"],
+        }
+        for pseudo, g in progresses
+        if g.get("latitude") is not None and g.get("longitude") is not None
+    ]
+
+    return Response(guesses)
 
 
 ################################################################################
