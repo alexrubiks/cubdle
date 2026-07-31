@@ -262,11 +262,12 @@ function GuessCubeur() {
               </div>
             )}
 
-            <div className="w-full md:w-1/2 relative flex items-center gap-2" ref={dropdownRef}>
-              <div className="relative flex-1">
+            <div className="w-full md:w-1/2 relative" ref={dropdownRef}>
+              <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm opacity-40 pointer-events-none">
                   🔍
                 </span>
+
                 <input
                   ref={inputRef}
                   value={query}
@@ -287,50 +288,51 @@ function GuessCubeur() {
                       submitGuess(results[selectedIndex]);
                     }
                   }}
-                  className={`${submitting ? "opacity-50" : ""} w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
+                  className={`${submitting ? "opacity-50" : ""} w-full pl-9 ${
+                    hintAvailable ? "pr-12" : "pr-4"
+                  } py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
 
-                {results.length > 0 && (
-                  <ul
-                    role="listbox"
-                    className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg"
+                {hintAvailable && (
+                  <button
+                    type="button"
+                    onClick={revealHint}
+                    title="Révéler un indice"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xl text-cubdle-yellow transition-all hover:scale-110 cursor-pointer"
                   >
-                    {results.map((c, i) => (
-                      <li
-                        key={c.id}
-                        role="option"
-                        aria-selected={i === selectedIndex}
-                        onMouseDown={() => !submitting && submitGuess(c)}
-                        onMouseEnter={() => setSelectedIndex(i)}
-                        className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
-                          ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
-                      >
-                        <span className="font-body text-sm font-medium flex-1 text-black">
-                          {c.first_name} {c.last_name}
-                        </span>
-                        {c.country_iso2 && (
-                          <span className="font-body text-xs text-black/40">
-                            {c.country_iso2}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                    💡
+                  </button>
                 )}
               </div>
 
-              <button
-                type="button"
-                onClick={revealHint}
-                disabled={!hintAvailable}
-                title={hintAvailable ? "Révéler un indice" : "Encore quelques essais avant le prochain indice"}
-                className={`shrink-0 w-11 h-11 flex items-center justify-center rounded-xl border-2 border-black text-lg transition-all
-                  ${hintAvailable
-                    ? 'bg-cubdle-yellow hover:scale-105 active:scale-95 cursor-pointer'
-                    : 'bg-white/20 text-white/30 cursor-not-allowed opacity-50'}`}
-              >
-                💡
-              </button>
+              {results.length > 0 && (
+                <ul
+                  role="listbox"
+                  className="absolute top-[calc(100%+4px)] left-0 right-0 bg-white border-2 border-black rounded-xl z-50 overflow-hidden list-none m-0 p-0 shadow-lg"
+                >
+                  {results.map((c, i) => (
+                    <li
+                      key={c.id}
+                      role="option"
+                      aria-selected={i === selectedIndex}
+                      onMouseDown={() => !submitting && submitGuess(c)}
+                      onMouseEnter={() => setSelectedIndex(i)}
+                      className={`flex items-center gap-3 px-4 py-2 cursor-pointer border-b border-black/10 last:border-b-0 transition-colors
+                        ${i === selectedIndex ? 'bg-cubdle-yellow/40' : 'hover:bg-cubdle-yellow/20'}`}
+                    >
+                      <span className="font-body text-sm font-medium flex-1 text-black">
+                        {c.first_name} {c.last_name}
+                      </span>
+
+                      {c.country_iso2 && (
+                        <span className="font-body text-xs text-black/40">
+                          {c.country_iso2}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         )}
