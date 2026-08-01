@@ -875,8 +875,6 @@ def location_guesses(request):
         location_done=True,
     ).exclude(
         location_guess={},
-    ).exclude(
-        user=request.user,
     ).select_related('user').values_list('user__pseudo', 'location_guess')
 
     guesses = [
