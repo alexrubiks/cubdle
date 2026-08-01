@@ -272,7 +272,7 @@ function GuessCubeur() {
                   ref={inputRef}
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder="Ex : Jonathan Dammann…"
+                  placeholder="Ex : Juliette Sébastien…"
                   autoComplete="off"
                   spellCheck={false}
                   disabled={submitting}
