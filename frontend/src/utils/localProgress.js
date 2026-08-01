@@ -210,6 +210,7 @@ export async function syncOnLogin() {
 
     const merged = await res.json();
     saveProgress(merged);
+    await flushPendingScores();
     return merged;
   } catch {
     return local;
@@ -219,6 +220,11 @@ export async function syncOnLogin() {
 // ── Scores : logique de retry inchangée, mais découplée du progress ──
 
 export async function submitScore(game, score) {
+   if (score === undefined || score === null) {
+    console.error(`submitScore("${game}") called with invalid score:`, score);
+    return;
+  }
+
   const token = localStorage.getItem("access_token");
 
   if (!token) {

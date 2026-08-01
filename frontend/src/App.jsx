@@ -15,7 +15,7 @@ import AboutModal from './components/ui/AboutModal';
 import AccountModal from './components/ui/AccountModal';
 import AuthCallback from './components/auth/AuthCallback';
 import { API_URLS } from './utils';
-import { loadProgress, saveProgress, resetProgress } from "./utils/localProgress";
+import { loadProgress, saveProgress, resetProgress, flushPendingScores } from "./utils/localProgress";
 
 
 export default function App() {
@@ -52,6 +52,9 @@ export default function App() {
     }
   };
 
+  useEffect(() => {
+    flushPendingScores();
+  }, []);
 
   useEffect(() => {
     // Mock dev : simule un utilisateur connecté sans passer par le flow OAuth
