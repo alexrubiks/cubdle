@@ -348,10 +348,7 @@ def guess_cubeur(request):
         "bronze_count": _compare_numeric(guessed.bronze_count, target.bronze_count),
         "rankings": _compare_rankings(guessed, target),
     }
-
-    error_count = get_error_count(request, "cubeur_guesses", target.id)
-    print("DEBUG error_count:", error_count, "guesses stockés:", get_guesses(request, "cubeur_guesses"))
-
+    
     return Response({
         "correct": correct,
         "guessed_name": f"{guessed.first_name} {guessed.last_name}",

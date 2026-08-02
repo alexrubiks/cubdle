@@ -132,8 +132,8 @@ function LocationMap({
         />
       ))}
 
-      {guessPosition && <Marker position={guessPosition} icon={guessIcon} />}
-      {targetPosition && <Marker position={targetPosition} icon={targetIcon} />}
+      {guessPosition && <Marker position={guessPosition} icon={guessIcon} zIndexOffset={999} />}
+      {targetPosition && <Marker position={targetPosition} icon={targetIcon} zIndexOffset={1000} />}
       {guessPosition && targetPosition && <Polyline positions={[guessPosition, targetPosition]} />}
     </MapContainer>
   );

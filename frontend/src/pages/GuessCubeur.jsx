@@ -194,7 +194,6 @@ function GuessCubeur() {
   };
 
   const revealHint = () => {
-    console.log("hintAvailable:", hintAvailable, "latestHint:", latestHint);
     if (!hintAvailable) return;
     setRevealedHint(latestHint);
     setRevealedTiers(unlockedTiers);
