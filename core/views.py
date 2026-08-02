@@ -7,9 +7,11 @@ from django.utils import timezone
 from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404
 from requests_oauthlib import OAuth2Session
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
-from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework.permissions import AllowAny
+from .authentication import CubdleJWTAuthentication
 
 from core.models import (
     ChampionshipResult,
@@ -865,6 +867,8 @@ def _location_score(distance_m, max_score=5000, scale=100000):
     )
 
 @api_view(['GET'])
+@authentication_classes([CubdleJWTAuthentication])
+@permission_classes([AllowAny])
 def location_guesses(request):
     challenge = DailyChallenge.objects.filter(date=date.today()).first()
     if challenge is None or challenge.location_competition is None:
@@ -875,7 +879,12 @@ def location_guesses(request):
         location_done=True,
     ).exclude(
         location_guess={},
-    ).select_related('user').values_list('user__pseudo', 'location_guess')
+    )
+
+    if request.user and request.user.is_authenticated:
+        progresses = progresses.exclude(user=request.user)
+
+    progresses = progresses.select_related('user').values_list('user__pseudo', 'location_guess')
 
     guesses = [
         {
