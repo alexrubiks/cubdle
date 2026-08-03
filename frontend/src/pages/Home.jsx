@@ -60,7 +60,7 @@ export default function Home() {
         </Link>
 
         {/* ACCROCHE */}
-        <div className="  font-body  font-bold  text-[1em]  text-center  text-white  mt-1  mb-[1em]">
+        <div className="font-body font-bold text-[1em] text-center text-white mt-1 mb-[1em]">
           Tous les jours, devine un{' '}
           <span className="text-cubdle-yellow">
             cubeur

@@ -14,7 +14,7 @@ export default function Modal({ title, children, onClose }) {
 
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#FDFBD4] flex items-center justify-center hover:bg-black/5"
+          className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center hover:bg-black/5"
         >
           <X size={18} strokeWidth={3} />
         </button>

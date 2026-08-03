@@ -218,7 +218,7 @@ class Command(BaseCommand):
             group_ranks = [rankings_by_event[e] for e in events if e in rankings_by_event]
             if group_ranks:
                 best_rank = min(group_ranks)
-                score += max(0, 101 - best_rank)
+                score += 100 * (0.965 ** (best_rank - 1))
 
         return max(score, 1)
 

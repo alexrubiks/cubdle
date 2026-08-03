@@ -4,13 +4,13 @@ from django.utils import timezone
 from core.models import User, Game, Score, DailyChallenge, DailyProgress
 
 FAKE_USERS = [
-    ("2015TREM01", "Alexis"),
-    ("2018DUPO02", "Camille"),
-    ("2019MART03", "Léo"),
-    ("2021PETI05", "Hugo"),
-    ("2022ROUX06", "Chloé"),
-    ("2016GARC07", "Nathan"),
-    ("2017FONT08", "Sarah"),
+    ("2015TREM01", "Alexis Tremellat"),
+    ("2018DUPO02", "Camille Leclerc"),
+    ("2019MART03", "Léo Bayer-Dumolunin"),
+    ("2021PETI05", "Hugo Perricouxh"),
+    ("2022ROUX06", "Chloé TroisMaisons"),
+    ("2016GARC07", "Nathan Doodlejump"),
+    ("2017FONT08", "Sarah Daloz-Baltenberger"),
 ]
 
 GAME_SCORE_RANGES = {
