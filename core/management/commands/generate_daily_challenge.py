@@ -24,6 +24,7 @@ CUTOFF = date.today() - timedelta(days=50)
 SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
 LOCATION_PROXIMITY_KM = 5
 LOCATION_CITY_CUTOFF_DAYS = 50
+CUBEUR_WEIGHT_EXPONENT = 2.0  # ajuste ce curseur pour contrôler l'écart top vs reste
 
 def _get_ranking_result_type(event_slug):
     return "single" if event_slug in SINGLE_ONLY_EVENTS else "average"
@@ -212,15 +213,20 @@ class Command(BaseCommand):
         rankings = CubeurRanking.objects.filter(cubeur=cubeur, national_rank__isnull=False)
         rankings_by_event = {r.event.slug: r.national_rank for r in rankings}
 
-        score = 0
+        group_scores = []
         for group, events in EVENT_GROUPS.items():
-            # Meilleur classement du groupe (valeur la plus basse = meilleur)
             group_ranks = [rankings_by_event[e] for e in events if e in rankings_by_event]
             if group_ranks:
                 best_rank = min(group_ranks)
-                score += 100 * (0.965 ** (best_rank - 1))
+                group_scores.append(100 * (0.965 ** (best_rank - 1)))
 
-        return max(score, 1)
+        if not group_scores:
+            return 1
+
+        group_scores.sort(reverse=True)
+        score = sum(s * (0.5 ** i) for i, s in enumerate(group_scores))
+
+        return max(score, 1) ** CUBEUR_WEIGHT_EXPONENT
 
     def _competition_weight(self, competition):
         age_days = (date.today() - competition.date_from).days
