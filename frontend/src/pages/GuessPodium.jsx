@@ -169,7 +169,7 @@ function GuessPodium() {
     const excludeIds = foundIds.join(',');
 
     fetch(
-      `${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}`,
+      `${API_URLS.cubeurs}search/?q=${encodeURIComponent(query)}&exclude_ids=${excludeIds}&active_only=false`,
       {
         signal: controller.signal
       }
