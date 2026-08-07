@@ -14,6 +14,7 @@ import Footer from './components/ui/Footer';
 import AboutModal from './components/ui/AboutModal';
 import AccountModal from './components/ui/AccountModal';
 import AuthCallback from './components/auth/AuthCallback';
+import AuthStatus from './components/ui/AuthStatus';
 import { API_URLS } from './utils';
 import { loadProgress, saveProgress, resetProgress, flushPendingScores } from "./utils/localProgress";
 
@@ -117,6 +118,10 @@ export default function App() {
 
       <SideBlocks position="left" />
       <SideBlocks position="right" />
+
+      <div className="fixed top-4 right-6 z-50">
+        <AuthStatus user={user} onAccount={() => setShowAccount(true)} />
+      </div>
 
       <div className="flex-1 relative z-30">
         <Routes>
