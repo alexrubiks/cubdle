@@ -83,7 +83,7 @@ export function buildShareTextCubeur(guesses) {
     '',
     ...lines,
     '',
-    'https://cubdle.alexrubiks.fr',
+    'https://cubdle.fr',
   ].join('\n');
 }
 

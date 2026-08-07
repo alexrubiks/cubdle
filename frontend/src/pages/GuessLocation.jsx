@@ -63,7 +63,7 @@ function buildShareTextLocation(_, shareData) {
     `📍 ${formatDistance(shareData.distance)}`,
     `🔥 ${shareData.score} / 5000`,
     '',
-    'https://cubdle.alexrubiks.fr',
+    'https://cubdle.fr',
   ].join('\n');
 }
 

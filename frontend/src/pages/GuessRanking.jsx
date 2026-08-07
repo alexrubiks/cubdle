@@ -17,7 +17,7 @@ function buildShareTextRanking(guesses, challenge) {
     '',
     `Trouvé en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !`,
     '',
-    'https://cubdle.alexrubiks.fr',
+    'https://cubdle.fr',
   ].join('\n');
 }
 

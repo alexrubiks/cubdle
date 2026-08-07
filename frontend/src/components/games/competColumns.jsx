@@ -63,7 +63,7 @@ export function buildShareTextCompet(guesses) {
     '',
     ...lines,
     '',
-    'https://cubdle.alexrubiks.fr',
+    'https://cubdle.fr',
   ].join('\n');
 }
 

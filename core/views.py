@@ -113,7 +113,7 @@ def wca_callback(request):
     })
 
     return redirect(
-        f"https://cubdle.alexrubiks.fr/auth/callback?{params}"
+        f"https://cubdle.fr/auth/callback?{params}"
     )
 
 @api_view(["PATCH"])
