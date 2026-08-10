@@ -119,11 +119,10 @@ export default function App() {
       <SideBlocks position="left" />
       <SideBlocks position="right" />
 
-      <div className="fixed top-4 right-6 z-50">
-        <AuthStatus user={user} onAccount={() => setShowAccount(true)} />
-      </div>
-
       <div className="flex-1 relative z-30">
+        <div className="w-full flex justify-end px-4 pt-4 z-50">
+          <AuthStatus user={user} onAccount={() => setShowAccount(true)} />
+        </div>
         <Routes>
           <Route path="/" element={<Home />} />
 
