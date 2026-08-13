@@ -72,25 +72,36 @@ class Command(BaseCommand):
             event = self.events.get(item["eventId"])
             if event is None:
                 continue
+
+            national_rank = item["rank"]["country"]
+            if national_rank < 1:
+                continue
+
             CubeurRanking.objects.update_or_create(
                 cubeur=cubeur,
                 event=event,
                 result_type="single",
                 defaults={
-                    "national_rank": item["rank"]["country"],
+                    "national_rank": national_rank,
                     "score": item["best"],
                 }
             )
+
         for item in person["rank"]["averages"]:
             event = self.events.get(item["eventId"])
             if event is None:
                 continue
+
+            national_rank = item["rank"]["country"]
+            if national_rank < 1:
+                continue
+
             CubeurRanking.objects.update_or_create(
                 cubeur=cubeur,
                 event=event,
                 result_type="average",
                 defaults={
-                    "national_rank": item["rank"]["country"],
+                    "national_rank": national_rank,
                     "score": item["best"],
                 }
             )
