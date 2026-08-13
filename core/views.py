@@ -368,6 +368,10 @@ def _compare_categorical(guessed_value, target_value):
     }
 
 def _compare_numeric(guessed_value, target_value, threshold=5):
+    if guessed_value == 0:
+        target_value = None
+    if target_value == 0:
+        target_value = None
     if guessed_value is None and target_value is None:
         return {"value": None, "status": "correct"}
     if guessed_value is None or target_value is None:
