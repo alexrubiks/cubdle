@@ -64,7 +64,7 @@ class Command(BaseCommand):
         competition, _ = Competition.objects.update_or_create(
             wca_id=comp["id"],
             defaults={
-                "name": comp["name"],
+                "name": comp["name"].strip(),
                 "date_from": parsed_date_from,
                 "month": month_str,
                 "year": year_str,
