@@ -413,7 +413,7 @@ function GuessPodium() {
                 ref={inputRef}
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder="Ex : Max Park..."
+                placeholder="Ex : Jonathan Dammann…"
                 autoComplete="off"
                 spellCheck={false}
                 disabled={submitting}
