@@ -67,11 +67,24 @@ class Command(BaseCommand):
         self.stdout.write(f"  Location   : {location_competition.name}")
 
     def _get_avatar_url(self, cubeur):
-        if cubeur.avatar_url:
-            return cubeur.avatar_url
 
-        response = requests.get(f"https://www.worldcubeassociation.org/persons/{cubeur.wca_id}")
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/140.0.0.0 Safari/537.36"
+            ),
+            "Accept": (
+                "text/html,application/xhtml+xml,application/xml;"
+                "q=0.9,image/avif,image/webp,*/*;q=0.8"
+            ),
+            "Accept-Language": "fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7",
+        }
+
+        response = requests.get(f"https://www.worldcubeassociation.org/persons/{cubeur.wca_id}", headers=headers)
+
         if response.status_code != 200:
+            self.stdout.write("la photo du cubeur du jour n'a pas pu être importée : cubeur introuvable")
             return None
 
         soup = BeautifulSoup(response.text, "html.parser")
@@ -80,6 +93,7 @@ class Command(BaseCommand):
             cubeur.avatar_url = img["src"]
             cubeur.save(update_fields=["avatar_url"])
             return cubeur.avatar_url
+        self.stdout.write("la photo du cubeur du jour n'a pas pu être importée : erreur de parsing")
         return None
 
     def _pick_cubeur(self):
