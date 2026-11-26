@@ -4,7 +4,8 @@ from .models import (
     Event, Cubeur, CubeurRanking,
     Competition, ChampionshipResult,
     CubeurNationalityException,
-    DailyChallenge
+    DailyChallenge,
+    NationalRecord,
 )
 
 @admin.register(User)
@@ -128,3 +129,10 @@ class CubeurNationalityExceptionAdmin(admin.ModelAdmin):
 @admin.register(DailyChallenge)
 class DailyChallengeAdmin(admin.ModelAdmin):
     list_display = ("date", "cubeur", "competition", "ranking_cubeur", "ranking_event", "ranking_result_type", "podium_competition", "podium_event", "location_competition")
+
+@admin.register(NationalRecord)
+class NationalRecordAdmin(admin.ModelAdmin):
+    list_display = ("event_id", "record_type", "value", "name", "competition_name", "date", "record_tag")
+    list_filter = ("event_id", "record_type", "record_tag")
+    search_fields = ("name", "wca_id", "competition_name", "competition_id")
+    date_hierarchy = "date"

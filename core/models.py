@@ -193,3 +193,48 @@ class DailyProgress(models.Model):
         indexes = [
             models.Index(fields=['user', 'date']),
         ]
+
+class NationalRecord(models.Model):
+    """
+    Record de France (NR, ou ER/WR établi par un·e Français·e), actuel ou historique.
+    Importé depuis l'export officiel WCA (commande import_nr_history), jamais modifié
+    ni supprimé par l'import : les corrections manuelles faites dans l'admin sont conservées.
+    """
+    RECORD_TYPES = [("single", "Single"), ("average", "Average")]
+
+    wca_id = models.CharField(max_length=10, db_index=True)
+    name = models.CharField(max_length=100)
+    # Épreuve en texte (et non FK vers Event) pour inclure les épreuves disparues
+    event_id = models.CharField(max_length=10)
+    event_name = models.CharField(max_length=60)
+    record_type = models.CharField(max_length=10, choices=RECORD_TYPES)
+    # Valeur brute WCA (centisecondes, nb de coups ×100 pour la moyenne FMC, encodage MBLD…)
+    value = models.IntegerField()
+    # Marquage d'origine dans l'export : NR, ER ou WR
+    record_tag = models.CharField(max_length=3, default="NR")
+    competition_id = models.CharField(max_length=64)
+    competition_name = models.CharField(max_length=200)
+    date = models.DateField()
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["wca_id", "event_id", "record_type", "value", "competition_id"],
+                name="unique_national_record",
+            )
+        ]
+        indexes = [models.Index(fields=["event_id", "record_type"])]
+        ordering = ["event_id", "record_type", "date"]
+
+    def __str__(self):
+        return f"{self.event_id} {self.record_type} {self.value} — {self.name} ({self.date})"
+
+    @property
+    def is_current(self):
+        """NR encore en vigueur (meilleure valeur de l'épreuve, ex æquo compris)."""
+        best = (
+            NationalRecord.objects
+            .filter(event_id=self.event_id, record_type=self.record_type)
+            .aggregate(models.Min("value"))["value__min"]
+        )
+        return self.value == best
