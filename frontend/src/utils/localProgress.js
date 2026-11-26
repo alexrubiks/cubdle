@@ -8,6 +8,7 @@ const DEFAULT_PROGRESS = {
   compet_guesses: [],
   ranking_guesses: [],
   podium_guesses: [],
+  nr_guesses: [],
   location_guess: {},
 
   cubeur_done: false,
@@ -15,6 +16,7 @@ const DEFAULT_PROGRESS = {
   ranking_done: false,
   podium_done: false,
   location_done: false,
+  nr_done: false,
 
   cubeur_latest_hint: null,
   compet_latest_hint: null,
@@ -180,7 +182,7 @@ export async function refreshFromServer() {
 function mergeProgress(local, remote) {
   const merged = { ...local };
 
-  for (const field of ["cubeur_guesses", "compet_guesses", "ranking_guesses", "podium_guesses"]) {
+  for (const field of ["cubeur_guesses", "compet_guesses", "ranking_guesses", "podium_guesses", "nr_guesses"]) {
     merged[field] = (remote[field]?.length ?? 0) > (local[field]?.length ?? 0)
       ? remote[field]
       : local[field];
@@ -190,7 +192,7 @@ function mergeProgress(local, remote) {
     ? local.location_guess
     : remote.location_guess;
 
-  for (const field of ["cubeur_done", "compet_done", "ranking_done", "podium_done", "location_done"]) {
+  for (const field of ["cubeur_done", "compet_done", "ranking_done", "podium_done", "location_done", "nr_done"]) {
     merged[field] = local[field] || remote[field];
   }
 
@@ -198,6 +200,7 @@ function mergeProgress(local, remote) {
     "cubeur_latest_hint",
     "compet_latest_hint",
     "podium_latest_hint",
+    "nr_latest_hint",
   ];
 
   for (const field of hintFields) {

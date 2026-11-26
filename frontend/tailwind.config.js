@@ -13,6 +13,7 @@ export default {
           yellow: '#F2D24D',
           green: '#7BD45A',
           blue: '#57def6',
+          purple: '#BD71F4',
           background: '#0088f7',
         },
         tile: {

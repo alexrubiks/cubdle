@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { decodeJWT } from './components/auth/jwt';
 import Home from './pages/Home';
@@ -19,6 +19,8 @@ import { API_URLS } from './utils';
 import { loadProgress, saveProgress, resetProgress, flushPendingScores, withDate } from "./utils/localProgress";
 import { getParisToday, useParisToday } from './utils/dates';
 import GameRoute from './components/GameRoute';
+import GuessNR from './pages/GuessNR';
+import { isLaunched } from './utils/dates';
 
 
 export default function App() {
@@ -137,6 +139,10 @@ export default function App() {
           <Route path="/ranking" element={<GameRoute key={today} date={today}><GuessRanking /></GameRoute>} />
           <Route path="/podium" element={<GameRoute key={today} date={today}><GuessPodium /></GameRoute>} />
           <Route path="/location" element={<GameRoute key={today} date={today}><GuessLocation /></GameRoute>} />
+          <Route
+            path="/nr"
+            element={isLaunched(today) ? <GameRoute key={today} date={today}><GuessNR /></GameRoute> : <Navigate to="/" replace />}
+          />
 
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/legal" element={<Legal />} />

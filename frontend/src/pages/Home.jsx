@@ -5,6 +5,7 @@ import HowToPlayModal from '../components/ui/HowToPlayModal';
 import MenuButton from '../components/ui/MenuButton';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { Link } from 'react-router-dom';
+import { isLaunched } from '../utils/dates';
 
 const MENU_ITEMS = [
   {
@@ -44,6 +45,24 @@ const MENU_ITEMS = [
   },
 ];
 
+// Maj de décembre : NR en 5e position (bleu clair, icône FTO), Localisation passe en violet
+const NR_ITEM = {
+  to: '/nr',
+  icon: '/events-icons/fto.svg',
+  title: 'DEVINE LE NR',
+  subtitle: "avec le temps et l'épreuve",
+  color: 'bg-cubdle-blue',
+};
+
+function getMenuItems() {
+  if (!isLaunched()) return MENU_ITEMS;
+  return [
+    ...MENU_ITEMS.slice(0, 4),
+    NR_ITEM,
+    { ...MENU_ITEMS[4], color: 'bg-cubdle-purple' },
+  ];
+}
+
 export default function Home() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
@@ -65,12 +84,13 @@ export default function Home() {
           <span className="text-cubdle-yellow">
             cubeur
           </span>{' '}
-          et bien plus !
+          {/* insécable : "et bien plus !" passe à la ligne en bloc */}
+          <span className="whitespace-nowrap">et bien plus !</span>
         </div>
 
         {/* MENU */}
         <div className=" flex flex-col gap-[clamp(8px,1.5vh,12px)] items-center w-full">
-          {MENU_ITEMS.map((item) => (
+          {getMenuItems().map((item) => (
             <MenuButton
               key={item.to}
               {...item}
@@ -89,7 +109,7 @@ export default function Home() {
         )}
 
         {showHowToPlay && (
-          <HowToPlayModal gameKey="general" onClose={() => setShowHowToPlay(false)} />
+          <HowToPlayModal gameKey={isLaunched() ? "general_v2" : "general"} onClose={() => setShowHowToPlay(false)} />
         )}
 
       </div>

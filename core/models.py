@@ -152,6 +152,11 @@ class DailyChallenge(models.Model):
     ranking_answer_score = models.IntegerField(null=True, blank=True)
     # Nb de personnes ex æquo à ce rang (le groupe occupe les places rang..rang+n-1)
     ranking_answer_tie_count = models.IntegerField(null=True, blank=True)
+
+    # Devine le NR (maj de décembre)
+    nr_record = models.ForeignKey(
+        "NationalRecord", null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
     
     # Jeu 4 - Devine le podium
     podium_competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_podium')
@@ -177,16 +182,19 @@ class DailyProgress(models.Model):
     ranking_guesses = models.JSONField(default=list)
     podium_guesses = models.JSONField(default=list)
     location_guess = models.JSONField(default=dict)
+    nr_guesses = models.JSONField(default=list)
 
     cubeur_latest_hint = models.JSONField(default=None, null=True)
     compet_latest_hint = models.JSONField(default=None, null=True)
     podium_latest_hint = models.JSONField(default=dict)
+    nr_latest_hint = models.JSONField(default=None, null=True)
 
     cubeur_done = models.BooleanField(default=False)
     compet_done = models.BooleanField(default=False)
     ranking_done = models.BooleanField(default=False)
     podium_done = models.BooleanField(default=False)
     location_done = models.BooleanField(default=False)
+    nr_done = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'date')

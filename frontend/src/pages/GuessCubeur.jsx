@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { isLaunched } from '../utils/dates';
 import { API_URLS } from '../utils';
 import WordleGrid from '../components/ui/WordleGrid';
 import { cubeurColumns } from '../components/games/cubeurColumns';
@@ -211,7 +212,7 @@ function GuessCubeur() {
               <GameNavCard
                 to="/location"
                 direction="prev"
-                color="bg-cubdle-blue"
+                color={isLaunched() ? "bg-cubdle-purple" : "bg-cubdle-blue"}
                 prefix="Devine la"
                 title="LOCALISATION"
               />
@@ -323,11 +324,13 @@ function GuessCubeur() {
                         {c.first_name} {c.last_name}
                       </span>
 
-                      {c.country_iso2 && (
-                        <span className="font-body text-xs text-black/40">
-                          {c.country_iso2}
-                        </span>
-                      )}
+                      {/* WCA ID : pour distinguer les homonymes */}
+
+                      <span className="font-body text-xs text-black/40">
+
+                        {c.wca_id}
+
+                      </span>
                     </li>
                   ))}
                 </ul>

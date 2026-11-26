@@ -22,6 +22,8 @@ export const API_URLS = {
   guessPodium: `${API_BASE}guess/podium/`,
   guessLocation: `${API_BASE}guess/location/`,
   guessCompet: `${API_BASE}guess/competition/`,
+  guessNr: `${API_BASE}guess/nr/`,
+  nrSearch: `${API_BASE}nr/search/`,
   
   cubeurDetail: (id) => `${API_BASE}cubeurs/${id}/`,
   competitionDetail: (id) => `${API_BASE}competitions/${id}/`,
@@ -127,4 +129,17 @@ export function formatDistance(distanceM) {
   }
 
   return `${(distanceM / 1000).toFixed(1)} km`;
+}
+
+/**
+ * Formate une valeur brute WCA de record :
+ * FMC (coups, moyenne ×100), Multi-Blind (encodage 0DDTTTTTMM), sinon centisecondes.
+ */
+export function formatRecordValue(value, eventId, recordType) {
+  if (value == null) return "";
+  if (eventId === "333fm") {
+    if (recordType === "average") return `${(value / 100).toFixed(2)} coups`;
+    return `${value} coups`;
+  }
+  return formatRankingScore(value, eventId);
 }

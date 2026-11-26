@@ -3,6 +3,20 @@ import { X, Trophy } from 'lucide-react';
 import { API_URLS } from '../../utils';
 import { isLaunched } from '../../utils/dates';
 
+const NR_GAME = {
+  slug: "nr",
+  label: "NR",
+  shortLabel: "NR",
+  unit: "essais",
+  scoreLabels: { 1: "PERFECT" },
+};
+
+// Maj de décembre : NR inséré en 5e position, avant la Localisation
+function getGames() {
+  if (!isLaunched()) return GAMES;
+  return [...GAMES.slice(0, 4), NR_GAME, GAMES[4]];
+}
+
 const GAMES = [
   { 
     slug: "cubeur", 
@@ -59,7 +73,8 @@ export default function LeaderboardModal({
       .finally(() => setLoading(false));
   }, [activeGame]);
 
-  const currentGame = GAMES.find((g) => g.slug === activeGame);
+  const games = getGames();
+  const currentGame = games.find((g) => g.slug === activeGame);
 
   function getRank(index) {
     if (index === 0) return 1;
@@ -129,7 +144,7 @@ export default function LeaderboardModal({
 
           {/* Première ligne : 3 boutons */}
           <div className="grid grid-cols-3 gap-2">
-            {GAMES.slice(0, 3).map((g) => (
+            {games.slice(0, 3).map((g) => (
               <button
                 key={g.slug}
                 onClick={() => setActiveGame(g.slug)}
@@ -148,9 +163,9 @@ export default function LeaderboardModal({
           </div>
 
 
-          {/* Deuxième ligne : 2 boutons */}
-          <div className="grid grid-cols-2 gap-2">
-            {GAMES.slice(3).map((g) => (
+          {/* Deuxième ligne : 2 ou 3 boutons */}
+          <div className={`grid ${games.length > 5 ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+            {games.slice(3).map((g) => (
               <button
                 key={g.slug}
                 onClick={() => setActiveGame(g.slug)}

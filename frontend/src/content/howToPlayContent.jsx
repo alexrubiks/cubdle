@@ -12,6 +12,35 @@ export const HOW_TO_PLAY_CONTENT = {
     ),
   },
 
+  // Maj de décembre : 6 jeux
+  general_v2: {
+    title: "Comment jouer à Cubdle",
+    body: (
+      <>
+        Cubdle te propose chaque jour <strong>6 défis</strong> autour du monde du speedcubing français.
+        <br /><br />
+        Devine le <strong>cubeur</strong>, la <strong>compétition</strong>, le <strong>classement</strong>, le <strong>podium</strong>, le <strong>NR</strong> ou la <strong>localisation</strong> du jour à partir d'indices qui se révèlent au fil de tes tentatives.
+        <br /><br />
+        Tu peux également te connecter avec ton compte WCA pour <strong>sauvegarder ta progression</strong> et <strong>apparaître dans les classements du jour.</strong>
+      </>
+    ),
+  },
+
+  nr: {
+    title: "Devine le NR",
+    body: (
+      <>
+        Chaque jour, un <strong>record de France</strong> (actuel ou ancien) : on te donne l'<strong>épreuve</strong>, le <strong>temps</strong> (ou le score) et la <strong>date</strong> à laquelle il a été établi.
+        <br /><br />
+        À toi de trouver <strong>qui</strong> l'a réalisé, en tapant un nom dans la barre de recherche. Toutes les personnes ayant détenu au moins un record de France sont proposées.
+        <br /><br />
+        Toutes les <strong>5 erreurs</strong>, une nouvelle lettre du nom est dévoilée en indice.
+        <br /><br />
+        Si un record a été établi exactement en même temps par plusieurs personnes, chacune d'elles est une bonne réponse.
+      </>
+    ),
+  },
+
   cubeur: {
     title: "Devine le cubeur",
     body: (

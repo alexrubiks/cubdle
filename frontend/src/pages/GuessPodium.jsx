@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { isLaunched } from '../utils/dates';
 import { API_URLS } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
@@ -358,13 +359,17 @@ function GuessPodium() {
             </Link>
 
             <div className="absolute right-1 md:right-4">
-              <GameNavCard
-                to="/location"
-                direction="next"
-                color="bg-cubdle-blue"
-                prefix="Devine la"
-                title="LOCALISATION"
-              />
+              {isLaunched() ? (
+                <GameNavCard to="/nr" direction="next" color="bg-cubdle-blue" prefix="Devine le" title="NR" />
+              ) : (
+                <GameNavCard
+                  to="/location"
+                  direction="next"
+                  color="bg-cubdle-blue"
+                  prefix="Devine la"
+                  title="LOCALISATION"
+                />
+              )}
             </div>
           </div>
 
@@ -386,7 +391,7 @@ function GuessPodium() {
               </>
             }
             guesses={guesses}
-            nextTo="/location"
+            nextTo={isLaunched() ? "/nr" : "/location"}
             shareData={challenge}
             buildShareText={buildShareTextPodium}
             link={`https://www.worldcubeassociation.org/competitions/${challenge.podium_competition_id}/results/all?event=${challenge.podium_event?.slug}`}
@@ -474,11 +479,13 @@ function GuessPodium() {
                         {c.first_name} {c.last_name}
                       </span>
 
-                      {c.country_iso2 && (
-                        <span className="font-body text-xs text-black/40">
-                          {c.country_iso2}
-                        </span>
-                      )}
+                      {/* WCA ID : pour distinguer les homonymes */}
+
+                      <span className="font-body text-xs text-black/40">
+
+                        {c.wca_id}
+
+                      </span>
                     </li>
                   ))}
                 </ul>

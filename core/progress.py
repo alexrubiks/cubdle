@@ -19,12 +19,14 @@ DEFAULT_PROGRESS = {
     "ranking_guesses": [],
     "podium_guesses": [],
     "location_guess": {},
+    "nr_guesses": [],
 
     "cubeur_done": False,
     "compet_done": False,
     "ranking_done": False,
     "podium_done": False,
     "location_done": False,
+    "nr_done": False,
 }
 
 

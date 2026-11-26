@@ -20,6 +20,7 @@ from core.models import (
     CubeurRanking,
     DailyChallenge,
     DailyProgress,
+    NationalRecord,
     User,
     Score,
     Game,
@@ -172,7 +173,20 @@ def daily_challenge(request):
         return error
 
     serializer = DailyChallengeSerializer(challenge)
-    return Response({**serializer.data, "date": str(challenge.date), "today": str(paris_today())})
+    data = {**serializer.data, "date": str(challenge.date), "today": str(paris_today())}
+
+    # Devine le NR : uniquement à partir du lancement, sans nom ni compétition
+    nr = challenge.nr_record
+    if is_launched() and nr is not None:
+        data["nr"] = {
+            "event_id": nr.event_id,
+            "event_name": nr.event_name,
+            "record_type": nr.record_type,
+            "value": nr.value,
+            "date": str(nr.date),
+        }
+
+    return Response(data)
 
 
 @api_view(['GET'])
@@ -1051,6 +1065,122 @@ def location_guesses(request):
 
 
 ################################################################################
+#####  DEVINE LE NR  ###########################################################
+################################################################################
+
+def _nr_holders():
+    """Toutes les personnes ayant détenu au moins un NR : {wca_id: nom}."""
+    holders = {}
+    for wca_id, name in NationalRecord.objects.order_by("date").values_list("wca_id", "name"):
+        holders[wca_id] = name  # le plus récent l'emporte (nom actuel)
+    return holders
+
+
+def _nr_accepted_ids(record):
+    """
+    WCA IDs acceptés comme bonne réponse : la personne du record, plus toute
+    personne ayant établi exactement le même record (même valeur, même compétition).
+    """
+    return set(
+        NationalRecord.objects.filter(
+            event_id=record.event_id,
+            record_type=record.record_type,
+            value=record.value,
+            competition_id=record.competition_id,
+        ).values_list("wca_id", flat=True)
+    )
+
+
+@api_view(['GET'])
+def nr_search(request):
+    if not is_launched():
+        return Response([])
+
+    query = request.query_params.get("q", "").strip()
+    if len(query) < 2:
+        return Response([])
+
+    query_norm = normalize(query)
+    terms = query_norm.split()
+    exclude = {i.strip() for i in request.query_params.get("exclude_ids", "").split(",") if i.strip()}
+
+    results = []
+    for wca_id, name in _nr_holders().items():
+        if wca_id in exclude:
+            continue
+        full = normalize(name)
+        if not all(term in full for term in terms):
+            continue
+        words = full.split()
+        if full.startswith(query_norm):
+            category = 0
+        elif all(any(word.startswith(term) for word in words) for term in terms):
+            category = 1
+        else:
+            category = 2
+        results.append((category, full, wca_id, name))
+
+    results.sort()
+    return Response([{"wca_id": wca_id, "name": name} for _, _, wca_id, name in results[:10]])
+
+
+@api_view(['POST'])
+def guess_nr(request):
+    if not is_launched():
+        return Response({"error": "Ce jeu n'est pas encore disponible."}, status=404)
+
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+
+    record = challenge.nr_record
+    if record is None:
+        return Response({"error": "Aucun défi disponible"}, status=404)
+
+    if get_done(request, "nr_done"):
+        return Response({"error": "Tu as déjà trouvé ce NR."}, status=409)
+
+    wca_id = str(request.data.get("wca_id", "")).strip().upper()
+    holders = _nr_holders()
+    if wca_id not in holders:
+        return Response({"error": "Personne inconnue"}, status=400)
+
+    def guessed_ids():
+        # Session : liste de WCA IDs ; base (poussée par le front) : liste de dicts
+        return [g if isinstance(g, str) else g.get("wca_id") for g in get_guesses(request, "nr_guesses")]
+
+    if wca_id in guessed_ids():
+        return Response({"error": "Déjà proposé"}, status=400)
+
+    accepted = _nr_accepted_ids(record)
+    correct = wca_id in accepted
+
+    add_guess(request, "nr_guesses", wca_id)
+    if correct:
+        set_done(request, "nr_done")
+
+    mistakes = len([g for g in guessed_ids() if g not in accepted])
+
+    response = {
+        "correct": correct,
+        "wca_id": wca_id,
+        "guessed_name": holders[wca_id],
+        "hint": None if correct else build_hint(record.name, mistakes, first_at=5, every=5),
+    }
+
+    if correct:
+        response["answer"] = {
+            "wca_id": record.wca_id,
+            "name": record.name,
+            "competition_id": record.competition_id,
+            "competition_name": record.competition_name,
+            "record_tag": record.record_tag,
+        }
+
+    return Response(response)
+
+
+################################################################################
 #####  PROGRESS  ###############################################################
 ################################################################################
 
@@ -1059,6 +1189,7 @@ GAME_LIST_FIELDS = [
     "compet_guesses",
     "ranking_guesses",
     "podium_guesses",
+    "nr_guesses",
 ]
 
 DONE_FIELDS = [
@@ -1067,6 +1198,7 @@ DONE_FIELDS = [
     "ranking_done",
     "podium_done",
     "location_done",
+    "nr_done",
 ]
 
 GAME_FIELDS = {
@@ -1075,12 +1207,14 @@ GAME_FIELDS = {
     "ranking": ("ranking_guesses", "ranking_done", list),
     "podium": ("podium_guesses", "podium_done", list),
     "location": ("location_guess", "location_done", dict),
+    "nr": ("nr_guesses", "nr_done", list),
 }
 
 HINT_FIELDS = [
     "cubeur_latest_hint",
     "compet_latest_hint",
     "podium_latest_hint",
+    "nr_latest_hint",
 ]
 
 
@@ -1104,16 +1238,19 @@ def serialize_progress(progress):
         "ranking_guesses": progress.ranking_guesses,
         "podium_guesses": progress.podium_guesses,
         "location_guess": progress.location_guess,
+        "nr_guesses": progress.nr_guesses,
 
         "cubeur_latest_hint": progress.cubeur_latest_hint,
         "compet_latest_hint": progress.compet_latest_hint,
         "podium_latest_hint": progress.podium_latest_hint,
+        "nr_latest_hint": progress.nr_latest_hint,
 
         "cubeur_done": progress.cubeur_done,
         "compet_done": progress.compet_done,
         "ranking_done": progress.ranking_done,
         "podium_done": progress.podium_done,
         "location_done": progress.location_done,
+        "nr_done": progress.nr_done,
     }
 
 @api_view(["GET", "POST"])
@@ -1255,6 +1392,7 @@ GAME_SORT_ORDER = {
     "ranking": "asc",
     "podium": "asc",
     "location": "desc",
+    "nr": "asc",
 }
 
 

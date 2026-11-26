@@ -5,7 +5,7 @@ import math
 import random
 import requests
 from bs4 import BeautifulSoup
-from core.models import DailyChallenge, Cubeur, Competition, CubeurRanking, Event, ChampionshipResult
+from core.models import DailyChallenge, Cubeur, Competition, CubeurRanking, Event, ChampionshipResult, NationalRecord
 
 EVENT_GROUPS = {
     "blind": ["333bf", "444bf", "555bf", "333mbf"],
@@ -75,6 +75,12 @@ class Command(BaseCommand):
             challenge.save(update_fields=["ranking_answer_rank", "ranking_answer_score", "ranking_answer_tie_count"])
             self.stdout.write(f"  Réponse du classement figée : rang {challenge.ranking_answer_rank}")
 
+        if challenge.nr_record_id is None:
+            challenge.nr_record = self._pick_nr(challenge.date)
+            if challenge.nr_record:
+                challenge.save(update_fields=["nr_record"])
+                self.stdout.write(f"  NR ajouté : {challenge.nr_record}")
+
     def _freeze_ranking_answer(self, challenge):
         ranking = CubeurRanking.objects.filter(
             cubeur_id=challenge.ranking_cubeur_id,
@@ -109,6 +115,7 @@ class Command(BaseCommand):
             podium_competition=podium_competition,
             podium_event=podium_event,
             location_competition=location_competition,
+            nr_record=self._pick_nr(target_date),
         )
         self._freeze_ranking_answer(challenge)
         challenge.save()
@@ -119,6 +126,33 @@ class Command(BaseCommand):
         self.stdout.write(f"  Classement : {ranking_cubeur.first_name} {ranking_cubeur.last_name} / {ranking_event.name} ({ranking_result_type})")
         self.stdout.write(f"  Podium     : {podium_competition.name} / {podium_event.name}")
         self.stdout.write(f"  Location   : {location_competition.name}")
+        if challenge.nr_record:
+            self.stdout.write(f"  NR         : {challenge.nr_record}")
+
+    # Devine le NR : poids dégressif avec l'ancienneté (comme les compétitions),
+    # avec un plancher pour que les vieux NR sortent encore de temps en temps.
+    NR_WEIGHT_MAX_DAYS = 3650
+    NR_WEIGHT_FLOOR = 365
+    NR_RECENT_DAYS = 50
+
+    def _nr_weight(self, record, ref_date):
+        age_days = (ref_date - record.date).days
+        return max(self.NR_WEIGHT_FLOOR, self.NR_WEIGHT_MAX_DAYS - age_days)
+
+    def _pick_nr(self, target_date):
+        records = list(NationalRecord.objects.all())
+        if not records:
+            return None
+
+        recent = set(
+            DailyChallenge.objects.filter(
+                date__gte=target_date - timedelta(days=self.NR_RECENT_DAYS),
+                nr_record__isnull=False,
+            ).values_list("nr_record_id", flat=True)
+        )
+        candidates = [r for r in records if r.id not in recent] or records
+        weights = [self._nr_weight(r, target_date) for r in candidates]
+        return random.choices(candidates, weights=weights, k=1)[0]
 
     def _get_avatar_url(self, cubeur):
 

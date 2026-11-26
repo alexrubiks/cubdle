@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { isLaunched } from '../utils/dates';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
 import { Eye, EyeOff } from 'lucide-react';
 import L from 'leaflet';
@@ -245,13 +246,17 @@ function GuessLocation() {
           {/* ── HEADER ── */}
           <div className="relative flex items-center w-full max-w-md md:max-w-2xl pt-6 md:pt-8 h-14 md:h-16">
             <div className="absolute left-1 md:left-4">
-              <GameNavCard
-                to="/podium"
-                direction="prev"
-                color="bg-cubdle-green"
-                prefix="Devine le"
-                title="PODIUM"
-              />
+              {isLaunched() ? (
+                <GameNavCard to="/nr" direction="prev" color="bg-cubdle-blue" prefix="Devine le" title="NR" />
+              ) : (
+                <GameNavCard
+                  to="/podium"
+                  direction="prev"
+                  color="bg-cubdle-green"
+                  prefix="Devine le"
+                  title="PODIUM"
+                />
+              )}
             </div>
 
             <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">

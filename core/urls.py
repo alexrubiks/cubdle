@@ -20,10 +20,12 @@ urlpatterns = [
     path('guess/ranking/', views.guess_ranking),
     path('guess/podium/', views.guess_podium),
     path('guess/location/', views.guess_location),
+    path('guess/nr/', views.guess_nr),
 
     path("cubeurs/<int:pk>/", views.cubeur_detail),
     path("competitions/<int:pk>/", views.competition_detail),
 
     path('cubeurs/search/', views.cubeur_search),
     path('competitions/search/', views.competition_search),
+    path('nr/search/', views.nr_search),
 ]
