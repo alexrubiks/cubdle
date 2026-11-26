@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 // (doit rester aligné avec core/dates.py côté backend).
 export const ARCHIVE_DELAY_DAYS = 10;
 
+// Date de lancement de la maj de décembre (aligné avec LAUNCH_DATE côté backend).
+// Surchargeable via VITE_LAUNCH_DATE pour tester en avance (ex : preview Vercel).
+export const LAUNCH_DATE = import.meta.env.VITE_LAUNCH_DATE || '2026-12-01';
+
 const parisFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Europe/Paris',
   year: 'numeric',
@@ -14,6 +18,11 @@ const parisFormatter = new Intl.DateTimeFormat('en-CA', {
 /** Date du jour à Paris, au format YYYY-MM-DD. */
 export function getParisToday() {
   return parisFormatter.format(new Date());
+}
+
+/** True si la maj de décembre est active pour cette date (défaut : aujourd'hui). */
+export function isLaunched(date = getParisToday()) {
+  return date >= LAUNCH_DATE;
 }
 
 /** Ajoute n jours à une date 'YYYY-MM-DD' (n peut être négatif). */

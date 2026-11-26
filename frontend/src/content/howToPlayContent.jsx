@@ -68,6 +68,22 @@ export const HOW_TO_PLAY_CONTENT = {
     title: "Devine le classement",
     body: (
       <>
+        But du jeu : trouver le <strong>classement national</strong> d'un cubeur tiré au sort.
+        <br /><br />
+        Tu n'as qu'<strong>un seul essai</strong> : propose un rang entre 1 et 100.
+        <br /><br />
+        Ton score est l'<strong>écart</strong> entre ton rang et le vrai rang : 0, c'est parfait, et plus c'est bas, mieux c'est.
+        <br /><br />
+        Si plusieurs personnes sont classées ex-æquo, viser n'importe quel rang entre elles compte comme le bon rang.
+      </>
+    ),
+  },
+
+  // Ancienne règle (jusqu'au 30 novembre 2026)
+  ranking_legacy: {
+    title: "Devine le classement",
+    body: (
+      <>
         But du jeu : trouver le <strong>classement</strong> d'un cubeur tiré au sort.
         <br /><br />
         Propose une valeur entre 1 et 100, et révèle au fur et à mesure les noms et temps des personnes du classement pour t'aider à deviner la <strong>position exacte</strong> du cubeur recherché.

@@ -32,6 +32,7 @@ from core.serializers import (
 
 from .dates import (
     ChallengeDateError,
+    is_launched,
     is_playable,
     parse_date,
     get_challenge_date,
@@ -46,6 +47,7 @@ from .progress import (
     get_error_count_from_dicts,
     get_podium_wrong_count,
     get_podium_names,
+    get_done,
 )
 
 SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
@@ -657,6 +659,9 @@ def guess_ranking(request):
     if challenge.ranking_cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
+    if is_launched():
+        return _guess_ranking_single(request, challenge)
+
     guessed_rank = request.data.get("rank")
 
     if guessed_rank is None:
@@ -743,6 +748,116 @@ def guess_ranking(request):
         "direction": direction,
         "persons_at_rank": persons_at_rank,
         "blocked_ranks": blocked_ranks,
+    })
+
+
+def _ranking_answer(challenge):
+    """
+    Renvoie (rang, score, nb d'ex æquo) de la bonne réponse.
+    Figés à la génération ; à défaut (anciens défis), classement actuel.
+    """
+    rankings = CubeurRanking.objects.filter(
+        event=challenge.ranking_event,
+        result_type=challenge.ranking_result_type,
+    )
+
+    if challenge.ranking_answer_rank is not None:
+        rank, score = challenge.ranking_answer_rank, challenge.ranking_answer_score
+        tie_count = challenge.ranking_answer_tie_count
+    else:
+        ranking = rankings.get(cubeur=challenge.ranking_cubeur)
+        rank, score, tie_count = ranking.national_rank, ranking.score, None
+
+    if not tie_count:
+        tie_count = rankings.filter(national_rank=rank).count()
+
+    return rank, score, max(1, tie_count)
+
+
+def ranking_distance(guessed_rank, target_rank, tie_count):
+    """
+    Écart entre le rang proposé et la bonne réponse.
+    Un groupe de N ex æquo classés R occupe les places R à R+N-1 :
+    viser n'importe laquelle de ces places donne un écart de 0,
+    sinon on mesure la distance jusqu'au bord le plus proche du groupe.
+    """
+    low = target_rank
+    high = target_rank + tie_count - 1
+    if guessed_rank < low:
+        return low - guessed_rank
+    if guessed_rank > high:
+        return guessed_rank - high
+    return 0
+
+
+def _guess_ranking_single(request, challenge):
+    """
+    Nouveau mode (maj de décembre) : un seul guess, score = écart (cf. ranking_distance).
+    Pas d'archive pour ce jeu (le classement national évolue en permanence).
+    """
+    if challenge.date != paris_today():
+        return Response({"error": "Ce jeu n'est pas disponible pour les anciens défis."}, status=403)
+
+    if get_done(request, "ranking_done"):
+        return Response({"error": "Tu as déjà joué au classement aujourd'hui."}, status=409)
+
+    try:
+        guessed_rank = int(request.data.get("rank"))
+    except (TypeError, ValueError):
+        return Response({"error": "rank doit être un entier"}, status=400)
+
+    if not (1 <= guessed_rank <= 100):
+        return Response({"error": "rank doit être entre 1 et 100"}, status=400)
+
+    target_rank, target_score, tie_count = _ranking_answer(challenge)
+    distance = ranking_distance(guessed_rank, target_rank, tie_count)
+
+    # Toutes les personnes entre le guess et la bonne réponse (bornes incluses).
+    # Le groupe visé est celui du rang occupé <= guess (ex : 13 -> les 12e ex æquo).
+    guessed_block = _get_persons_at_rank(
+        challenge.ranking_event,
+        challenge.ranking_result_type,
+        guessed_rank,
+    )
+    guessed_block_rank = guessed_block["resolved_rank"] or guessed_rank
+
+    rank_min = min(target_rank, guessed_block_rank)
+    rank_max = max(target_rank, guessed_rank)
+
+    persons = [
+        {
+            "id": r.cubeur.id,
+            "name": f"{r.cubeur.first_name} {r.cubeur.last_name}",
+            "score": r.score,
+            "rank": r.national_rank,
+            "is_answer_group": r.national_rank == target_rank,
+            "is_answer": r.cubeur_id == challenge.ranking_cubeur_id,
+        }
+        for r in CubeurRanking.objects.filter(
+            event=challenge.ranking_event,
+            result_type=challenge.ranking_result_type,
+            national_rank__gte=rank_min,
+            national_rank__lte=rank_max,
+        ).select_related("cubeur").order_by("national_rank", "cubeur__last_name")
+    ]
+
+    add_guess(
+        request,
+        "ranking_guesses",
+        {
+            "rank": guessed_rank,
+            "distance": distance,
+        },
+    )
+    set_done(request, "ranking_done")
+
+    return Response({
+        "guessed_rank": guessed_rank,
+        "rank": target_rank,
+        "score": target_score,
+        "tie_count": tie_count,
+        "distance": distance,
+        "persons": persons,
     })
 
 
@@ -1113,6 +1228,9 @@ def submit_score(request):
         return Response({"error": "Ce défi n'est pas accessible."}, status=403)
 
     is_late = day != today and not in_grace
+
+    if game_slug == "ranking" and is_late:
+        return Response({"error": "Pas d'ancien défi pour le classement."}, status=403)
 
     # Le premier score enregistré pour un (joueur, jeu, jour) fait foi.
     score, created = Score.objects.get_or_create(

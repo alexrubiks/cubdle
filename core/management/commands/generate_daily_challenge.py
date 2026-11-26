@@ -61,10 +61,34 @@ class Command(BaseCommand):
             targets = [start + timedelta(days=i) for i in range(options["days_ahead"] + 1)]
 
         for target_date in targets:
-            if DailyChallenge.objects.filter(date=target_date).exists():
+            existing = DailyChallenge.objects.filter(date=target_date).first()
+            if existing:
                 self.stdout.write(f"Défi du {target_date} déjà généré.")
+                self._complete(existing)
                 continue
             self._generate(target_date)
+
+    def _complete(self, challenge):
+        """Complète un défi déjà généré avec les champs ajoutés depuis (maj de décembre)."""
+        if challenge.ranking_answer_rank is None and challenge.ranking_cubeur_id:
+            self._freeze_ranking_answer(challenge)
+            challenge.save(update_fields=["ranking_answer_rank", "ranking_answer_score", "ranking_answer_tie_count"])
+            self.stdout.write(f"  Réponse du classement figée : rang {challenge.ranking_answer_rank}")
+
+    def _freeze_ranking_answer(self, challenge):
+        ranking = CubeurRanking.objects.filter(
+            cubeur_id=challenge.ranking_cubeur_id,
+            event_id=challenge.ranking_event_id,
+            result_type=challenge.ranking_result_type,
+        ).first()
+        if ranking:
+            challenge.ranking_answer_rank = ranking.national_rank
+            challenge.ranking_answer_score = ranking.score
+            challenge.ranking_answer_tie_count = CubeurRanking.objects.filter(
+                event_id=challenge.ranking_event_id,
+                result_type=challenge.ranking_result_type,
+                national_rank=ranking.national_rank,
+            ).count()
 
     def _generate(self, target_date):
         cubeur = self._pick_cubeur()
@@ -75,7 +99,7 @@ class Command(BaseCommand):
         podium_competition, podium_event = self._pick_podium()
         location_competition = self._pick_location_competition(competition)
 
-        DailyChallenge.objects.create(
+        challenge = DailyChallenge(
             date=target_date,
             cubeur=cubeur,
             competition=competition,
@@ -86,6 +110,8 @@ class Command(BaseCommand):
             podium_event=podium_event,
             location_competition=location_competition,
         )
+        self._freeze_ranking_answer(challenge)
+        challenge.save()
 
         self.stdout.write(self.style.SUCCESS(f"Défi du {target_date} généré !"))
         self.stdout.write(f"  Cubeur     : {cubeur.first_name} {cubeur.last_name}")

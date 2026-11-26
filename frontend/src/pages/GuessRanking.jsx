@@ -9,6 +9,8 @@ import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, saveDone, getGuesses, getDone, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
+import { isLaunched } from '../utils/dates';
+import GuessRankingSingle from './GuessRankingSingle';
 
 function buildShareTextRanking(guesses, challenge) {
   return [
@@ -148,7 +150,9 @@ function RankingTable({ challenge, guesses, solution }) {
   );
 }
 
-function GuessRanking() {
+// Ancienne règle (plusieurs essais), active jusqu'au 30 novembre 2026.
+// À supprimer une fois la maj de décembre lancée.
+function GuessRankingLegacy() {
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
@@ -434,7 +438,7 @@ function GuessRanking() {
         )}
 
         {showHowToPlay && (
-          <HowToPlayModal gameKey="ranking" onClose={() => setShowHowToPlay(false)} />
+          <HowToPlayModal gameKey="ranking_legacy" onClose={() => setShowHowToPlay(false)} />
         )}
 
       </div>
@@ -443,4 +447,8 @@ function GuessRanking() {
 }
 
 
-export default GuessRanking;
+// Le composant est remonté à minuit (GameRoute keyé par date) : la bascule
+// vers la nouvelle règle se fait donc toute seule le 1er décembre à 0h.
+export default function GuessRanking() {
+  return isLaunched() ? <GuessRankingSingle /> : <GuessRankingLegacy />;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { API_URLS } from '../../utils';
+import { isLaunched } from '../../utils/dates';
 
 const GAMES = [
   { 
@@ -71,6 +72,11 @@ export default function LeaderboardModal({
   }
 
   function formatScore(score, game) {
+    // Maj de décembre : le classement se joue en un seul essai, score = écart de rangs
+    if (game.slug === "ranking" && isLaunched()) {
+      return score === 0 ? "PERFECT" : `${score} d'écart`;
+    }
+
     if (game.scoreLabels?.[score]) {
       return game.scoreLabels[score];
     }

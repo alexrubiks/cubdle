@@ -147,6 +147,11 @@ class DailyChallenge(models.Model):
     ranking_cubeur = models.ForeignKey(Cubeur, on_delete=models.SET_NULL, null=True, related_name='daily_ranking')
     ranking_event = models.ForeignKey(Event, on_delete=models.SET_NULL, null=True)
     ranking_result_type = models.CharField(max_length=10, default="average")
+    # Réponse figée à la génération (le classement national évolue à chaque import)
+    ranking_answer_rank = models.IntegerField(null=True, blank=True)
+    ranking_answer_score = models.IntegerField(null=True, blank=True)
+    # Nb de personnes ex æquo à ce rang (le groupe occupe les places rang..rang+n-1)
+    ranking_answer_tie_count = models.IntegerField(null=True, blank=True)
     
     # Jeu 4 - Devine le podium
     podium_competition = models.ForeignKey(Competition, on_delete=models.SET_NULL, null=True, related_name='daily_podium')
