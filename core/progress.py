@@ -1,12 +1,16 @@
-from django.utils import timezone
 from .models import DailyProgress
+from .dates import get_challenge_date
 import copy
 
 from core.models import ChampionshipResult
 
 
-def get_session_key():
-    return f"daily_progress_{timezone.localdate()}"
+SESSION_PREFIX = "daily_progress_"
+MAX_SESSION_DAYS = 15  # nb de journées gardées en session (jour + archives)
+
+
+def get_session_key(request):
+    return f"{SESSION_PREFIX}{get_challenge_date(request)}"
 
 
 DEFAULT_PROGRESS = {
@@ -34,15 +38,17 @@ def get_daily_progress(request):
     if request.user.is_authenticated:
         progress, _ = DailyProgress.objects.get_or_create(
             user=request.user,
-            date=timezone.localdate(),
+            date=get_challenge_date(request),
         )
         return progress
 
-    key = get_session_key()
+    key = get_session_key(request)
 
-    # Nettoyage des anciennes clés de progression (jours précédents)
-    for k in list(request.session.keys()):
-        if k.startswith("daily_progress_") and k != key:
+    # Nettoyage : on garde les MAX_SESSION_DAYS journées les plus récentes
+    # (le jour courant + les archives jouées récemment)
+    day_keys = sorted(k for k in request.session.keys() if k.startswith(SESSION_PREFIX))
+    for k in day_keys[:-MAX_SESSION_DAYS]:
+        if k != key:
             del request.session[k]
 
     if key not in request.session:
@@ -61,7 +67,7 @@ def save_progress(request, progress):
         progress.save()
 
     else:
-        request.session[get_session_key()] = progress
+        request.session[get_session_key(request)] = progress
         request.session.modified = True
 
 
@@ -189,7 +195,7 @@ def reset_daily_progress(request):
     if request.user.is_authenticated:
         DailyProgress.objects.filter(
             user=request.user,
-            date=timezone.localdate()
+            date=get_challenge_date(request)
         ).delete()
     else:
-        request.session.pop(get_session_key(), None)
+        request.session.pop(get_session_key(request), None)

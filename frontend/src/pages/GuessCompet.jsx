@@ -10,14 +10,14 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 
 function YesterdayCompet() {
   const [name, setName] = useState(undefined); // undefined = pas encore chargé
 
   useEffect(() => {
-    fetch(API_URLS.yesterday)
+    fetch(withDate(API_URLS.yesterday))
       .then(r => r.json())
       .then(data => setName(data.competition));
   }, []);
@@ -163,7 +163,7 @@ function GuessCompet() {
     setResults([]);
 
     try {
-      const res = await fetch(API_URLS.guessCompet, {
+      const res = await fetch(withDate(API_URLS.guessCompet), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

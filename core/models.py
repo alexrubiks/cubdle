@@ -4,6 +4,10 @@ class User(models.Model):
     wca_id = models.CharField(max_length=10, unique=True)
     pseudo = models.CharField(max_length=30)
 
+    # Compatibilité avec request.user.is_authenticated (DRF / progress.py)
+    is_authenticated = True
+    is_anonymous = False
+
     def __str__(self):
         return self.pseudo
 
@@ -20,10 +24,17 @@ class Score(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     game = models.ForeignKey(Game, on_delete=models.CASCADE)
     score = models.IntegerField()
-    date = models.DateField(auto_now_add=True)
+    # Date du DÉFI joué (et non date à laquelle on a joué)
+    date = models.DateField()
+    played_at = models.DateTimeField(auto_now_add=True, null=True)
+    # Partie jouée en décalé (archive) : hors classement
+    is_late = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('user', 'game', 'date')
+        indexes = [
+            models.Index(fields=['game', 'date']),
+        ]
 
     def __str__(self):
         return f"{self.user} a obtenu un score de {self.score} au jeu {self.game}"

@@ -16,7 +16,9 @@ import AccountModal from './components/ui/AccountModal';
 import AuthCallback from './components/auth/AuthCallback';
 import AuthStatus from './components/ui/AuthStatus';
 import { API_URLS } from './utils';
-import { loadProgress, saveProgress, resetProgress, flushPendingScores } from "./utils/localProgress";
+import { loadProgress, saveProgress, resetProgress, flushPendingScores, withDate } from "./utils/localProgress";
+import { getParisToday, useParisToday } from './utils/dates';
+import GameRoute from './components/GameRoute';
 
 
 export default function App() {
@@ -29,11 +31,14 @@ export default function App() {
     setUser(updatedUser);
   };
 
+  const today = useParisToday();
+
   const syncProgress = async (token) => {
-    const localProgress = loadProgress();
+    const day = getParisToday();
+    const localProgress = loadProgress(day);
 
     try {
-      const res = await fetch(API_URLS.progressSync, {
+      const res = await fetch(withDate(API_URLS.progressSync, day), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,8 +50,8 @@ export default function App() {
       if (!res.ok) throw new Error("Sync échouée");
 
       const merged = await res.json();
-      const current = loadProgress();
-      saveProgress({ ...current, ...merged });
+      const current = loadProgress(day);
+      saveProgress({ ...current, ...merged }, day);
 
     } catch {
       // échec réseau : on garde le localStorage tel quel, rien ne change
@@ -126,11 +131,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
 
-          <Route path="/cubeur" element={<GuessCubeur />} />
-          <Route path="/competition" element={<GuessCompet />} />
-          <Route path="/ranking" element={<GuessRanking />} />
-          <Route path="/podium" element={<GuessPodium />} />
-          <Route path="/location" element={<GuessLocation />} />
+          {/* key={today} : au passage de minuit, la page est remontée sur le nouveau défi */}
+          <Route path="/cubeur" element={<GameRoute key={today} date={today}><GuessCubeur /></GameRoute>} />
+          <Route path="/competition" element={<GameRoute key={today} date={today}><GuessCompet /></GameRoute>} />
+          <Route path="/ranking" element={<GameRoute key={today} date={today}><GuessRanking /></GameRoute>} />
+          <Route path="/podium" element={<GameRoute key={today} date={today}><GuessPodium /></GameRoute>} />
+          <Route path="/location" element={<GameRoute key={today} date={today}><GuessLocation /></GameRoute>} />
 
           <Route path="/privacy" element={<Privacy />} />
           <Route path="/legal" element={<Legal />} />

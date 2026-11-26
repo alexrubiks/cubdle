@@ -8,7 +8,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, submitScore, refreshFromServer } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 function buildShareTextRanking(guesses, challenge) {
   return [
@@ -200,7 +200,7 @@ function GuessRanking() {
 
   // CHALLENGE
   useEffect(() => {
-    fetch(API_URLS.daily)
+    fetch(withDate(API_URLS.daily))
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
@@ -241,7 +241,7 @@ function GuessRanking() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(API_URLS.guessRanking, {
+      const res = await fetch(withDate(API_URLS.guessRanking), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

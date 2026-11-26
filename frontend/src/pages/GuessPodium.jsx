@@ -8,7 +8,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore, refreshFromServer } from '../utils/localProgress';
+import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
   return [
@@ -147,7 +147,7 @@ function GuessPodium() {
 
   // CHALLENGE
   useEffect(() => {
-    fetch(API_URLS.daily)
+    fetch(withDate(API_URLS.daily))
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
@@ -239,7 +239,7 @@ function GuessPodium() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(API_URLS.guessPodium, {
+      const res = await fetch(withDate(API_URLS.guessPodium), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

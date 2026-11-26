@@ -1,6 +1,6 @@
 import math
 import unicodedata
-from datetime import date
+from datetime import date, timedelta
 from urllib.parse import urlencode
 
 from django.utils import timezone
@@ -30,6 +30,14 @@ from core.serializers import (
     DailyChallengeSerializer,
 )
 
+from .dates import (
+    ChallengeDateError,
+    is_playable,
+    parse_date,
+    get_challenge_date,
+    resolve_challenge_date,
+    today as paris_today,
+)
 from .progress import (
     add_guess,
     get_error_count,
@@ -139,20 +147,39 @@ def update_pseudo(request):
 #####  DAILY  ##################################################################
 ################################################################################
 
+def _get_challenge(request):
+    """
+    Résout la date demandée (?date= / body "date", défaut : aujourd'hui à Paris)
+    et renvoie (challenge, error_response).
+    """
+    try:
+        day = resolve_challenge_date(request)
+    except ChallengeDateError as e:
+        return None, Response({"error": str(e)}, status=403)
+
+    challenge = DailyChallenge.objects.filter(date=day).first()
+    if challenge is None:
+        return None, Response({"error": "Aucun défi disponible pour cette date"}, status=404)
+    return challenge, None
+
+
 @api_view(['GET'])
 def daily_challenge(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
-    if challenge is None:
-        return Response({"error": "Aucun défi disponible pour aujourd'hui"}, status=404)
-    
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+
     serializer = DailyChallengeSerializer(challenge)
-    return Response(serializer.data)
+    return Response({**serializer.data, "date": str(challenge.date), "today": str(paris_today())})
 
 
 @api_view(['GET'])
 def yesterday_challenge(request):
-    from datetime import date, timedelta
-    yesterday = date.today() - timedelta(days=1)
+    try:
+        day = resolve_challenge_date(request)
+    except ChallengeDateError as e:
+        return Response({"error": str(e)}, status=403)
+    yesterday = day - timedelta(days=1)
     challenge = DailyChallenge.objects.filter(date=yesterday).first()
     if not challenge:
         return Response({"cubeur": None, "competition": None})
@@ -316,9 +343,11 @@ def competition_search(request):
 
 @api_view(['POST'])
 def guess_cubeur(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
 
-    if challenge is None or challenge.cubeur is None:
+    if challenge.cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     guessed_id = request.data.get('cubeur_id')
@@ -445,9 +474,11 @@ def _compare_rankings(guessed, target):
 
 @api_view(['POST'])
 def guess_compet(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
 
-    if challenge is None or challenge.competition is None:
+    if challenge.competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     guessed_id = request.data.get('competition_id')
@@ -619,9 +650,11 @@ def _compare_list(guessed_list, target_list):
 
 @api_view(['POST'])
 def guess_ranking(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
 
-    if challenge is None or challenge.ranking_cubeur is None:
+    if challenge.ranking_cubeur is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     guessed_rank = request.data.get("rank")
@@ -750,8 +783,10 @@ def _get_persons_at_rank(event, result_type, guessed_rank):
 
 @api_view(['POST'])
 def guess_podium(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
-    if challenge is None or challenge.podium_competition is None:
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+    if challenge.podium_competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     guessed_id = request.data.get('cubeur_id')
@@ -818,8 +853,10 @@ def guess_podium(request):
 
 @api_view(['POST'])
 def guess_location(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
-    if challenge is None or challenge.location_competition is None:
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+    if challenge.location_competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     try:
@@ -867,18 +904,20 @@ def _location_score(distance_m, max_score=5000, scale=100000):
 @authentication_classes([CubdleJWTAuthentication])
 @permission_classes([AllowAny])
 def location_guesses(request):
-    challenge = DailyChallenge.objects.filter(date=date.today()).first()
-    if challenge is None or challenge.location_competition is None:
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+    if challenge.location_competition is None:
         return Response({"error": "Aucun défi disponible"}, status=404)
 
     progresses = DailyProgress.objects.filter(
-        date=date.today(),
+        date=challenge.date,
         location_done=True,
     ).exclude(
         location_guess={},
     )
 
-    if request.user and request.user.is_authenticated:
+    if getattr(request.user, "is_authenticated", False):
         progresses = progresses.exclude(user=request.user)
 
     progresses = progresses.select_related('user').values_list('user__pseudo', 'location_guess')
@@ -930,11 +969,15 @@ HINT_FIELDS = [
 ]
 
 
-def get_daily_progress(user):
+def get_daily_progress(user, day):
     return DailyProgress.objects.get_or_create(
         user=user,
-        date=timezone.localdate(),
+        date=day,
     )[0]
+
+
+def _is_logged(request):
+    return getattr(request.user, "is_authenticated", False)
 
 
 def serialize_progress(progress):
@@ -960,10 +1003,15 @@ def serialize_progress(progress):
 
 @api_view(["GET", "POST"])
 def daily_progress(request):
-    if not request.user:
+    if not _is_logged(request):
         return Response(status=401)
 
-    progress = get_daily_progress(request.user)
+    try:
+        day = resolve_challenge_date(request)
+    except ChallengeDateError as e:
+        return Response({"error": str(e)}, status=403)
+
+    progress = get_daily_progress(request.user, day)
 
     if request.method == "POST":
         for field in GAME_LIST_FIELDS + ["location_guess"] + DONE_FIELDS + HINT_FIELDS:
@@ -982,11 +1030,16 @@ def sync_daily_progress(request):
     base (le jeu est "commencé"), le localStorage est ignoré pour ce jeu.
     Renvoie l'état fusionné complet.
     """
-    if not request.user:
+    if not _is_logged(request):
         return Response(status=401)
 
+    try:
+        day = resolve_challenge_date(request)
+    except ChallengeDateError as e:
+        return Response({"error": str(e)}, status=403)
+
     local_data = request.data.get("local_progress") or {}
-    progress = get_daily_progress(request.user)
+    progress = get_daily_progress(request.user, day)
 
     updated = False
 
@@ -1022,9 +1075,14 @@ def sync_daily_progress(request):
     return Response(serialize_progress(progress))
 
 
+# Après minuit, on accepte encore pendant SCORE_GRACE les scores de la veille
+# comme "dans les temps" (partie commencée à 23h58, finie à 00h01).
+SCORE_GRACE = timedelta(hours=2)
+
+
 @api_view(["POST"])
 def submit_score(request):
-    if not request.user:
+    if not _is_logged(request):
         return Response(status=401)
 
     game_slug = request.data.get("game")  # "cubeur", "compet", "ranking", "podium", "location"
@@ -1034,24 +1092,43 @@ def submit_score(request):
         return Response({"error": "game et score sont requis."}, status=400)
 
     try:
+        score_value = int(score_value)
+    except (TypeError, ValueError):
+        return Response({"error": "score doit être un entier."}, status=400)
+
+    try:
         game = Game.objects.get(slug=game_slug)
     except Game.DoesNotExist:
         return Response({"error": "Jeu introuvable."}, status=404)
 
-    score, created = Score.objects.update_or_create(
+    today = paris_today()
+    day = parse_date(request.data.get("date")) or today
+    now = timezone.localtime()
+    in_grace = (
+        day == today - timedelta(days=1)
+        and now - now.replace(hour=0, minute=0, second=0, microsecond=0) < SCORE_GRACE
+    )
+
+    if not (is_playable(day) or in_grace):
+        return Response({"error": "Ce défi n'est pas accessible."}, status=403)
+
+    is_late = day != today and not in_grace
+
+    # Le premier score enregistré pour un (joueur, jeu, jour) fait foi.
+    score, created = Score.objects.get_or_create(
         user=request.user,
         game=game,
-        date=timezone.localdate(),
-        defaults={"score": score_value},
+        date=day,
+        defaults={"score": score_value, "is_late": is_late},
     )
 
     if not created:
         return Response({
-            "message": "Score déjà enregistré pour aujourd'hui.",
+            "message": "Score déjà enregistré pour ce jour.",
             "score": score.score,
         })
 
-    return Response({"score": score.score}, status=201)
+    return Response({"score": score.score, "is_late": score.is_late}, status=201)
 
 
 GAME_SORT_ORDER = {
@@ -1065,6 +1142,11 @@ GAME_SORT_ORDER = {
 
 @api_view(["GET"])
 def daily_leaderboard(request):
+    """
+    ?game=<slug>&date=YYYY-MM-DD&include_late=1
+    Les parties jouées en décalé (archives) ne sont renvoyées que si
+    include_late=1, et sont marquées is_late=True (hors classement).
+    """
     game_slug = request.GET.get("game")
 
     if game_slug not in GAME_SORT_ORDER:
@@ -1075,20 +1157,23 @@ def daily_leaderboard(request):
     except Game.DoesNotExist:
         return Response({"error": "Jeu introuvable."}, status=404)
 
-    today = timezone.localdate()
+    day = parse_date(request.GET.get("date")) or paris_today()
+    if day > paris_today():
+        return Response({"error": "Pas encore de classement pour ce jour."}, status=403)
+
+    include_late = request.GET.get("include_late") in ("1", "true")
     order = "score" if GAME_SORT_ORDER[game_slug] == "asc" else "-score"
 
-    scores = (
-        Score.objects
-        .filter(game=game, date=today)
-        .select_related("user")
-        .order_by(order)
-    )
+    scores = Score.objects.filter(game=game, date=day).select_related("user")
+    if not include_late:
+        scores = scores.filter(is_late=False)
+    scores = scores.order_by("is_late", order, "played_at")
 
     return Response([
         {
             "pseudo": s.user.pseudo,
             "score": s.score,
+            "is_late": s.is_late,
         }
         for s in scores
     ])

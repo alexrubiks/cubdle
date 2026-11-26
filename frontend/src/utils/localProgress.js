@@ -1,4 +1,5 @@
 import { API_URLS } from "../utils";
+import { getParisToday } from "./dates";
 
 const STORAGE_PREFIX = "cubdle_progress";
 
@@ -22,32 +23,56 @@ const DEFAULT_PROGRESS = {
   pending_scores: {},
 };
 
-function getTodayParisDateString() {
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'Europe/Paris',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return formatter.format(new Date());
+// ── Date "active" ──
+// Toutes les fonctions de ce module lisent/écrivent la progression du défi
+// de la date active. Par défaut : aujourd'hui (Paris). Les pages de jeu
+// l'imposent via <GameRoute date=...> (jour courant ou archive).
+let activeDate = null;
+
+export function setActiveDate(date) {
+  activeDate = date;
 }
 
-function getStorageKey() {
-  return `${STORAGE_PREFIX}_${getTodayParisDateString()}`;
+export function getActiveDate() {
+  return activeDate ?? getParisToday();
+}
+
+export function isArchiveDate(date = getActiveDate()) {
+  return date !== getParisToday();
+}
+
+/** Ajoute ?date=<date active> à une URL d'API. */
+export function withDate(url, date = getActiveDate()) {
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}date=${date}`;
+}
+
+function getStorageKey(date = getActiveDate()) {
+  return `${STORAGE_PREFIX}_${date}`;
+}
+
+// On garde la progression des MAX_STORED_DAYS derniers jours joués
+// (aujourd'hui + archives), jamais celle du jour actif.
+const MAX_STORED_DAYS = 15;
+
+function getStoredDayKeys() {
+  return Object.keys(localStorage)
+    .filter((key) => key.startsWith(`${STORAGE_PREFIX}_`))
+    .sort();
 }
 
 function cleanupOldProgress() {
   const currentKey = getStorageKey();
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith(`${STORAGE_PREFIX}_`) && key !== currentKey) {
-      localStorage.removeItem(key);
-    }
+  const todayKey = getStorageKey(getParisToday());
+  const keys = getStoredDayKeys();
+  keys.slice(0, Math.max(0, keys.length - MAX_STORED_DAYS)).forEach((key) => {
+    if (key !== currentKey && key !== todayKey) localStorage.removeItem(key);
   });
 }
 
-export function loadProgress() {
+export function loadProgress(date = getActiveDate()) {
   cleanupOldProgress();
-  const saved = localStorage.getItem(getStorageKey());
+  const saved = localStorage.getItem(getStorageKey(date));
 
   if (!saved) return structuredClone(DEFAULT_PROGRESS);
 
@@ -58,8 +83,8 @@ export function loadProgress() {
   }
 }
 
-export function saveProgress(progress) {
-  localStorage.setItem(getStorageKey(), JSON.stringify(progress));
+export function saveProgress(progress, date = getActiveDate()) {
+  localStorage.setItem(getStorageKey(date), JSON.stringify(progress));
 }
 
 export function addGuess(field, value) {
@@ -102,7 +127,7 @@ export function saveGuess(field, value) {
 }
 
 export function resetProgress() {
-  localStorage.removeItem(getStorageKey());
+  getStoredDayKeys().forEach((key) => localStorage.removeItem(key));
 }
 
 export function saveLatestHint(field, hint) {
@@ -122,7 +147,7 @@ function pushProgress(progress) {
   const token = localStorage.getItem("access_token");
   if (!token) return;
 
-  fetch(API_URLS.dailyProgress, {
+  fetch(withDate(API_URLS.dailyProgress), {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(progress),
@@ -136,7 +161,7 @@ export async function refreshFromServer() {
   if (!token) return loadProgress();
 
   try {
-    const res = await fetch(API_URLS.dailyProgress, {
+    const res = await fetch(withDate(API_URLS.dailyProgress), {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) return loadProgress();
@@ -201,7 +226,7 @@ export async function syncOnLogin() {
   if (!token) return local;
 
   try {
-    const res = await fetch(API_URLS.progressSync, {
+    const res = await fetch(withDate(API_URLS.progressSync), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({ local_progress: local }),
@@ -219,8 +244,8 @@ export async function syncOnLogin() {
 
 // ── Scores : logique de retry inchangée, mais découplée du progress ──
 
-export async function submitScore(game, score) {
-   if (score === undefined || score === null) {
+export async function submitScore(game, score, date = getActiveDate()) {
+  if (score === undefined || score === null) {
     console.error(`submitScore("${game}") called with invalid score:`, score);
     return;
   }
@@ -228,47 +253,63 @@ export async function submitScore(game, score) {
   const token = localStorage.getItem("access_token");
 
   if (!token) {
-    markPendingScore(game, score);
+    markPendingScore(game, score, date);
     return;
   }
 
   try {
-    const ok = await postScore(game, score);
-    if (ok) clearPendingScore(game);
-    else markPendingScore(game, score);
+    const status = await postScore(game, score, date);
+    if (status === "retry") markPendingScore(game, score, date);
+    else clearPendingScore(game, date);
   } catch {
-    markPendingScore(game, score);
+    markPendingScore(game, score, date);
   }
 }
 
-function markPendingScore(game, score) {
-  const progress = loadProgress();
+function markPendingScore(game, score, date) {
+  const progress = loadProgress(date);
   progress.pending_scores = progress.pending_scores || {};
   progress.pending_scores[game] = score;
-  saveProgress(progress);
+  saveProgress(progress, date);
 }
 
-function clearPendingScore(game) {
-  const progress = loadProgress();
+function clearPendingScore(game, date) {
+  const progress = loadProgress(date);
   if (progress.pending_scores) delete progress.pending_scores[game];
-  saveProgress(progress);
+  saveProgress(progress, date);
 }
 
-async function postScore(game, score) {
+/**
+ * Renvoie "ok", "drop" (refus définitif : jour non accessible, données
+ * invalides… → inutile de réessayer) ou "retry" (réseau, 5xx, 401).
+ */
+async function postScore(game, score, date) {
   const token = localStorage.getItem("access_token");
   const res = await fetch(API_URLS.scoresSubmit, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ game, score }),
+    body: JSON.stringify({ game, score, date }),
   });
-  return res.ok;
+  if (res.ok) return "ok";
+  if ([400, 403, 404].includes(res.status)) return "drop";
+  return "retry";
 }
 
+/** Renvoie les scores en attente, pour tous les jours stockés. */
 export async function flushPendingScores() {
-  const progress = loadProgress();
-  const pending = progress.pending_scores || {};
-  for (const [game, score] of Object.entries(pending)) {
-    const ok = await postScore(game, score);
-    if (ok) clearPendingScore(game);
+  if (!localStorage.getItem("access_token")) return;
+
+  for (const key of getStoredDayKeys()) {
+    const date = key.slice(STORAGE_PREFIX.length + 1);
+    const pending = loadProgress(date).pending_scores || {};
+
+    for (const [game, score] of Object.entries(pending)) {
+      try {
+        const status = await postScore(game, score, date);
+        if (status !== "retry") clearPendingScore(game, date);
+      } catch {
+        // réseau : on réessaiera plus tard
+      }
+    }
   }
 }

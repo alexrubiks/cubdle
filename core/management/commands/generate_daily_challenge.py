@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand
-from datetime import date, timedelta
+from datetime import timedelta
+from core.dates import today as paris_today, parse_date
 import math
 import random
 import requests
@@ -20,7 +21,7 @@ EVENT_GROUPS = {
     "skewb": ["skewb"],
     "sq1": ["sq1"],
 }
-CUTOFF = date.today() - timedelta(days=50)
+CUTOFF = paris_today() - timedelta(days=50)
 SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
 LOCATION_PROXIMITY_KM = 5
 LOCATION_CITY_CUTOFF_DAYS = 50
@@ -32,13 +33,40 @@ def _get_ranking_result_type(event_slug):
 class Command(BaseCommand):
     help = "Génère le défi quotidien"
 
-    def handle(self, *args, **kwargs):
-        target_date = date.today() + timedelta(days=1)
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--days-ahead", type=int, default=1,
+            help="Génère tous les défis manquants d'aujourd'hui jusqu'à J+N (défaut : 1).",
+        )
+        parser.add_argument(
+            "--date", type=str, default=None,
+            help="Génère uniquement le défi de cette date (YYYY-MM-DD).",
+        )
 
-        if DailyChallenge.objects.filter(date=target_date).exists():
-            self.stdout.write("Défi du jour déjà généré.")
-            return
+    def handle(self, *args, **options):
+        """
+        Les défis sont générés EN AVANCE (par défaut : aujourd'hui + demain,
+        s'ils n'existent pas encore). Ainsi, à minuit pile, le défi du jour
+        existe déjà, quel que soit l'horaire de la cron ou la durée des imports.
+        Les dates sont toujours celles de Paris (jamais date.today(), en UTC).
+        """
+        if options["date"]:
+            target = parse_date(options["date"])
+            if target is None:
+                self.stderr.write("Date invalide.")
+                return
+            targets = [target]
+        else:
+            start = paris_today()
+            targets = [start + timedelta(days=i) for i in range(options["days_ahead"] + 1)]
 
+        for target_date in targets:
+            if DailyChallenge.objects.filter(date=target_date).exists():
+                self.stdout.write(f"Défi du {target_date} déjà généré.")
+                continue
+            self._generate(target_date)
+
+    def _generate(self, target_date):
         cubeur = self._pick_cubeur()
         self._get_avatar_url(cubeur)
         competition = self._pick_competition()
@@ -115,7 +143,7 @@ class Command(BaseCommand):
     def _pick_ranking(self, excluded_cubeur):
         recent_pairs = set(
             DailyChallenge.objects.filter(
-                date__gte=date.today() - timedelta(days=50)
+                date__gte=paris_today() - timedelta(days=50)
             ).exclude(
                 ranking_cubeur__isnull=True
             ).values_list(
@@ -127,7 +155,7 @@ class Command(BaseCommand):
 
         recent_cubeurs = set(
             DailyChallenge.objects.filter(
-                date__gte=date.today() - timedelta(days=15)
+                date__gte=paris_today() - timedelta(days=15)
             ).exclude(
                 ranking_cubeur__isnull=True
             ).values_list(
@@ -243,7 +271,7 @@ class Command(BaseCommand):
         return max(score, 1) ** CUBEUR_WEIGHT_EXPONENT
 
     def _competition_weight(self, competition):
-        age_days = (date.today() - competition.date_from).days
+        age_days = (paris_today() - competition.date_from).days
         return max(1, 3650 - age_days)
 
     def _distance_km(self, lat1, lon1, lat2, lon2):
@@ -253,7 +281,7 @@ class Command(BaseCommand):
         return 6371 * math.sqrt(dx ** 2 + dy ** 2)
 
     def _pick_location_competition(self, competition_du_jour):
-        cutoff = date.today() - timedelta(days=LOCATION_CITY_CUTOFF_DAYS)
+        cutoff = paris_today() - timedelta(days=LOCATION_CITY_CUTOFF_DAYS)
 
         recent_locations = list(
             DailyChallenge.objects.filter(

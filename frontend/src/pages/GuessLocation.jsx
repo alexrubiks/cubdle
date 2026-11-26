@@ -10,7 +10,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { saveGuess, saveDone, submitScore, refreshFromServer } from '../utils/localProgress';
+import { saveGuess, saveDone, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 
 const guessIcon = L.divIcon({
@@ -156,7 +156,7 @@ function GuessLocation() {
 
   useEffect(() => {
     if (done) {
-      fetch(API_URLS.locationGuesses)
+      fetch(withDate(API_URLS.locationGuesses))
         .then(r => r.json())
         .then(setOtherGuesses);
     }
@@ -164,7 +164,7 @@ function GuessLocation() {
 
   // CHALLENGE
   useEffect(() => {
-    fetch(API_URLS.daily)
+    fetch(withDate(API_URLS.daily))
       .then(r => r.json())
       .then(data => setChallenge(data));
   }, []);
@@ -195,7 +195,7 @@ function GuessLocation() {
   const submitGuess = async () => {
     if (!guessPosition || done) return;
 
-    const res = await fetch(API_URLS.guessLocation, {
+    const res = await fetch(withDate(API_URLS.guessLocation), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
