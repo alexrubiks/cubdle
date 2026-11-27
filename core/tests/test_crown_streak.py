@@ -78,18 +78,24 @@ class CrownStreakTests(TestCase):
         s = streak_for_user(self.alice, today=date(2026, 12, 3))
         self.assertEqual((s["current"], s["best"]), (1, 1))
 
-    def test_nr_not_required_before_launch(self):
-        self.play(self.alice, date(2026, 11, 29), BEFORE_LAUNCH)
-        self.play(self.alice, date(2026, 11, 30), BEFORE_LAUNCH)
-        self.play(self.alice, date(2026, 12, 1))  # NR requis à partir du 1er
+    def test_streak_starts_at_launch(self):
+        # Historique d'avant le 1er décembre ignoré : tout le monde repart de zéro
+        for d in range(20, 31):
+            self.play(self.alice, date(2026, 11, d), BEFORE_LAUNCH)
+        self.assertEqual(streak_for_user(self.alice, today=date(2026, 11, 30))["current"], 0)
+        self.play(self.alice, date(2026, 12, 1))
         s = streak_for_user(self.alice, today=date(2026, 12, 1))
-        self.assertEqual(s["current"], 3)
+        self.assertEqual((s["current"], s["best"]), (1, 1))
+
+    def test_nr_required_after_launch(self):
+        self.play(self.alice, date(2026, 12, 1), BEFORE_LAUNCH)  # sans le NR
+        self.assertEqual(streak_for_user(self.alice, today=date(2026, 12, 1))["current"], 0)
 
     def test_late_games_dont_repair_streak(self):
-        self.play(self.alice, date(2026, 11, 1), BEFORE_LAUNCH)
-        self.play(self.alice, date(2026, 11, 2), BEFORE_LAUNCH, late=True)  # rejoué en archive
-        self.play(self.alice, date(2026, 11, 3), BEFORE_LAUNCH)
-        s = streak_for_user(self.alice, today=date(2026, 11, 3))
+        self.play(self.alice, date(2026, 12, 1))
+        self.play(self.alice, date(2026, 12, 2), late=True)  # rejoué en archive
+        self.play(self.alice, date(2026, 12, 3))
+        s = streak_for_user(self.alice, today=date(2026, 12, 3))
         self.assertEqual((s["current"], s["best"]), (1, 1))
 
     def test_best_streak_kept(self):

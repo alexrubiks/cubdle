@@ -1,4 +1,4 @@
-import { addDays, getParisToday, isLaunched } from './dates';
+import { LAUNCH_DATE, addDays, getParisToday, isLaunched } from './dates';
 
 /** Jeux à terminer ce jour-là pour prolonger la série (le NR n'existe qu'après le lancement). */
 export function requiredGames(date) {
@@ -8,10 +8,11 @@ export function requiredGames(date) {
 
 /**
  * Série 🔥 calculée depuis la progression locale (joueurs non connectés).
- * Même règle que le serveur (core/leaderboards.py, streak_for_user).
+ * Même règle que le serveur (core/leaderboards.py, streak_for_user) :
+ * la série démarre au lancement de la maj (LAUNCH_DATE) pour tout le monde.
  */
 export function computeLocalStreak(doneByDate, today = getParisToday()) {
-  const complete = (d) => requiredGames(d).every((g) => doneByDate[d]?.includes(g));
+  const complete = (d) => d >= LAUNCH_DATE && requiredGames(d).every((g) => doneByDate[d]?.includes(g));
 
   const todayDone = complete(today);
   let current = 0;

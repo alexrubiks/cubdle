@@ -32,10 +32,11 @@ export function doneLabel(slug, progress, date) {
       return guesses.length === 1 ? 'PERFECT' : plural(guesses.length, 'ESSAI');
     }
     case 'podium': {
-      const n = progress.podium_guesses?.length;
-      if (!n) return 'TERMINÉ';
-      const errors = n - 3;
-      return errors <= 0 ? 'PERFECT' : plural(errors, 'ERREUR');
+      const guesses = progress.podium_guesses ?? [];
+      if (!guesses.length) return 'TERMINÉ';
+      // erreurs = mauvaises réponses (le podium peut avoir plus de 3 lignes en cas d'ex æquo)
+      const errors = guesses.filter((g) => !g.correct).length;
+      return errors === 0 ? 'PERFECT' : plural(errors, 'ERREUR');
     }
     case 'nr': {
       const n = progress.nr_guesses?.length ?? 0;

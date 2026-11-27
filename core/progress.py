@@ -169,20 +169,53 @@ def get_podium_wrong_count(request, field):
     guesses = get_guesses(request, field)
     return len([g for g in guesses if not g.get("correct")])
 
-def get_podium_names(challenge):
-    results = ChampionshipResult.objects.filter(
+# Épreuves toujours classées au single (BLD)
+SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+
+
+def get_podium_ranked_by(challenge):
+    """
+    Comment la finale est classée : "single" pour les BLD et les finales en
+    "Best of" (personne n'a de moyenne), sinon "average" (Mean of 3 / Average of 5).
+    Déduit des résultats en base, sans avoir besoin du format de la manche.
+    """
+    if challenge.podium_event.slug in SINGLE_ONLY_EVENTS:
+        return "single"
+    has_average = ChampionshipResult.objects.filter(
         competition=challenge.podium_competition,
         event=challenge.podium_event,
-        position__in=[1, 2, 3],
-    ).select_related("cubeur")
+        average__gt=0,
+    ).exists()
+    return "average" if has_average else "single"
 
-    names = {r.position: f"{r.cubeur.first_name} {r.cubeur.last_name}" for r in results}
 
-    return {
-        1: names.get(1, ""),
-        2: names.get(2, ""),
-        3: names.get(3, ""),
-    }
+def podium_display_score(result, ranked_by):
+    """
+    Valeur sur laquelle la personne est réellement classée : sa moyenne en finale
+    à la moyenne si elle en a une, sinon son meilleur single (règle WCA : les
+    moyennes DNF sont classées après, au single). Renvoie (valeur, "average"|"single").
+    """
+    if ranked_by == "average" and result.average > 0:
+        return result.average, "average"
+    return result.best, "single"
+
+
+def get_podium_entries(challenge):
+    """
+    Personnes du podium = toutes celles classées 3e ou mieux, avec leur vraie place.
+    Gère les ex æquo : 1-2-2, 1-1-3, 1-2-3-3… Chaque personne a sa ligne (slot),
+    dans l'ordre (place, nom).
+    """
+    return list(
+        ChampionshipResult.objects.filter(
+            competition=challenge.podium_competition,
+            event=challenge.podium_event,
+            position__lte=3,
+        )
+        .select_related("cubeur")
+        .order_by("position", "cubeur__last_name", "cubeur__first_name")
+    )
+
 
 def get_done(request, field):
     progress = get_daily_progress(request)

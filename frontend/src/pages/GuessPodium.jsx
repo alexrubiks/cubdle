@@ -4,7 +4,7 @@ import { isLaunched } from '../utils/dates';
 import { API_URLS } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import VictoryCard from '../components/ui/VictoryCard';
-import { formatRankingScore } from '../utils';
+import { formatRecordValue } from '../utils';
 import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
@@ -12,17 +12,65 @@ import HowToPlayModal from '../components/ui/HowToPlayModal';
 import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 function buildShareTextPodium(guesses, challenge) {
+  const errors = guesses.filter((g) => !g.correct).length;
   return [
     '🎯 Cubdle — Devine le Podium 🥇🥈🏅',
     `${challenge.podium_competition_name} - ${challenge.podium_event?.name}`,
     '',
-    `Trouvé en ${guesses.length - 3} erreur${guesses.length - 3 > 1 ? 's' : ''} !`,
+    `Trouvé en ${errors} erreur${errors > 1 ? 's' : ''} !`,
     '',
     'https://cubdle.fr',
   ].join('\n');
 }
 
-function PodiumRow({ medal, cubeur, eventSlug, color, hint }) {
+const MEDALS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+const MEDAL_COLORS = { 1: "bg-yellow-300/50", 2: "bg-gray-300/70", 3: "bg-orange-300/50" };
+
+/**
+ * Lignes du podium (une par personne classée 3e ou mieux, ex æquo compris),
+ * remplies avec les bonnes réponses. `positions` vient du défi (ex : [1, 2, 2]).
+ * Les anciens essais sans `slot` sont replacés d'après leur place.
+ */
+function buildPodiumSlots(guesses, positions) {
+  const slots = positions.map(() => null);
+  const correct = [...guesses].filter((g) => g.correct).reverse(); // ordre chronologique
+  for (const g of correct) {
+    let index = Number.isInteger(g.slot) && g.slot < slots.length && !slots[g.slot] ? g.slot : -1;
+    if (index === -1) index = positions.findIndex((pos, i) => pos === g.position && !slots[i]);
+    if (index !== -1) slots[index] = g;
+  }
+  return slots;
+}
+
+/** Indices : liste par ligne (nouveau format) ou dict par place (ancien format). */
+function normalizeHints(hints, positions) {
+  if (Array.isArray(hints)) return hints;
+  return positions.map((pos) => hints?.[pos] ?? "");
+}
+
+/**
+ * Valeur sur laquelle la personne est classée : moyenne, ou single (finale en
+ * "Best of", BLD, ou moyenne DNF dans une finale à la moyenne -> mention "single").
+ */
+function ScoreCell({ score, scoreType, rankedBy, eventSlug }) {
+  if (score == null) return "—";
+  const type = scoreType ?? rankedBy;
+  return (
+    <div className="flex flex-col items-center leading-tight">
+      <span>{score > 0 ? formatRecordValue(score, eventSlug, type) : "DNF"}</span>
+      {type === "single" && rankedBy === "average" && (
+        <span className="font-body text-[0.625rem] font-normal uppercase tracking-wide text-black/50">single</span>
+      )}
+    </div>
+  );
+}
+
+function scoreHeader(rankedBy, eventSlug) {
+  if (eventSlug === "333mbf") return "Score";
+  return rankedBy === "average" ? "Moyenne" : "Single";
+}
+
+function PodiumRow({ medal, cubeur, eventSlug, color, hint, rankedBy }) {
   return (
     <div
       className={`grid grid-cols-3 items-center border-b border-black/10 font-body text-sm ${
@@ -41,7 +89,7 @@ function PodiumRow({ medal, cubeur, eventSlug, color, hint }) {
 
       <div className="px-3 py-3 text-center font-bold">
         {cubeur
-          ? formatRankingScore(cubeur.score, eventSlug)
+          ? <ScoreCell score={cubeur.score} scoreType={cubeur.score_type} rankedBy={rankedBy} eventSlug={eventSlug} />
           : "??"}
       </div>
     </div>
@@ -49,7 +97,7 @@ function PodiumRow({ medal, cubeur, eventSlug, color, hint }) {
 }
 
 
-function GuessRow({ guess, eventSlug }) {
+function GuessRow({ guess, eventSlug, rankedBy }) {
   return (
     <div className="grid grid-cols-3 items-center border-b border-black/10 font-body text-sm bg-cubdle-red/75">
 
@@ -64,9 +112,7 @@ function GuessRow({ guess, eventSlug }) {
       </div>
 
       <div className="px-3 py-2 text-center">
-        {guess.score != null
-          ? formatRankingScore(guess.score, eventSlug)
-          : "—"}
+        <ScoreCell score={guess.score} scoreType={guess.score_type} rankedBy={rankedBy} eventSlug={eventSlug} />
       </div>
 
     </div>
@@ -74,18 +120,26 @@ function GuessRow({ guess, eventSlug }) {
 }
 
 
-function PodiumTable({ podium, guesses, eventSlug, hints }) {
+function PodiumTable({ slots, positions, guesses, eventSlug, hints, rankedBy }) {
   return (
     <div className="border-2 border-black rounded-xl overflow-hidden bg-white mb-6">
       <div className="grid grid-cols-3 bg-black text-white font-body font-bold text-xs uppercase">
         <div className="px-3 py-2 text-center">Place</div>
         <div className="px-3 py-2">Cubeur</div>
-        <div className="px-3 py-2 text-center">Temps</div>
+        <div className="px-3 py-2 text-center">{scoreHeader(rankedBy, eventSlug)}</div>
       </div>
 
-      <PodiumRow medal="🥇" cubeur={podium[1]} eventSlug={eventSlug} color="bg-yellow-300/50" hint={hints[1]} />
-      <PodiumRow medal="🥈" cubeur={podium[2]} eventSlug={eventSlug} color="bg-gray-300/70" hint={hints[2]} />
-      <PodiumRow medal="🥉" cubeur={podium[3]} eventSlug={eventSlug} color="bg-orange-300/50" hint={hints[3]} />
+      {positions.map((pos, i) => (
+        <PodiumRow
+          key={i}
+          medal={MEDALS[pos]}
+          cubeur={slots[i]}
+          eventSlug={eventSlug}
+          color={MEDAL_COLORS[pos]}
+          hint={hints[i]}
+          rankedBy={rankedBy}
+        />
+      ))}
 
       {/* MAUVAISES REPONSES */}
       {[...guesses]
@@ -97,7 +151,7 @@ function PodiumTable({ podium, guesses, eventSlug, hints }) {
           return 0;
         })
         .map((guess, index) => (
-          <GuessRow key={index} guess={guess} eventSlug={eventSlug} />
+          <GuessRow key={index} guess={guess} eventSlug={eventSlug} rankedBy={rankedBy} />
         ))}
     </div>
   );
@@ -128,15 +182,9 @@ function GuessPodium() {
     () => getDone("podium_done")
   );
 
-  const [podium, setPodium] = useState(() => {
-    const saved = getGuesses("podium_guesses") ?? [];
-
-    return {
-      1: saved.find(g => g.position === 1) ?? null,
-      2: saved.find(g => g.position === 2) ?? null,
-      3: saved.find(g => g.position === 3) ?? null,
-    };
-  });
+  // Places du podium (ex æquo compris) ; [1, 2, 3] en attendant le défi
+  const positions = challenge?.podium_positions ?? [1, 2, 3];
+  const slots = buildPodiumSlots(guesses, positions);
 
   const [hints, setHints] = useState(
     () => getLatestHint("podium") ?? {}
@@ -204,23 +252,7 @@ function GuessPodium() {
       );
 
 
-      const newPodium = {
-        1: savedGuesses.find(g => g.position === 1) ?? null,
-        2: savedGuesses.find(g => g.position === 2) ?? null,
-        3: savedGuesses.find(g => g.position === 3) ?? null,
-      };
-
-      setPodium(newPodium);
-
-
-      const finished =
-        progress.podium_done ||
-        (
-          newPodium[1] &&
-          newPodium[2] &&
-          newPodium[3]
-        );
-
+      const finished = progress.podium_done;
 
       setDone(!!finished);
 
@@ -270,7 +302,9 @@ function GuessPodium() {
         name: data.name,
         correct: data.correct,
         position: data.position ?? null,
+        slot: data.slot ?? null,
         score: data.score ?? null,
+        score_type: data.score_type ?? null,
         in_final: data.in_final,
       };
 
@@ -292,35 +326,17 @@ function GuessPodium() {
       ]);
 
       if (data.correct) {
-
-        const newPodium = {
-          ...podium,
-          [data.position]: {
-            id: cubeur.id,
-            name: data.name,
-            score: data.score,
-            position: data.position,
-          },
-        };
-
-        setPodium(newPodium);
-
-        if (
-          newPodium[1] &&
-          newPodium[2] &&
-          newPodium[3]
-        ) {
+        // Podium complet quand toutes les lignes (ex æquo compris) sont remplies
+        const newSlots = buildPodiumSlots(updatedGuesses, positions);
+        if (newSlots.every(Boolean)) {
           saveDone("podium_done");
-
           setDone(true);
-
           setVictory({
             name: "le podium",
           });
-
           submitScore(
             "podium",
-            updatedGuesses.length - 3
+            updatedGuesses.filter((g) => !g.correct).length
           );
         }
       }
@@ -520,10 +536,12 @@ function GuessPodium() {
         <div className="px-1 md:px-5">
 
           <PodiumTable
-            podium={podium}
+            slots={slots}
+            positions={positions}
             guesses={guesses}
             eventSlug={challenge.podium_event?.slug}
-            hints={hints}
+            hints={normalizeHints(hints, positions)}
+            rankedBy={challenge.podium_ranked_by ?? "average"}
           />
 
         </div>

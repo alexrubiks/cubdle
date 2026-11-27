@@ -136,13 +136,13 @@ export function formatDistance(distanceM) {
 
 /**
  * Formate une valeur brute WCA de record :
- * FMC (coups, moyenne ×100), Multi-Blind (encodage 0DDTTTTTMM), sinon centisecondes.
+ * FMC (nombre de coups, moyenne ×100), Multi-Blind (encodage 0DDTTTTTMM), sinon centisecondes.
  */
 export function formatRecordValue(value, eventId, recordType) {
   if (value == null) return "";
   if (eventId === "333fm") {
-    if (recordType === "average") return `${(value / 100).toFixed(2)} coups`;
-    return `${value} coups`;
+    if (recordType === "average") return (value / 100).toFixed(2);
+    return String(value);
   }
   return formatRankingScore(value, eventId);
 }

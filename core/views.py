@@ -49,11 +49,13 @@ from .progress import (
     get_guesses,
     get_error_count_from_dicts,
     get_podium_wrong_count,
-    get_podium_names,
+    get_podium_entries,
+    get_podium_ranked_by,
+    podium_display_score,
     get_done,
 )
 
-SINGLE_ONLY_EVENTS = {"333bf", "444bf", "555bf", "333mbf"}
+# SINGLE_ONLY_EVENTS : voir core/progress.py
 
 ################################################################################
 #####  AUTH WCA  ###############################################################
@@ -176,6 +178,11 @@ def daily_challenge(request):
 
     serializer = DailyChallengeSerializer(challenge)
     data = {**serializer.data, "date": str(challenge.date), "today": str(paris_today())}
+
+    # Places du podium, ex æquo compris (ex : [1, 2, 2]) : une ligne par personne
+    if challenge.podium_competition is not None:
+        data["podium_positions"] = [e.position for e in get_podium_entries(challenge)]
+        data["podium_ranked_by"] = get_podium_ranked_by(challenge)
 
     # Devine le NR : uniquement à partir du lancement, sans nom ni compétition
     nr = challenge.nr_record
@@ -935,25 +942,27 @@ def guess_podium(request):
         cubeur=guessed,
     ).first()
 
-    correct = result is not None and result.position <= 3
+    # Podium = toutes les personnes classées 3e ou mieux (ex æquo compris)
+    entries = get_podium_entries(challenge)
+    slot = next((i for i, e in enumerate(entries) if e.cubeur_id == guessed.id), None)
+    correct = slot is not None
 
     add_guess(request, "podium_guesses", {
         "id": guessed.id,
         "name": f"{guessed.first_name} {guessed.last_name}",
         "correct": correct,
         "position": result.position if result else None,
+        "slot": slot,
     })
 
-    # nombre d'essais qui n'ont touché aucune des 3 places
+    # nombre d'essais qui n'ont touché aucune ligne du podium
     wrong_count = get_podium_wrong_count(request, "podium_guesses")
 
-    # noms des 3 places du podium, dans l'ordre 1/2/3
-    podium_names = get_podium_names(challenge)
-
-    hints = {
-        pos: build_hint(name, wrong_count, first_at=5, every=5)
-        for pos, name in podium_names.items()
-    }
+    # un indice par ligne du podium (même ordre que podium_positions)
+    hints = [
+        build_hint(f"{e.cubeur.first_name} {e.cubeur.last_name}", wrong_count, first_at=5, every=5)
+        for e in entries
+    ]
 
     if result is None:
         return Response({
@@ -963,18 +972,16 @@ def guess_podium(request):
             "hints": hints,
         })
 
-    score = (
-        result.best
-        if challenge.podium_event.slug in SINGLE_ONLY_EVENTS
-        else result.average
-    )
+    score, score_type = podium_display_score(result, get_podium_ranked_by(challenge))
 
     return Response({
         "correct": correct,
         "in_final": True,
         "name": f"{guessed.first_name} {guessed.last_name}",
         "position": result.position,
+        "slot": slot,
         "score": score,
+        "score_type": score_type,
         "hints": hints,
     })
 

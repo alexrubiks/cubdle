@@ -173,12 +173,14 @@ def streak_for_user(user, today=None):
     Série = nombre de jours d'affilée où toutes les parties du jour ont été
     terminées LE JOUR MÊME (scores non "en décalé"). Tant qu'aujourd'hui n'est
     pas complet, la série de la veille reste en vie (today_done=False).
+    La série démarre au lancement de la maj (LAUNCH_DATE) pour tout le monde :
+    l'historique antérieur n'est pas compté (trous dus aux anciens bugs de dates).
     """
     today = today or paris_today()
     played = defaultdict(set)
     for d, slug in (
         Score.objects
-        .filter(user=user, is_late=False, date__gte=ARCHIVE_START, date__lte=today)
+        .filter(user=user, is_late=False, date__gte=LAUNCH_DATE, date__lte=today)
         .values_list("date", "game__slug")
     ):
         played[d].add(slug)
