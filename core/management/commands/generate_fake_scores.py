@@ -1,7 +1,17 @@
+"""
+Scores factices pour tester les classements en local (NE PAS lancer en prod).
+
+    python manage.py generate_fake_scores                  # aujourd'hui seulement
+    python manage.py generate_fake_scores --days 14        # + les 14 jours précédents
+    python manage.py generate_fake_scores --days 30 --late # + des parties "en décalé"
+"""
 import random
+from datetime import timedelta
+
 from django.core.management.base import BaseCommand
-from django.utils import timezone
-from core.models import User, Game, Score, DailyChallenge, DailyProgress
+
+from core.dates import ARCHIVE_DELAY_DAYS, ARCHIVE_START, today as paris_today
+from core.models import DailyChallenge, DailyProgress, Game, Score, User
 
 FAKE_USERS = [
     ("2015TREM01", "Alexis Tremellat"),
@@ -13,13 +23,23 @@ FAKE_USERS = [
     ("2017FONT08", "Sarah Daloz-Baltenberger"),
 ]
 
+# Joueurs qui rejouent les anciens défis (scores "en décalé", hors classement)
+FAKE_LATE_USERS = [
+    ("2020RETA01", "Marie Retardataire"),
+    ("2020RETA02", "Paul Endecalé"),
+]
+
 GAME_SCORE_RANGES = {
-    "cubeur": (1, 8),      # nombre de tentatives
-    "compet": (1, 10),
-    "ranking": (1, 6),
-    "podium": (0, 12),     # erreurs
-    "location": (500, 5000),  # score /5000
+    "cubeur": (1, 8),         # nombre d'essais (1 = coup de bol, 2 = perfect)
+    "compet": (1, 10),        # nombre d'essais
+    "ranking": (0, 15),       # écart de rangs (0 = perfect)
+    "podium": (0, 12),        # erreurs
+    "nr": (1, 10),            # nombre d'essais
+    "location": (500, 5000),  # points /5000
 }
+
+SKIP_DAY_PROBABILITY = 0.25   # un joueur ne joue pas tous les jours
+SKIP_GAME_PROBABILITY = 0.15  # ni forcément tous les jeux
 
 # Bornes approximatives de la France métropolitaine, utilisées en fallback
 FRANCE_LAT_RANGE = (42.5, 51.0)
@@ -41,62 +61,83 @@ def _random_point_france():
 
 
 class Command(BaseCommand):
-    help = "Génère des scores factices pour tester le classement du jour."
+    help = "Génère des scores factices pour tester les classements (dev uniquement)."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--days", type=int, default=0,
+                            help="Génère aussi les N jours précédents (défaut : 0, aujourd'hui seulement).")
+        parser.add_argument("--late", action="store_true",
+                            help="Ajoute des parties 'en décalé' sur les jours rejouables en archive.")
 
     def handle(self, *args, **options):
-        today = timezone.localdate()
+        today = paris_today()
+        days = [today - timedelta(days=i) for i in range(options["days"] + 1)]
+        days = [d for d in days if d >= ARCHIVE_START]
 
-        # Créer les faux users s'ils n'existent pas déjà
-        users = []
-        for wca_id, pseudo in FAKE_USERS:
-            user, _ = User.objects.get_or_create(
-                wca_id=wca_id,
-                defaults={"pseudo": pseudo},
-            )
-            users.append(user)
+        games = {}
+        for slug in GAME_SCORE_RANGES:
+            game = Game.objects.filter(slug=slug).first()
+            if game is None:
+                self.stdout.write(self.style.WARNING(f"Jeu '{slug}' introuvable, ignoré."))
+            else:
+                games[slug] = game
 
-        for game_slug, (low, high) in GAME_SCORE_RANGES.items():
-            try:
-                game = Game.objects.get(slug=game_slug)
-            except Game.DoesNotExist:
-                self.stdout.write(self.style.WARNING(
-                    f"Jeu '{game_slug}' introuvable, ignoré."
-                ))
-                continue
+        users = [User.objects.get_or_create(wca_id=w, defaults={"pseudo": p})[0] for w, p in FAKE_USERS]
 
+        count = 0
+        for day in days:
             for user in users:
-                score_value = random.randint(low, high)
+                # Aujourd'hui tout le monde joue ; les jours passés, certains sautent
+                if day != today and random.random() < SKIP_DAY_PROBABILITY:
+                    continue
+                for slug, game in games.items():
+                    if day != today and random.random() < SKIP_GAME_PROBABILITY:
+                        continue
+                    Score.objects.update_or_create(
+                        user=user, game=game, date=day,
+                        defaults={"score": random.randint(*GAME_SCORE_RANGES[slug]), "is_late": False},
+                    )
+                    count += 1
 
-                Score.objects.update_or_create(
-                    user=user,
-                    game=game,
-                    date=today,
-                    defaults={"score": score_value},
-                )
+        late_count = 0
+        if options["late"]:
+            late_users = [User.objects.get_or_create(wca_id=w, defaults={"pseudo": p})[0] for w, p in FAKE_LATE_USERS]
+            archive_days = [d for d in days if d <= today - timedelta(days=ARCHIVE_DELAY_DAYS)]
+            for day in archive_days:
+                for user in late_users:
+                    if random.random() < 0.5:
+                        continue
+                    for slug in ("cubeur", "compet", "podium", "nr", "location"):  # pas de Classement en archive
+                        if slug not in games or random.random() < 0.3:
+                            continue
+                        Score.objects.update_or_create(
+                            user=user, game=games[slug], date=day,
+                            defaults={"score": random.randint(*GAME_SCORE_RANGES[slug]), "is_late": True},
+                        )
+                        late_count += 1
+            if not archive_days:
+                self.stdout.write(self.style.WARNING(
+                    f"--late : aucun jour rejouable dans la période (il faut --days {ARCHIVE_DELAY_DAYS} ou plus)."
+                ))
 
-        # Génération des DailyProgress pour le mode "location"
+        # Progressions "location" du jour (marqueurs des autres joueurs sur la carte)
         challenge = DailyChallenge.objects.filter(date=today).first()
         target = getattr(challenge, "location_competition", None) if challenge else None
-
         for user in users:
             if target is not None:
                 lat, lng = _random_point_near(target.latitude, target.longitude)
             else:
                 lat, lng = _random_point_france()
-
             DailyProgress.objects.update_or_create(
-                user=user,
-                date=today,
+                user=user, date=today,
                 defaults={
-                    "location_guess": {
-                        "latitude": round(lat, 6),
-                        "longitude": round(lng, 6),
-                    },
+                    "location_guess": {"latitude": round(lat, 6), "longitude": round(lng, 6)},
                     "location_done": True,
                 },
             )
 
         self.stdout.write(self.style.SUCCESS(
-            f"Scores factices générés pour {len(users)} utilisateurs sur {len(GAME_SCORE_RANGES)} jeux, "
-            f"ainsi que les DailyProgress location associés."
+            f"{count} scores factices sur {len(days)} jour(s) pour {len(users)} joueurs"
+            + (f", + {late_count} scores en décalé" if options["late"] else "")
+            + ", et les progressions Localisation du jour."
         ))
