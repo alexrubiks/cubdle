@@ -3,6 +3,7 @@ import unicodedata
 from datetime import date, timedelta
 from urllib.parse import urlencode
 
+from django.db import transaction
 from django.utils import timezone
 from django.conf import settings
 from django.shortcuts import redirect, get_object_or_404
@@ -43,6 +44,7 @@ from .dates import (
 )
 from .leaderboards import GAME_SORT_ORDER, crowned_user_ids, effective_score, game_points, general_leaderboard, streak_for_user
 from .progress import (
+    merge_progress,
     add_guess,
     set_done,
     get_guesses,
@@ -1271,14 +1273,18 @@ def daily_progress(request):
     except ChallengeDateError as e:
         return Response({"error": str(e)}, status=403)
 
-    progress = get_daily_progress(request.user, day)
-
     if request.method == "POST":
-        for field in GAME_LIST_FIELDS + ["location_guess"] + DONE_FIELDS + HINT_FIELDS:
-            if field in request.data:
-                setattr(progress, field, request.data[field])
-        progress.save()
+        # Fusion (et non plus écrasement) : rien ne peut reculer, quel que soit
+        # l'ordre d'arrivée des envois ou le nombre d'appareils. Verrou de ligne
+        # pour que deux envois simultanés ne s'écrasent pas.
+        get_daily_progress(request.user, day)
+        with transaction.atomic():
+            progress = DailyProgress.objects.select_for_update().get(user=request.user, date=day)
+            merge_progress(progress, request.data, single_ranking=is_launched())
+            progress.save()
+        return Response(serialize_progress(progress))
 
+    progress = get_daily_progress(request.user, day)
     return Response(serialize_progress(progress))
 
 

@@ -270,3 +270,99 @@ def reset_daily_progress(request):
         ).delete()
     else:
         request.session.pop(get_session_key(request), None)
+
+# ---------------------------------------------------------------------------
+# Fusion de la progression envoyée par le navigateur (POST /progress/)
+# ---------------------------------------------------------------------------
+# Avant : chaque envoi ÉCRASAIT la base. Deux envois qui se croisent sur le
+# réseau, ou un 2e appareil resté ouvert avec un état périmé, pouvaient faire
+# reculer la progression. Désormais on fusionne : rien ne peut reculer, et
+# l'ordre d'arrivée des envois n'a plus d'importance.
+
+# champ -> clé qui identifie un essai (pour dédoublonner)
+GUESS_LIST_KEYS = {
+    "cubeur_guesses": "id",
+    "compet_guesses": "id",
+    "podium_guesses": "id",
+    "nr_guesses": "wca_id",
+    "ranking_guesses": "rank",
+}
+
+MERGE_DONE_FIELDS = [
+    "cubeur_done", "compet_done", "ranking_done",
+    "podium_done", "location_done", "nr_done",
+]
+
+MERGE_HINT_FIELDS = [
+    "cubeur_latest_hint", "compet_latest_hint",
+    "podium_latest_hint", "nr_latest_hint",
+]
+
+
+def _guess_key(guess, key):
+    if not isinstance(guess, dict):
+        return None
+    value = guess.get(key)
+    if value is None or isinstance(value, (dict, list, bool)):
+        return None
+    if key == "wca_id":
+        return str(value).strip().upper() or None
+    return str(value)
+
+
+def merge_guess_list(stored, incoming, key):
+    """
+    Union des essais : d'abord ceux envoyés (dans leur ordre, le plus récent en tête),
+    puis ceux connus seulement en base, ajoutés à la fin comme plus anciens.
+    Entrées mal formées ignorées, doublons retirés, plafond MAX_CLIENT_GUESSES.
+    """
+    merged, seen = [], set()
+    for source in (incoming if isinstance(incoming, list) else [], stored or []):
+        for guess in source:
+            k = _guess_key(guess, key)
+            if k is None or k in seen:
+                continue
+            seen.add(k)
+            merged.append(guess)
+            if len(merged) >= MAX_CLIENT_GUESSES:
+                return merged
+    return merged
+
+
+def _is_empty(value):
+    return value is None or value == {} or value == [] or value == ""
+
+
+def merge_progress(progress, data, single_ranking):
+    """
+    Applique `data` (envoyé par le navigateur) sur `progress` (DailyProgress) par fusion.
+    - listes d'essais : union dédoublonnée (Classement en essai unique : le premier reste)
+    - location_guess : un essai déjà en base est gardé
+    - *_done : OU logique, ne repasse jamais à faux
+    - indices : un indice vide n'écrase pas un indice existant
+    Ne sauvegarde pas : c'est à l'appelant de le faire.
+    """
+    if not isinstance(data, dict):
+        return progress
+
+    for field, key in GUESS_LIST_KEYS.items():
+        if field not in data:
+            continue
+        stored = getattr(progress, field) or []
+        if field == "ranking_guesses" and single_ranking and stored:
+            continue
+        setattr(progress, field, merge_guess_list(stored, data[field], key))
+
+    incoming_loc = data.get("location_guess")
+    if _is_empty(progress.location_guess) and isinstance(incoming_loc, dict) and incoming_loc:
+        progress.location_guess = incoming_loc
+
+    for field in MERGE_DONE_FIELDS:
+        if data.get(field) is True:
+            setattr(progress, field, True)
+
+    for field in MERGE_HINT_FIELDS:
+        if field in data and not _is_empty(data[field]):
+            setattr(progress, field, data[field])
+
+    return progress
