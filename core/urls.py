@@ -24,6 +24,7 @@ urlpatterns = [
     path('guess/podium/', views.guess_podium),
     path('guess/location/', views.guess_location),
     path('guess/nr/', views.guess_nr),
+    path('hint/<str:game>/', views.hint_after_skip),
 
     path("cubeurs/<int:pk>/", views.cubeur_detail),
     path("competitions/<int:pk>/", views.competition_detail),

@@ -9,15 +9,19 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
+import { addGuess, getDone, saveDone, getGuesses, saveLatestHint, getLatestHint, getSkips, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
+import SkipHint from '../components/ui/SkipHint';
+import { skippedTotal } from '../utils/skips';
 
 function buildShareTextPodium(guesses, challenge) {
-  const errors = guesses.filter((g) => !g.correct).length;
+  // erreurs passées avec « Passer à l'indice » comprises
+  const skipped = skippedTotal(getSkips('podium'));
+  const errors = guesses.filter((g) => !g.correct).length + skipped;
   return [
     '🎯 Cubdle — Devine le Podium 🥇🥈🏅',
     `${challenge.podium_competition_name} - ${challenge.podium_event?.name}`,
     '',
-    `Trouvé en ${errors} erreur${errors > 1 ? 's' : ''} !`,
+    `Trouvé en ${errors} erreur${errors > 1 ? 's' : ''}${skipped ? ` (dont ${skipped} passée${skipped > 1 ? 's' : ''})` : ''} !`,
     '',
     'https://cubdle.fr',
   ].join('\n');
@@ -190,6 +194,10 @@ function GuessPodium() {
     () => getLatestHint("podium") ?? {}
   );
 
+  // « Passer à l'indice » : erreurs ajoutées volontairement (comptent dans le score)
+  const [skips, setSkips] = useState(() => getSkips("podium"));
+  const skipped = skippedTotal(skips);
+
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -250,6 +258,7 @@ function GuessPodium() {
       setHints(
         progress.podium_latest_hint ?? {}
       );
+      setSkips(progress.skips?.podium ?? []);
 
 
       const finished = progress.podium_done;
@@ -265,6 +274,15 @@ function GuessPodium() {
     });
 
   }, []);
+
+  const canSkip = isLaunched() && !done;
+  const onSkipHint = (data, newSkips) => {
+    setSkips(newSkips);
+    if (data.hints !== undefined) {
+      setHints(data.hints);
+      saveLatestHint("podium", data.hints);
+    }
+  };
 
   const submitGuess = async (cubeur) => {
     if (done || submitting) return;
@@ -282,6 +300,7 @@ function GuessPodium() {
           cubeur_id: cubeur.id,
           // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
           previous_ids: guesses.map((g) => g.id),
+          skipped,
         }),
       });
 
@@ -338,7 +357,7 @@ function GuessPodium() {
           });
           submitScore(
             "podium",
-            updatedGuesses.filter((g) => !g.correct).length
+            updatedGuesses.filter((g) => !g.correct).length + skipped
           );
         }
       }
@@ -466,8 +485,19 @@ function GuessPodium() {
                   }
                 }}
 
-                className={`w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors ${submitting ? "opacity-50" : ""}`}
+                className={`w-full pl-9 ${canSkip ? 'pr-12' : 'pr-4'} py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors ${submitting ? "opacity-50" : ""}`}
               />
+
+              {canSkip && (
+                <SkipHint
+                  game="podium"
+                  errors={guesses.filter((g) => !g.correct).length + skipped}
+                  guessCount={guesses.length}
+                  previousIds={guesses.map((g) => g.id)}
+                  onHint={onSkipHint}
+                  className="absolute right-3 top-1/2 -translate-y-1/2"
+                />
+              )}
 
               {results.length > 0 && (
 

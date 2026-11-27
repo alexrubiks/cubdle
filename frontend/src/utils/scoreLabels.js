@@ -1,4 +1,5 @@
 import { isLaunched } from './dates';
+import { skippedTotal } from './skips';
 
 /*
  * Libellé court du score d'un jeu terminé (bandeau "terminé" de l'accueil et des archives),
@@ -11,12 +12,15 @@ function plural(n, word) {
 
 export function doneLabel(slug, progress, date) {
   if (!progress?.[`${slug}_done`]) return null;
+  // erreurs ajoutées par « Passer à l'indice » : comptent dans le score
+  const skipped = skippedTotal(progress.skips?.[slug]);
 
   switch (slug) {
     case 'cubeur':
     case 'compet': {
-      const n = progress[`${slug}_guesses`]?.length ?? 0;
-      if (!n) return 'TERMINÉ';
+      const guesses = progress[`${slug}_guesses`]?.length ?? 0;
+      if (!guesses) return 'TERMINÉ';
+      const n = guesses + skipped;
       if (n === 1) return 'COUP DE BOL';
       if (n === 2) return 'PERFECT';
       return plural(n, 'ESSAI');
@@ -35,12 +39,13 @@ export function doneLabel(slug, progress, date) {
       const guesses = progress.podium_guesses ?? [];
       if (!guesses.length) return 'TERMINÉ';
       // erreurs = mauvaises réponses (le podium peut avoir plus de 3 lignes en cas d'ex æquo)
-      const errors = guesses.filter((g) => !g.correct).length;
+      const errors = guesses.filter((g) => !g.correct).length + skipped;
       return errors === 0 ? 'PERFECT' : plural(errors, 'ERREUR');
     }
     case 'nr': {
-      const n = progress.nr_guesses?.length ?? 0;
-      if (!n) return 'TERMINÉ';
+      const guesses = progress.nr_guesses?.length ?? 0;
+      if (!guesses) return 'TERMINÉ';
+      const n = guesses + skipped;
       return n === 1 ? 'PERFECT' : plural(n, 'ESSAI');
     }
     case 'location': {

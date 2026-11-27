@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from core.dates import ARCHIVE_START, is_playable, today as paris_today
 from core.models import DailyChallenge, Game, Score
+from core.progress import skips_total
 
 # Après minuit, on accepte encore pendant SCORE_GRACE les scores de la veille
 SCORE_GRACE = timedelta(hours=2)
@@ -52,17 +53,22 @@ def _guess_list(progress, field):
     return [g for g in value if isinstance(g, dict)]
 
 
+def _skipped(progress, game_slug):
+    return skips_total((getattr(progress, "skips", None) or {}).get(game_slug))
+
+
 def score_from_progress(progress, game_slug, challenge=None):
     """Score recalculé, ou None si la progression ne permet pas de le déduire."""
     if game_slug in ("cubeur", "compet", "nr"):
         guesses = _guess_list(progress, f"{game_slug}_guesses")
-        return len(guesses) or None
+        # + erreurs ajoutées par « Passer à l'indice »
+        return (len(guesses) + _skipped(progress, game_slug)) if guesses else None
 
     if game_slug == "podium":
         guesses = _guess_list(progress, "podium_guesses")
         if not guesses:
             return None
-        return sum(1 for g in guesses if not g.get("correct"))
+        return sum(1 for g in guesses if not g.get("correct")) + _skipped(progress, "podium")
 
     if game_slug == "ranking":
         guesses = _guess_list(progress, "ranking_guesses")

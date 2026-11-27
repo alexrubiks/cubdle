@@ -9,9 +9,12 @@ import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
 import {
-  addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint,
+  addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, getSkips,
   submitScore, refreshFromServer, withDate,
 } from '../utils/localProgress';
+import SkipHint from '../components/ui/SkipHint';
+import { interleaveSkips, skippedTotal } from '../utils/skips';
+import { isLaunched } from '../utils/dates';
 
 /*
  * Devine le NR : on donne l'épreuve, la valeur, le type (single/moyenne) et la date
@@ -20,13 +23,15 @@ import {
  */
 
 function buildShareTextNR(guesses, { nr }) {
-  // guesses est trié du plus récent au plus ancien
-  const squares = [...guesses].reverse().map((g) => (g.correct ? '🟩' : '🟥')).join('');
+  // guesses est trié du plus récent au plus ancien ; ⬛ = essais passés (« Passer à l'indice »)
+  const skips = getSkips('nr');
+  const total = guesses.length + skippedTotal(skips);
+  const squares = interleaveSkips([...guesses].reverse().map((g) => (g.correct ? '🟩' : '🟥')), skips, (n) => '⬛'.repeat(n)).join('');
   return [
     '🏅 Cubdle — Devine le NR',
     `${nr.event_name} ${nr.record_type === 'average' ? 'moyenne' : 'single'} — ${formatRecordValue(nr.value, nr.event_id, nr.record_type)}`,
     '',
-    `Trouvé en ${guesses.length} essai${guesses.length > 1 ? 's' : ''}`,
+    `Trouvé en ${total} essai${total > 1 ? 's' : ''}`,
     squares,
     '',
     'https://cubdle.fr',
@@ -109,6 +114,17 @@ export default function GuessNR() {
   const [error, setError] = useState(null);
 
   const [latestHint, setLatestHint] = useState(() => getLatestHint('nr'));
+  // « Passer à l'indice » : erreurs ajoutées volontairement (comptent dans le score)
+  const [skips, setSkips] = useState(() => getSkips('nr'));
+  const skipped = skippedTotal(skips);
+  const canSkip = isLaunched() && !done;
+  const onSkipHint = (data, newSkips) => {
+    setSkips(newSkips);
+    if (data.hint) {
+      setLatestHint(data.hint);
+      saveLatestHint('nr', data.hint);
+    }
+  };
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
@@ -121,6 +137,7 @@ export default function GuessNR() {
       setGuesses(progress.nr_guesses ?? []);
       setDone(progress.nr_done ?? false);
       setLatestHint(progress.nr_latest_hint ?? null);
+      setSkips(progress.skips?.nr ?? []);
     });
   }, []);
 
@@ -184,6 +201,7 @@ export default function GuessNR() {
           wca_id: person.wca_id,
           // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
           previous_ids: guesses.map((g) => g.wca_id),
+          skipped,
         }),
       });
 
@@ -213,7 +231,7 @@ export default function GuessNR() {
       if (data.correct) {
         saveDone('nr_done');
         setDone(true);
-        submitScore('nr', updated.length);
+        submitScore('nr', updated.length + skipped);
       }
 
       inputRef.current?.focus();
@@ -301,8 +319,19 @@ export default function GuessNR() {
                       submitGuess(results[selectedIndex]);
                     }
                   }}
-                  className={`${submitting ? 'opacity-50' : ''} w-full pl-9 pr-4 py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
+                  className={`${submitting ? 'opacity-50' : ''} w-full pl-9 ${canSkip ? 'pr-12' : 'pr-4'} py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
+
+                {canSkip && (
+                  <SkipHint
+                    game="nr"
+                    errors={guesses.length + skipped}
+                    guessCount={guesses.length}
+                    previousIds={guesses.map((g) => g.wca_id)}
+                    onHint={onSkipHint}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  />
+                )}
 
               </div>
 

@@ -45,6 +45,7 @@ from .dates import (
 from .leaderboards import GAME_SORT_ORDER, crowned_user_ids, effective_score, game_points, general_leaderboard, streak_for_user
 from .score_repair import ensure_scores, score_timing
 from .progress import (
+    client_skipped,
     merge_progress,
     add_guess,
     set_done,
@@ -410,7 +411,7 @@ def guess_cubeur(request):
         "comparison": comparison,
         "hint": None if correct else build_hint(
             f"{target.first_name} {target.last_name}",
-            len(guessed_keys(request, "cubeur_guesses") - {target.id}),
+            len(guessed_keys(request, "cubeur_guesses") - {target.id}) + client_skipped(request),
             first_at=5,
             every=5,
         ),
@@ -556,7 +557,7 @@ def guess_compet(request):
         "comparison": comparison,
         "hint": None if correct else build_hint(
             target.name,
-            len(guessed_keys(request, "compet_guesses") - {target.id}),
+            len(guessed_keys(request, "compet_guesses") - {target.id}) + client_skipped(request),
             first_at=5,
             every=5,
         ),
@@ -958,7 +959,7 @@ def guess_podium(request):
 
     # nombre d'essais qui n'ont touché aucune ligne du podium
     podium_ids = {e.cubeur_id for e in entries}
-    wrong_count = len(guessed_keys(request, "podium_guesses") - podium_ids)
+    wrong_count = len(guessed_keys(request, "podium_guesses") - podium_ids) + client_skipped(request)
 
     # un indice par ligne du podium (même ordre que podium_positions)
     hints = [
@@ -1170,7 +1171,7 @@ def guess_nr(request):
     if correct:
         set_done(request, "nr_done")
 
-    mistakes = len(guessed_keys(request, "nr_guesses", key="wca_id") - accepted)
+    mistakes = len(guessed_keys(request, "nr_guesses", key="wca_id") - accepted) + client_skipped(request)
 
     response = {
         "correct": correct,
@@ -1189,6 +1190,52 @@ def guess_nr(request):
         }
 
     return Response(response)
+
+
+@api_view(["POST"])
+def hint_after_skip(request, game):
+    """
+    « Passer à l'indice » : renvoie l'indice correspondant aux erreurs déjà faites
+    + celles ajoutées volontairement (`skipped`), sans faire d'essai.
+    Body : previous_ids (essais déjà faits), skipped, date éventuelle.
+    """
+    if not is_launched():
+        return Response({"error": "Pas encore disponible."}, status=404)
+
+    challenge, error = _get_challenge(request)
+    if error:
+        return error
+    skipped = client_skipped(request)
+
+    if game in ("cubeur", "compet"):
+        target = challenge.cubeur if game == "cubeur" else challenge.competition
+        if target is None:
+            return Response({"error": "Aucun défi disponible"}, status=404)
+        name = f"{target.first_name} {target.last_name}" if game == "cubeur" else target.name
+        mistakes = len(guessed_keys(request, f"{game}_guesses") - {target.id}) + skipped
+        return Response({"hint": build_hint(name, mistakes, first_at=5, every=5), "mistakes": mistakes})
+
+    if game == "podium":
+        if challenge.podium_competition is None:
+            return Response({"error": "Aucun défi disponible"}, status=404)
+        entries = get_podium_entries(challenge)
+        podium_ids = {e.cubeur_id for e in entries}
+        mistakes = len(guessed_keys(request, "podium_guesses") - podium_ids) + skipped
+        hints = [
+            build_hint(f"{e.cubeur.first_name} {e.cubeur.last_name}", mistakes, first_at=5, every=5)
+            for e in entries
+        ]
+        return Response({"hints": hints, "mistakes": mistakes})
+
+    if game == "nr":
+        record = challenge.nr_record
+        if record is None:
+            return Response({"error": "Aucun défi disponible"}, status=404)
+        accepted = _nr_accepted_ids(record)
+        mistakes = len(guessed_keys(request, "nr_guesses", key="wca_id") - accepted) + skipped
+        return Response({"hint": build_hint(record.name, mistakes, first_at=5, every=5), "mistakes": mistakes})
+
+    return Response({"error": "Jeu inconnu"}, status=404)
 
 
 ################################################################################
@@ -1262,6 +1309,8 @@ def serialize_progress(progress):
         "podium_done": progress.podium_done,
         "location_done": progress.location_done,
         "nr_done": progress.nr_done,
+
+        "skips": progress.skips or {},
     }
 
 @api_view(["GET", "POST"])
@@ -1340,6 +1389,11 @@ def sync_daily_progress(request):
             updated = True
 
     if updated:
+        progress.save()
+
+    # « Passer à l'indice » : union des passages locaux et en base
+    if local_data.get("skips"):
+        merge_progress(progress, {"skips": local_data.get("skips")}, single_ranking=is_launched())
         progress.save()
 
     # Même filet de sécurité qu'à la sauvegarde (ex. partie jouée déconnecté, puis connexion)

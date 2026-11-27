@@ -165,6 +165,33 @@ def get_error_count_from_dicts(request, field, target_id, id_key="id"):
 MAX_CLIENT_GUESSES = 300
 
 
+MAX_SKIPPED = 300
+
+
+def client_skipped(request):
+    """
+    Nombre d'erreurs ajoutées par « Passer à l'indice » (déclaré par le navigateur).
+    Le navigateur fixe déjà lui-même son score : lui faire confiance ici ne donne aucun avantage.
+    """
+    raw = request.data.get("skipped") if isinstance(request.data, dict) else None
+    try:
+        return max(0, min(int(raw or 0), MAX_SKIPPED))
+    except (TypeError, ValueError):
+        return 0
+
+
+def skips_total(skips):
+    """Somme des erreurs ajoutées par une liste de passages [{at, n}, ...]."""
+    total = 0
+    for s in skips if isinstance(skips, list) else []:
+        if isinstance(s, dict):
+            try:
+                total += max(0, int(s.get("n", 0)))
+            except (TypeError, ValueError):
+                continue
+    return min(total, MAX_SKIPPED)
+
+
 def guessed_keys(request, field, key="id"):
     """
     Identifiants de toutes les tentatives connues pour ce jeu :
@@ -293,6 +320,8 @@ MERGE_DONE_FIELDS = [
     "podium_done", "location_done", "nr_done",
 ]
 
+SKIP_GAMES = ["cubeur", "compet", "podium", "nr"]
+
 MERGE_HINT_FIELDS = [
     "cubeur_latest_hint", "compet_latest_hint",
     "podium_latest_hint", "nr_latest_hint",
@@ -356,6 +385,28 @@ def merge_progress(progress, data, single_ranking):
     incoming_loc = data.get("location_guess")
     if _is_empty(progress.location_guess) and isinstance(incoming_loc, dict) and incoming_loc:
         progress.location_guess = incoming_loc
+
+    # « Passer à l'indice » : union des passages de chaque jeu. Un passage = {at, n, to} :
+    # après `at` essais, +`n` erreurs, total d'erreurs atteint `to` (unique : sert de clé).
+    incoming_skips = data.get("skips")
+    if isinstance(incoming_skips, dict):
+        stored_skips = dict(progress.skips or {})
+        for game in SKIP_GAMES:
+            merged, seen = [], set()
+            for entry in list(incoming_skips.get(game) or []) + list(stored_skips.get(game) or []):
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    at, n, to = int(entry.get("at")), int(entry.get("n")), int(entry.get("to"))
+                except (TypeError, ValueError):
+                    continue
+                if n <= 0 or at < 0 or to in seen:
+                    continue
+                seen.add(to)
+                merged.append({"at": at, "n": n, "to": to})
+            if merged:
+                stored_skips[game] = sorted(merged, key=lambda e: e["to"])[:MAX_CLIENT_GUESSES]
+        progress.skips = stored_skips
 
     for field in MERGE_DONE_FIELDS:
         if data.get(field) is True:

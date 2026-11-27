@@ -196,6 +196,9 @@ class DailyProgress(models.Model):
     location_done = models.BooleanField(default=False)
     nr_done = models.BooleanField(default=False)
 
+    # « Passer à l'indice » : {jeu: [{at, n, to}, ...]} (erreurs ajoutées volontairement)
+    skips = models.JSONField(default=dict, blank=True)
+
     class Meta:
         unique_together = ('user', 'date')
         indexes = [

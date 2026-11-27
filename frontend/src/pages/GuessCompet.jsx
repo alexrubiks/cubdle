@@ -1,5 +1,8 @@
 import { useArchiveDate } from '../utils/archiveContext';
 import { useState, useEffect, useRef } from 'react';
+import SkipHint from '../components/ui/SkipHint';
+import { skippedTotal, HINT_INTERVAL as SKIP_INTERVAL } from '../utils/skips';
+import { isLaunched } from '../utils/dates';
 import { Link } from 'react-router-dom';
 import { API_URLS } from '../utils';
 import WordleGrid from '../components/ui/WordleGrid';
@@ -11,7 +14,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, getSkips, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 
 function YesterdayCompet() {
@@ -56,13 +59,16 @@ function GuessCompet() {
 
   const [latestHint, setLatestHint] = useState(() => getLatestHint("compet"));
   const [revealedHint, setRevealedHint] = useState(null);
+  // « Passer à l'indice » : erreurs ajoutées volontairement (comptent dans le score)
+  const [skips, setSkips] = useState(() => getSkips("compet"));
+  const skipped = skippedTotal(skips);
   const [revealedTiers, setRevealedTiers] = useState(0);
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
   const HINT_INTERVAL = 5;
-  const unlockedTiers = Math.floor(guesses.length / HINT_INTERVAL);
+  const unlockedTiers = Math.floor((guesses.length + skipped) / HINT_INTERVAL);
   const hintAvailable = unlockedTiers > revealedTiers;
 
 
@@ -72,6 +78,7 @@ function GuessCompet() {
       setGuesses(progress.compet_guesses);
       setDone(progress.compet_done);
       setLatestHint(progress.compet_latest_hint ?? null);
+      setSkips(progress.skips?.compet ?? []);
 
       const previousVictory = progress.compet_guesses.find(
         g => g.correct
@@ -175,6 +182,7 @@ function GuessCompet() {
           competition_id: compet.id,
           // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
           previous_ids: guesses.map((g) => g.id),
+          skipped,
         }),
       });
 
@@ -216,10 +224,7 @@ function GuessCompet() {
           wca_id: compet.wca_id,
         });
 
-        submitScore(
-          "compet",
-          updated.length
-        );
+        submitScore("compet", updated.length + skipped);
       }
 
     } catch (error) {
@@ -230,6 +235,16 @@ function GuessCompet() {
       inputRef.current?.focus();
     }
   };
+
+  // « Passer à l'indice » : l'indice arrive directement révélé
+  const onSkipHint = (data, newSkips) => {
+    setSkips(newSkips);
+    setLatestHint(data.hint);
+    saveLatestHint("compet", data.hint);
+    setRevealedHint(data.hint);
+    setRevealedTiers(Math.floor((guesses.length + skippedTotal(newSkips)) / SKIP_INTERVAL));
+  };
+  const canSkip = isLaunched() && !done && !hintAvailable;
 
   const revealHint = () => {
     if (!hintAvailable) return;
@@ -326,7 +341,7 @@ function GuessCompet() {
                     }
                   }}
                   className={`${submitting ? "opacity-50" : ""} w-full pl-9 ${
-                    hintAvailable ? "pr-12" : "pr-4"
+                    hintAvailable || canSkip ? "pr-12" : "pr-4"
                   } py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
 
@@ -339,6 +354,17 @@ function GuessCompet() {
                   >
                     💡
                   </button>
+                )}
+
+                {canSkip && (
+                  <SkipHint
+                    game="compet"
+                    errors={guesses.length + skipped}
+                    guessCount={guesses.length}
+                    previousIds={guesses.map((g) => g.id)}
+                    onHint={onSkipHint}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  />
                 )}
               </div>
 

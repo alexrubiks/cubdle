@@ -1,5 +1,7 @@
 import { PeriodCell, RubikCell, NameCell } from '../ui/RubikCell';
 import { getRankingDirection, getDirection, EVENTS_ORDER, EVENTS_SINGLE, EVENT_LABEL } from '../../utils';
+import { getSkips } from '../../utils/localProgress';
+import { interleaveSkips, skippedTotal } from '../../utils/skips';
 import { HeaderCell } from '../ui/HeaderCell';
 import { EventHeaderCell } from '../ui/EventHeaderCell';
 
@@ -72,14 +74,20 @@ export function buildShareTextCubeur(guesses) {
     return `${cells}`;
   });
 
+  // « Passer à l'indice » : une ligne de ⬛ à l'endroit de chaque passage
+  const skips = getSkips('cubeur');
+  const skipped = skippedTotal(skips);
+  const withSkips = interleaveSkips(allLines, skips, () => '⬛'.repeat(6));
+  const total = guesses.length + skipped;
+
   const MAX = 5;
-  const lines = allLines.length <= MAX + 1
-    ? allLines
-    : [...allLines.slice(0, MAX), '...', allLines[allLines.length - 1]];
+  const lines = withSkips.length <= MAX + 1
+    ? withSkips
+    : [...withSkips.slice(0, MAX), '...', withSkips[withSkips.length - 1]];
 
   return [
     '🎯 Cubdle — Devine le Cubeur 👤',
-    `Trouvé en ${guesses.length} essai${guesses.length > 1 ? 's' : ''} !`,
+    `Trouvé en ${total} essai${total > 1 ? 's' : ''}${skipped ? ` (dont ${skipped} passé${skipped > 1 ? 's' : ''})` : ''} !`,
     '',
     ...lines,
     '',

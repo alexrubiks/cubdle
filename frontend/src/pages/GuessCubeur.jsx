@@ -1,7 +1,9 @@
 import { useArchiveDate } from '../utils/archiveContext';
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import SkipHint from '../components/ui/SkipHint';
+import { skippedTotal, HINT_INTERVAL as SKIP_INTERVAL } from '../utils/skips';
 import { isLaunched } from '../utils/dates';
+import { Link } from 'react-router-dom';
 import { API_URLS } from '../utils';
 import WordleGrid from '../components/ui/WordleGrid';
 import { cubeurColumns } from '../components/games/cubeurColumns';
@@ -12,7 +14,7 @@ import GameNavCard from '../components/ui/GameNavCard';
 import ActionButtons from '../components/ui/ActionButtons';
 import LeaderboardModal from '../components/ui/LeaderboardModal';
 import HowToPlayModal from '../components/ui/HowToPlayModal';
-import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
+import { addGuess, saveDone, getGuesses, getDone, saveLatestHint, getLatestHint, getSkips, submitScore, refreshFromServer, withDate } from '../utils/localProgress';
 
 
 function YesterdayCubeur() {
@@ -57,13 +59,16 @@ function GuessCubeur() {
   const [victory, setVictory] = useState(null);
 
   const [revealedHint, setRevealedHint] = useState(null);
+  // « Passer à l'indice » : erreurs ajoutées volontairement (comptent dans le score)
+  const [skips, setSkips] = useState(() => getSkips("cubeur"));
+  const skipped = skippedTotal(skips);
   const [revealedTiers, setRevealedTiers] = useState(0);
 
   const inputRef = useRef(null);
   const dropdownRef = useRef(null);
 
   const HINT_INTERVAL = 5;
-  const unlockedTiers = Math.floor(guesses.length / HINT_INTERVAL);
+  const unlockedTiers = Math.floor((guesses.length + skipped) / HINT_INTERVAL);
   const hintAvailable = unlockedTiers > revealedTiers;
 
   // SYNCHRO SERVEUR
@@ -72,6 +77,7 @@ function GuessCubeur() {
       setGuesses(progress.cubeur_guesses);
       setDone(progress.cubeur_done);
       setLatestHint(progress.cubeur_latest_hint ?? null);
+      setSkips(progress.skips?.cubeur ?? []);
 
       const previousVictory = progress.cubeur_guesses.find(g => g.correct);
 
@@ -153,6 +159,7 @@ function GuessCubeur() {
           cubeur_id: cubeur.id,
           // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
           previous_ids: guesses.map((g) => g.id),
+          skipped,
         }),
       });
 
@@ -184,10 +191,7 @@ function GuessCubeur() {
           wca_id: cubeur.wca_id,
           avatar_url: cubeur.avatar_url,
         });
-        submitScore(
-          "cubeur",
-          updated.length
-        );
+        submitScore("cubeur", updated.length + skipped);
       }
 
       inputRef.current?.focus();
@@ -199,6 +203,16 @@ function GuessCubeur() {
       setSubmitting(false);
     }
   };
+
+  // « Passer à l'indice » : l'indice arrive directement révélé
+  const onSkipHint = (data, newSkips) => {
+    setSkips(newSkips);
+    setLatestHint(data.hint);
+    saveLatestHint("cubeur", data.hint);
+    setRevealedHint(data.hint);
+    setRevealedTiers(Math.floor((guesses.length + skippedTotal(newSkips)) / SKIP_INTERVAL));
+  };
+  const canSkip = isLaunched() && !done && !hintAvailable;
 
   const revealHint = () => {
     if (!hintAvailable) return;
@@ -295,7 +309,7 @@ function GuessCubeur() {
                     }
                   }}
                   className={`${submitting ? "opacity-50" : ""} w-full pl-9 ${
-                    hintAvailable ? "pr-12" : "pr-4"
+                    hintAvailable || canSkip ? "pr-12" : "pr-4"
                   } py-3 bg-white border-2 border-black rounded-xl font-body text-sm text-black placeholder:text-black/30 outline-none focus:border-cubdle-yellow transition-colors`}
                 />
 
@@ -308,6 +322,17 @@ function GuessCubeur() {
                   >
                     💡
                   </button>
+                )}
+
+                {canSkip && (
+                  <SkipHint
+                    game="cubeur"
+                    errors={guesses.length + skipped}
+                    guessCount={guesses.length}
+                    previousIds={guesses.map((g) => g.id)}
+                    onHint={onSkipHint}
+                    className="absolute right-3 top-1/2 -translate-y-1/2"
+                  />
                 )}
               </div>
 

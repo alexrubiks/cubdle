@@ -26,6 +26,7 @@ export const API_URLS = {
   guessLocation: `${API_BASE}guess/location/`,
   guessCompet: `${API_BASE}guess/competition/`,
   guessNr: `${API_BASE}guess/nr/`,
+  hintAfterSkip: (game) => `${API_BASE}hint/${game}/`,
   nrSearch: `${API_BASE}nr/search/`,
   
   cubeurDetail: (id) => `${API_BASE}cubeurs/${id}/`,

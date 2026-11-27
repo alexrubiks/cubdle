@@ -1,5 +1,6 @@
 import { API_URLS } from "../utils";
 import { getParisToday } from "./dates";
+import { mergeSkipLists, SKIP_GAMES } from "./skips";
 
 const STORAGE_PREFIX = "cubdle_progress";
 
@@ -21,6 +22,9 @@ const DEFAULT_PROGRESS = {
   cubeur_latest_hint: null,
   compet_latest_hint: null,
   podium_latest_hint: {},
+
+  // « Passer à l'indice » : { jeu: [{ at, n, to }, ...] }
+  skips: {},
 
   pending_scores: {},
 };
@@ -165,6 +169,19 @@ export function saveLatestHint(field, hint) {
   pushProgress(progress);
 }
 
+export function getSkips(game) {
+  return loadProgress().skips?.[game] ?? [];
+}
+
+export function addSkip(game, entry) {
+  const progress = loadProgress();
+  progress.skips = { ...(progress.skips || {}) };
+  progress.skips[game] = mergeSkipLists(progress.skips[game], [entry]);
+  saveProgress(progress);
+  pushProgress(progress);
+  return progress.skips[game];
+}
+
 export function getLatestHint(field) {
   return loadProgress()[`${field}_latest_hint`] ?? null;
 }
@@ -243,6 +260,12 @@ function mergeProgress(local, remote) {
     } else {
       merged[field] = remote[field] ?? DEFAULT_PROGRESS[field];
     }
+  }
+
+  merged.skips = {};
+  for (const game of SKIP_GAMES) {
+    const list = mergeSkipLists(local.skips?.[game], remote.skips?.[game]);
+    if (list.length) merged.skips[game] = list;
   }
 
   return merged;
