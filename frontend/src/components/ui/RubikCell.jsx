@@ -94,9 +94,10 @@ export function ListCell({ color = 'tile-none', direction = null, width = null, 
 
     const rect = e.currentTarget.getBoundingClientRect();
 
+    // La bulle est en position: fixed -> coordonnées de l'écran, sans le défilement
     setPosition({
-      top: rect.top + window.scrollY,
-      left: rect.left + window.scrollX - 8,
+      top: rect.top,
+      left: rect.left - 8,
     });
 
     onOpen();
@@ -110,8 +111,15 @@ export function ListCell({ color = 'tile-none', direction = null, width = null, 
     }
 
     document.addEventListener("click", close);
+    // La bulle ne suit pas la grille : on la ferme dès que la page ou la grille défile
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
 
-    return () => document.removeEventListener("click", close);
+    return () => {
+      document.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
   }, [open, onClose]);
 
   return (
