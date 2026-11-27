@@ -235,7 +235,35 @@ function TabButton({ active, onClick, children, locked }) {
   );
 }
 
-function Row({ rank, pseudo, right, sub, isMe, faded }) {
+/** 👑 Gagnant de la semaine dernière : clic = petit texte d'explication. */
+function CrownBadge() {
+  const [open, setOpen] = useState(false);
+  const timer = useRef(null);
+  return (
+    <span className="relative shrink-0">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen(true);
+          clearTimeout(timer.current);
+          timer.current = setTimeout(() => setOpen(false), 2000);
+        }}
+        aria-label="Gagnant de la semaine dernière"
+        className="leading-none transition-transform hover:scale-110"
+      >
+        👑
+      </button>
+      {open && (
+        <span className="absolute left-[calc(100%+6px)] top-1/2 z-10 -translate-y-1/2 whitespace-nowrap rounded-lg bg-black px-2 py-1 font-body text-[0.6875rem] font-bold text-white">
+          Gagnant de la semaine dernière
+        </span>
+      )}
+    </span>
+  );
+}
+
+function Row({ rank, pseudo, right, sub, isMe, faded, crowned }) {
   return (
     <div
       className={`
@@ -251,7 +279,10 @@ function Row({ rank, pseudo, right, sub, isMe, faded }) {
           {rank ?? "–"}
         </span>
         <div className="flex flex-col min-w-0">
-          <span className="font-bold truncate max-[425px]:text-xs">{pseudo}</span>
+          <span className="flex items-center gap-1 min-w-0 font-bold max-[425px]:text-xs">
+            {crowned && <CrownBadge />}
+            <span className="truncate">{pseudo}</span>
+          </span>
           {sub && (typeof sub === "string"
             ? <span className="text-xs text-black/50 truncate max-[425px]:text-[0.625rem]">{sub}</span>
             : sub)}
@@ -519,6 +550,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                 rank={row.rank}
                 pseudo={row.pseudo}
                 isMe={row.is_me}
+                crowned={row.crowned}
                 sub={
                   period === "day"
                     ? (
@@ -555,6 +587,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                   rank={entry.is_late ? null : entry.rank}
                   pseudo={entry.pseudo}
                   isMe={entry.is_me}
+                  crowned={entry.crowned}
                   faded={entry.is_late}
                   right={
                     <div className="flex flex-col items-end">

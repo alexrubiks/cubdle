@@ -18,6 +18,7 @@ export const API_URLS = {
   leaderboard: `${API_BASE}leaderboard/`,
   leaderboardGeneral: `${API_BASE}leaderboard/general/`,
   progressSummary: `${API_BASE}progress/summary/`,
+  progressStreak: `${API_BASE}progress/streak/`,
 
   guessCubeur: `${API_BASE}guess/cubeur/`,
   guessRanking: `${API_BASE}guess/ranking/`,

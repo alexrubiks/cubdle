@@ -41,7 +41,7 @@ from .dates import (
     resolve_challenge_date,
     today as paris_today,
 )
-from .leaderboards import GAME_SORT_ORDER, effective_score, game_points, general_leaderboard
+from .leaderboards import GAME_SORT_ORDER, crowned_user_ids, effective_score, game_points, general_leaderboard, streak_for_user
 from .progress import (
     add_guess,
     get_error_count,
@@ -1433,17 +1433,28 @@ def daily_leaderboard(request):
         GAME_SORT_ORDER[game_slug],
     )
 
+    crowned = crowned_user_ids(paris_today())  # couronne "fixe" : le tenant actuel, quelle que soit la date consultée
+
     return Response([
         {
             "pseudo": s.user.pseudo,
             "score": s.score,
             "is_late": s.is_late,
+            "crowned": s.user_id in crowned,
             "rank": ranked[s.id][0] if s.id in ranked else None,
             "points": ranked[s.id][1] if s.id in ranked else None,
             "is_me": s.user_id == me,
         }
         for s in scores
     ])
+
+
+@api_view(["GET"])
+def progress_streak(request):
+    """Série 🔥 du joueur connecté : {current, best, today_done}."""
+    if not _is_logged(request):
+        return Response(status=401)
+    return Response(streak_for_user(request.user))
 
 
 @api_view(["GET"])
@@ -1488,6 +1499,9 @@ def general_leaderboard_view(request):
 
     data = general_leaderboard(period, day, game)
     me = _current_user_id(request)
+    crowned = crowned_user_ids(paris_today())  # couronne "fixe" : le tenant actuel, quelle que soit la date consultée
     for row in data["rows"]:
-        row["is_me"] = row.pop("user_id") == me
+        user_id = row.pop("user_id")
+        row["is_me"] = user_id == me
+        row["crowned"] = user_id in crowned
     return Response(data)

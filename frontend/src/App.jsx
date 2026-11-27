@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { decodeJWT } from './components/auth/jwt';
 import Home from './pages/Home';
@@ -15,6 +15,7 @@ import AboutModal from './components/ui/AboutModal';
 import AccountModal from './components/ui/AccountModal';
 import AuthCallback from './components/auth/AuthCallback';
 import AuthStatus from './components/ui/AuthStatus';
+import StreakBadge from './components/ui/StreakBadge';
 import { API_URLS } from './utils';
 import { loadProgress, saveProgress, resetProgress, flushPendingScores, withDate } from "./utils/localProgress";
 import { getParisToday, useParisToday } from './utils/dates';
@@ -36,6 +37,7 @@ export default function App() {
   };
 
   const today = useParisToday();
+  const location = useLocation();
 
   const syncProgress = async (token) => {
     const day = getParisToday();
@@ -129,7 +131,9 @@ export default function App() {
       <SideBlocks position="right" />
 
       <div className="flex-1 relative z-30">
-        <div className="w-full flex justify-end px-4 pt-4 z-50">
+        <div className="w-full flex items-center justify-between px-4 pt-4 z-50">
+          {/* 🔥 Série : en haut à gauche de l'accueil (maj de décembre) */}
+          <div>{location.pathname === '/' && isLaunched(today) && <StreakBadge key={today} />}</div>
           <AuthStatus user={user} onAccount={() => setShowAccount(true)} />
         </div>
         <Routes>

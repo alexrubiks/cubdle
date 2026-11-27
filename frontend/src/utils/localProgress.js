@@ -57,6 +57,19 @@ function getStorageKey(date = getActiveDate()) {
 // (aujourd'hui + archives, pour le calendrier), jamais celle du jour actif.
 const MAX_STORED_DAYS = 150;
 
+/** Jeux terminés LE JOUR MÊME par date (hors parties en archive) : {date: [slugs]}. */
+export function getLocalOnTimeDoneByDate() {
+  const result = {};
+  for (const key of getStoredDayKeys()) {
+    const date = key.slice(STORAGE_PREFIX.length + 1);
+    const progress = loadProgress(date);
+    result[date] = ["cubeur", "compet", "ranking", "podium", "nr", "location"].filter(
+      (g) => progress[`${g}_done`] && !progress[`${g}_done_late`]
+    );
+  }
+  return result;
+}
+
 /** Jeux terminés par date, d'après la progression locale : {date: [slugs]}. */
 export function getLocalDoneByDate() {
   const result = {};
@@ -111,6 +124,8 @@ export function addGuess(field, value) {
 export function saveDone(field) {
   const progress = loadProgress();
   progress[field] = true;
+  // Partie jouée en archive : ne compte pas pour la série 🔥
+  if (isArchiveDate()) progress[`${field}_late`] = true;
   saveProgress(progress);
   pushProgress(progress);
   return progress;

@@ -16,6 +16,7 @@ urlpatterns = [
     path("leaderboard/", views.daily_leaderboard),
     path("leaderboard/general/", views.general_leaderboard_view),
     path("progress/summary/", views.progress_summary),
+    path("progress/streak/", views.progress_streak),
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/competition/', views.guess_compet),

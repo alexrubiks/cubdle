@@ -17,10 +17,10 @@ semaine / mois = somme des journées).
 """
 import calendar
 import math
-from collections import defaultdict
 from datetime import timedelta
+from collections import defaultdict
 
-from .dates import ARCHIVE_START, today as paris_today
+from .dates import ARCHIVE_START, LAUNCH_DATE, today as paris_today
 from .models import Score
 
 # Sens de tri des scores : "asc" = plus petit est meilleur
@@ -144,3 +144,60 @@ def general_leaderboard(period, day, game=None):
         "games": [slug for slug in GAME_SORT_ORDER if slug in games_seen],
         "rows": rows,
     }
+
+
+# ── Couronne 👑 ────────────────────────────────────────────────────────────
+
+def crowned_user_ids(day):
+    """
+    Gagnant(s) du classement général de la semaine qui précède celle de `day`
+    (lundi -> dimanche). Les classements affichent la couronne des tenants
+    actuels (day = aujourd'hui), quelle que soit la date consultée.
+    """
+    previous_week_day = period_bounds("week", day)[0] - timedelta(days=1)
+    if previous_week_day < ARCHIVE_START:
+        return set()
+    rows = general_leaderboard("week", previous_week_day)["rows"]
+    return {row["user_id"] for row in rows if row["rank"] == 1}
+
+
+# ── Série 🔥 ───────────────────────────────────────────────────────────────
+
+def required_games(day):
+    """Jeux à terminer ce jour-là pour prolonger la série (le NR n'existe qu'après le lancement)."""
+    return {slug for slug in GAME_SORT_ORDER if slug != "nr" or day >= LAUNCH_DATE}
+
+
+def streak_for_user(user, today=None):
+    """
+    Série = nombre de jours d'affilée où toutes les parties du jour ont été
+    terminées LE JOUR MÊME (scores non "en décalé"). Tant qu'aujourd'hui n'est
+    pas complet, la série de la veille reste en vie (today_done=False).
+    """
+    today = today or paris_today()
+    played = defaultdict(set)
+    for d, slug in (
+        Score.objects
+        .filter(user=user, is_late=False, date__gte=ARCHIVE_START, date__lte=today)
+        .values_list("date", "game__slug")
+    ):
+        played[d].add(slug)
+
+    complete = {d for d, slugs in played.items() if required_games(d) <= slugs}
+
+    today_done = today in complete
+    current = 0
+    day = today if today_done else today - timedelta(days=1)
+    while day in complete:
+        current += 1
+        day -= timedelta(days=1)
+
+    best = 0
+    run = 0
+    previous = None
+    for d in sorted(complete):
+        run = run + 1 if previous is not None and d - previous == timedelta(days=1) else 1
+        best = max(best, run)
+        previous = d
+
+    return {"current": current, "best": best, "today_done": today_done}
