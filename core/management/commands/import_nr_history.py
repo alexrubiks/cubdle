@@ -20,6 +20,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import zipfile
 from datetime import date
 
@@ -36,6 +37,8 @@ COUNTRY = "France"
 RECORD_TAGS = {"NR", "ER", "WR"}
 EXCLUDED_EVENTS = {"333mbo"}  # ancien format du multi-blind
 WEDNESDAY = 2
+DOWNLOAD_ATTEMPTS = 3
+RETRY_DELAY_SECONDS = 10  # 10 s, puis 20 s
 
 csv.field_size_limit(sys.maxsize)
 
@@ -102,6 +105,31 @@ class Command(BaseCommand):
     # ── Téléchargement ──────────────────────────────────────────────
 
     def _download(self, path):
+        """
+        Télécharge l'export, avec plusieurs tentatives : l'hébergeur de l'export
+        coupe parfois la connexion (ConnectionResetError pendant la redirection).
+        """
+        last_error = None
+        for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+            try:
+                self._download_once(path)
+                return
+            except requests.RequestException as e:
+                last_error = e
+                if attempt < DOWNLOAD_ATTEMPTS:
+                    delay = RETRY_DELAY_SECONDS * attempt
+                    self.stdout.write(self.style.WARNING(
+                        f"  Échec du téléchargement (essai {attempt}/{DOWNLOAD_ATTEMPTS}), nouvel essai dans {delay} s…"
+                    ))
+                    time.sleep(delay)
+
+        raise CommandError(
+            f"Téléchargement de l'export WCA impossible après {DOWNLOAD_ATTEMPTS} essais "
+            f"({type(last_error).__name__}). Réessayer plus tard, ou télécharger l'export "
+            f"à la main et utiliser --file."
+        )
+
+    def _download_once(self, path):
         url = EXPORT_FALLBACK_URL
         try:
             meta = requests.get(EXPORT_API_URL, timeout=30).json()

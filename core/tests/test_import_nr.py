@@ -128,3 +128,59 @@ class ImportNRTests(TestCase):
         with at_paris(2026, 12, 2):  # mercredi : import
             self.run_import("--weekly")
         self.assertEqual(NationalRecord.objects.count(), 7)
+
+
+class DownloadRetryTests(TestCase):
+    """L'hébergeur de l'export coupe parfois la connexion : on réessaie."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.zip_path = os.path.join(self.tmp.name, "export.zip")
+        make_export(self.zip_path)
+        with open(self.zip_path, "rb") as f:
+            self.zip_bytes = f.read()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def fake_get(self, failures):
+        import requests
+        from unittest.mock import MagicMock
+        calls = {"download": 0}
+        zip_bytes = self.zip_bytes
+
+        def get(url, **kwargs):
+            if "api/v0/export" in url:
+                return MagicMock(json=lambda: {"tsv_url": "https://example.org/export.zip", "export_date": "x", "export_version": "v2"})
+            calls["download"] += 1
+            if calls["download"] <= failures:
+                raise requests.exceptions.ConnectionError("Connection aborted.")
+            response = MagicMock()
+            response.__enter__.return_value = response
+            response.iter_content.return_value = [zip_bytes]
+            return response
+
+        return get, calls
+
+    def test_retries_then_succeeds(self):
+        from unittest.mock import patch
+        get, calls = self.fake_get(failures=2)
+        out = io.StringIO()
+        with patch("core.management.commands.import_nr_history.requests.get", side_effect=get), \
+             patch("core.management.commands.import_nr_history.time.sleep") as sleep:
+            call_command("import_nr_history", stdout=out)
+        self.assertEqual(calls["download"], 3)
+        self.assertEqual(sleep.call_count, 2)
+        self.assertEqual(NationalRecord.objects.count(), 7)
+        self.assertIn("essai 1/3", out.getvalue())
+
+    def test_clean_error_after_all_attempts(self):
+        from unittest.mock import patch
+        from django.core.management.base import CommandError
+        get, calls = self.fake_get(failures=99)
+        with patch("core.management.commands.import_nr_history.requests.get", side_effect=get), \
+             patch("core.management.commands.import_nr_history.time.sleep"):
+            with self.assertRaisesMessage(CommandError, "impossible après 3 essais"):
+                call_command("import_nr_history", stdout=io.StringIO())
+        self.assertEqual(calls["download"], 3)
+        self.assertEqual(NationalRecord.objects.count(), 0)

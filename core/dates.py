@@ -7,14 +7,13 @@ Le serveur (Railway) tourne en UTC, alors que le jeu vit à l'heure de Paris
 """
 from datetime import date as date_cls, timedelta
 
-import os
-
+from decouple import config
 from django.utils import timezone
 
 
 # Date de lancement de la "maj de décembre" (nouveau Classement, Devine le NR…).
-# Surchargeable via la variable d'env CUBDLE_LAUNCH_DATE pour tester en avance.
-LAUNCH_DATE = date_cls.fromisoformat(os.environ.get("CUBDLE_LAUNCH_DATE", "2026-12-01"))
+# Surchargeable via CUBDLE_LAUNCH_DATE (variable d'env ou .env) pour tester en avance.
+LAUNCH_DATE = date_cls.fromisoformat(config("CUBDLE_LAUNCH_DATE", default="2026-12-01"))
 
 
 def is_launched(ref=None):
