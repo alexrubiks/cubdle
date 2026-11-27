@@ -43,6 +43,7 @@ from .dates import (
     today as paris_today,
 )
 from .leaderboards import GAME_SORT_ORDER, crowned_user_ids, effective_score, game_points, general_leaderboard, streak_for_user
+from .score_repair import ensure_scores, score_timing
 from .progress import (
     merge_progress,
     add_guess,
@@ -1282,6 +1283,9 @@ def daily_progress(request):
             progress = DailyProgress.objects.select_for_update().get(user=request.user, date=day)
             merge_progress(progress, request.data, single_ranking=is_launched())
             progress.save()
+            # Filet de sécurité : un jeu terminé doit avoir son Score, même si
+            # l'envoi du score s'est perdu en route.
+            ensure_scores(progress)
         return Response(serialize_progress(progress))
 
     progress = get_daily_progress(request.user, day)
@@ -1338,12 +1342,13 @@ def sync_daily_progress(request):
     if updated:
         progress.save()
 
+    # Même filet de sécurité qu'à la sauvegarde (ex. partie jouée déconnecté, puis connexion)
+    ensure_scores(progress)
+
     return Response(serialize_progress(progress))
 
 
-# Après minuit, on accepte encore pendant SCORE_GRACE les scores de la veille
-# comme "dans les temps" (partie commencée à 23h58, finie à 00h01).
-SCORE_GRACE = timedelta(hours=2)
+# SCORE_GRACE et les règles de retard : voir core/score_repair.py (score_timing)
 
 
 @api_view(["POST"])
@@ -1367,18 +1372,11 @@ def submit_score(request):
     except Game.DoesNotExist:
         return Response({"error": "Jeu introuvable."}, status=404)
 
-    today = paris_today()
-    day = parse_date(request.data.get("date")) or today
-    now = timezone.localtime()
-    in_grace = (
-        day == today - timedelta(days=1)
-        and now - now.replace(hour=0, minute=0, second=0, microsecond=0) < SCORE_GRACE
-    )
+    day = parse_date(request.data.get("date")) or paris_today()
+    accepted, is_late = score_timing(day)
 
-    if not (is_playable(day) or in_grace):
+    if not accepted:
         return Response({"error": "Ce défi n'est pas accessible."}, status=403)
-
-    is_late = day != today and not in_grace
 
     if game_slug == "ranking" and is_late:
         return Response({"error": "Pas d'ancien défi pour le classement."}, status=403)
