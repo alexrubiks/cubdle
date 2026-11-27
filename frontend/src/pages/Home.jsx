@@ -118,7 +118,7 @@ export default function Home() {
             className="mt-3 flex items-center justify-center gap-1.5 font-body text-sm font-bold text-white/80 underline-offset-4 hover:text-white hover:underline"
           >
             <CalendarDays size={16} strokeWidth={2.5} />
-            Rejouer les anciens défis
+            Anciens défis
           </Link>
         )}
 

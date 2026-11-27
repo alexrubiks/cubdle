@@ -5,7 +5,7 @@ import { computeLocalStreak, requiredGames } from '../../utils/streak';
 import { getParisToday } from '../../utils/dates';
 
 /**
- * 🔥 Série de jours d'affilée avec tous les jeux du jour terminés.
+ * 🔥 Streak : jours d'affilée avec tous les jeux du jour terminés.
  * Grisée tant que les jeux d'aujourd'hui ne sont pas tous finis (la série n'est pas perdue avant minuit).
  * Clic : petit texte d'explication.
  */
@@ -32,8 +32,8 @@ export default function StreakBadge() {
 
   const count = requiredGames(getParisToday()).length;
   const text = streak.today_done
-    ? `Série de ${streak.current} jour${streak.current > 1 ? 's' : ''} ! Record : ${streak.best}.`
-    : `Série de ${streak.current} jour${streak.current > 1 ? 's' : ''} : termine les ${count} jeux aujourd'hui pour la prolonger. Record : ${streak.best}.`;
+    ? `Streak de ${streak.current} jour${streak.current > 1 ? 's' : ''} ! Record : ${streak.best}.`
+    : `Streak de ${streak.current} jour${streak.current > 1 ? 's' : ''} : termine les ${count} jeux aujourd'hui pour la prolonger. Record : ${streak.best}.`;
 
   const toggle = () => {
     setOpen((o) => !o);

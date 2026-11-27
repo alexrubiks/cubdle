@@ -17,11 +17,15 @@ export const HOW_TO_PLAY_CONTENT = {
     title: "Comment jouer à Cubdle",
     body: (
       <>
-        Cubdle te propose chaque jour <strong>6 défis</strong> autour du monde du speedcubing français.
+        Cubdle te propose chaque jour <strong>6 défis</strong> autour du monde du speedcubing français : devine le <strong>cubeur</strong>, la <strong>compétition</strong>, le <strong>classement</strong>, le <strong>podium</strong>, le <strong>NR</strong> et la <strong>localisation</strong> du jour. Les défis changent chaque jour à <strong>minuit (heure de Paris)</strong>.
         <br /><br />
-        Devine le <strong>cubeur</strong>, la <strong>compétition</strong>, le <strong>classement</strong>, le <strong>podium</strong>, le <strong>NR</strong> ou la <strong>localisation</strong> du jour à partir d'indices qui se révèlent au fil de tes tentatives.
+        Connecte-toi avec ton compte WCA pour <strong>sauvegarder ta progression</strong> et <strong>apparaître dans les classements</strong>. Chaque jeu te rapporte de <strong>10 à 100 points</strong> selon ta place du jour ; ils s'additionnent sur la <strong>semaine</strong> et le <strong>mois</strong>.
         <br /><br />
-        Tu peux également te connecter avec ton compte WCA pour <strong>sauvegarder ta progression</strong> et <strong>apparaître dans les classements du jour.</strong>
+        👑 Le gagnant de la semaine porte la <strong>couronne</strong> toute la semaine suivante.
+        <br />
+        🔥 Termine les 6 jeux chaque jour pour faire grimper ta <strong>streak</strong>.
+        <br /><br />
+        Tu as manqué un jour ? Tu peux <strong>rattraper les défis manqués</strong> à partir de 10 jours après leur date, depuis « Anciens défis » (hors classement).
       </>
     ),
   },
@@ -34,7 +38,7 @@ export const HOW_TO_PLAY_CONTENT = {
         <br /><br />
         À toi de trouver <strong>qui</strong> l'a réalisé, en tapant un nom dans la barre de recherche. Toutes les personnes ayant détenu au moins un record de France sont proposées.
         <br /><br />
-        Toutes les <strong>5 erreurs</strong>, une nouvelle lettre du nom est dévoilée en indice.
+        Toutes les <strong>5 erreurs</strong>, une nouvelle <strong>lettre du nom</strong> est dévoilée.
         <br /><br />
         Si un record a été établi exactement en même temps par plusieurs personnes, chacune d'elles est une bonne réponse.
       </>
@@ -53,9 +57,11 @@ export const HOW_TO_PLAY_CONTENT = {
         <br /><br />
         Attention cependant pour les <strong>classements nationaux</strong> par épreuve : comme il s'agit d'un rang, une <strong>flèche vers le haut</strong> indique cette fois un <strong>meilleur classement</strong> que la tentative, donc un nombre plus petit.
         <br /><br />
+        Ces classements sont ceux <strong>à la moyenne</strong>, sauf pour les épreuves <strong>à l'aveugle</strong> (3BLD, 4BLD, 5BLD et Multi-Blind), classées <strong>au single</strong>.
+        <br /><br />
         Les cubeurs n'ayant pas renseigné leur genre sur la WCA apparaîtront avec un <strong>'X'</strong> dans la case correspondante.
         <br /><br />
-        Un indice toutes les <strong>5 tentatives</strong>.
+        Toutes les <strong>5 erreurs</strong>, une nouvelle <strong>lettre du nom</strong> est dévoilée (via le bouton 💡).
       </>
     ),
   },
@@ -88,7 +94,7 @@ export const HOW_TO_PLAY_CONTENT = {
         <br /><br />
         Il est possible de cliquer sur une de ces cases pour voir la <strong>liste des personnes</strong>.
         <br /><br />
-        Un indice toutes les <strong>5 tentatives</strong>.
+        Toutes les <strong>5 erreurs</strong>, une nouvelle <strong>lettre du nom</strong> est dévoilée (via le bouton 💡).
       </>
     ),
   },
@@ -97,13 +103,13 @@ export const HOW_TO_PLAY_CONTENT = {
     title: "Devine le classement",
     body: (
       <>
-        But du jeu : trouver le <strong>classement national</strong> d'un cubeur tiré au sort.
+        But du jeu : trouver le <strong>classement national</strong> d'un cubeur tiré au sort, dans l'épreuve affichée : à la <strong>moyenne</strong>, ou au <strong>single</strong> pour les épreuves à l'aveugle.
         <br /><br />
         Tu n'as qu'<strong>un seul essai</strong> : propose un rang entre 1 et 100.
         <br /><br />
         Ton score est l'<strong>écart</strong> entre ton rang et le vrai rang : 0, c'est parfait, et plus c'est bas, mieux c'est.
         <br /><br />
-        Si plusieurs personnes sont classées ex-æquo, viser n'importe quel rang entre elles compte comme le bon rang.
+        Si plusieurs personnes sont classées ex æquo, viser n'importe quel rang entre elles compte comme le bon rang.
       </>
     ),
   },
@@ -117,7 +123,7 @@ export const HOW_TO_PLAY_CONTENT = {
         <br /><br />
         Propose une valeur entre 1 et 100, et révèle au fur et à mesure les noms et temps des personnes du classement pour t'aider à deviner la <strong>position exacte</strong> du cubeur recherché.
         <br /><br />
-        Si plusieurs personnes sont classées ex-æquo, elles seront toutes affichées d'un coup et comptées comme une <strong>seule tentative</strong>.
+        Si plusieurs personnes sont classées ex æquo, elles seront toutes affichées d'un coup et comptées comme une <strong>seule tentative</strong>.
       </>
     ),
   },
@@ -126,11 +132,13 @@ export const HOW_TO_PLAY_CONTENT = {
     title: "Devine le podium",
     body: (
       <>
-        But du jeu : trouver les <strong>3 cubeurs</strong> sur un <strong>podium de Championnat de France</strong> choisi au hasard.
+        But du jeu : trouver les cubeurs sur le <strong>podium</strong> d'une épreuve d'un <strong>Championnat de France</strong> tiré au hasard (en cas d'<strong>ex æquo</strong>, il peut y avoir plus de 3 personnes à trouver).
         <br /><br />
-        Propose un à un les cubeurs que tu penses voir sur ce podium.
+        Propose un à un les cubeurs que tu penses voir sur ce podium. Les finalistes hors podium s'affichent avec leur place.
         <br /><br />
-        Un indice toutes les <strong>5 tentatives erronées</strong>.
+        Les temps affichés sont ceux du <strong>classement de la finale</strong> : la moyenne, ou le single pour les épreuves à l'aveugle et les finales sans moyenne.
+        <br /><br />
+        Toutes les <strong>5 erreurs</strong>, une nouvelle <strong>lettre du nom</strong> de chaque personne est dévoilée. Ton score est ton nombre d'erreurs.
       </>
     ),
   },
@@ -139,11 +147,11 @@ export const HOW_TO_PLAY_CONTENT = {
     title: "Devine la localisation",
     body: (
       <>
-        Clique sur la carte pour tenter de deviner <strong>où s'est déroulée</strong> la compétition affichée.
+        Clique sur la carte pour deviner <strong>où s'est déroulée</strong> la compétition affichée. Attention, <strong>une seule tentative</strong> est possible.
         <br /><br />
-        Plus ta tentative est proche du lieu réel, plus le score (sur 5000) sera élevé.
+        Ton score (sur <strong>5000</strong>) dépend de ta distance au lieu réel : 5000 si tu tombes pile dessus, environ <strong>2500 à 70 km</strong>, et de moins en moins au-delà.
         <br /><br />
-        Attention, <strong>une seule tentative</strong> est possible.
+        Une fois ta tentative validée, tu peux afficher celles des <strong>autres joueurs</strong> sur la carte.
       </>
     ),
   },
