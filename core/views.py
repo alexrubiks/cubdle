@@ -32,6 +32,7 @@ from core.serializers import (
 )
 
 from .dates import (
+    ARCHIVE_START,
     ChallengeDateError,
     is_launched,
     is_playable,
@@ -1415,6 +1416,8 @@ def daily_leaderboard(request):
     day = parse_date(request.GET.get("date")) or paris_today()
     if day > paris_today():
         return Response({"error": "Pas encore de classement pour ce jour."}, status=403)
+    if day < ARCHIVE_START:
+        return Response({"error": "Pas de classement avant le lancement de Cubdle."}, status=403)
 
     include_late = request.GET.get("include_late") in ("1", "true")
     order = "score" if GAME_SORT_ORDER[game_slug] == "asc" else "-score"
@@ -1444,6 +1447,26 @@ def daily_leaderboard(request):
 
 
 @api_view(["GET"])
+def progress_summary(request):
+    """
+    Calendrier des archives : pour le joueur connecté, les jeux terminés
+    par date (depuis ARCHIVE_START). {"2026-11-13": ["cubeur", "nr"], ...}
+    """
+    if not _is_logged(request):
+        return Response(status=401)
+
+    done_fields = {
+        "cubeur": "cubeur_done", "compet": "compet_done", "ranking": "ranking_done",
+        "podium": "podium_done", "nr": "nr_done", "location": "location_done",
+    }
+    rows = DailyProgress.objects.filter(user=request.user, date__gte=ARCHIVE_START).values("date", *done_fields.values())
+    return Response({
+        str(row["date"]): [slug for slug, field in done_fields.items() if row[field]]
+        for row in rows
+    })
+
+
+@api_view(["GET"])
 def general_leaderboard_view(request):
     """?period=day|week|month&date=YYYY-MM-DD : somme des points (cf. core/leaderboards.py)."""
     period = request.GET.get("period", "day")
@@ -1453,6 +1476,8 @@ def general_leaderboard_view(request):
     day = parse_date(request.GET.get("date")) or paris_today()
     if day > paris_today():
         return Response({"error": "Pas encore de classement pour ce jour."}, status=403)
+    if day < ARCHIVE_START:
+        return Response({"error": "Pas de classement avant le lancement de Cubdle."}, status=403)
 
     data = general_leaderboard(period, day)
     me = _current_user_id(request)

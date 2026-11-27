@@ -20,6 +20,8 @@ import { loadProgress, saveProgress, resetProgress, flushPendingScores, withDate
 import { getParisToday, useParisToday } from './utils/dates';
 import GameRoute from './components/GameRoute';
 import GuessNR from './pages/GuessNR';
+import Archives from './pages/Archives';
+import ArchiveGame from './components/ArchiveGame';
 import { isLaunched } from './utils/dates';
 
 
@@ -139,6 +141,8 @@ export default function App() {
           <Route path="/ranking" element={<GameRoute key={today} date={today}><GuessRanking /></GameRoute>} />
           <Route path="/podium" element={<GameRoute key={today} date={today}><GuessPodium /></GameRoute>} />
           <Route path="/location" element={<GameRoute key={today} date={today}><GuessLocation /></GameRoute>} />
+          <Route path="/archives" element={isLaunched(today) ? <Archives /> : <Navigate to="/" replace />} />
+          <Route path="/archives/:date/:game" element={<ArchiveGame />} />
           <Route
             path="/nr"
             element={isLaunched(today) ? <GameRoute key={today} date={today}><GuessNR /></GameRoute> : <Navigate to="/" replace />}

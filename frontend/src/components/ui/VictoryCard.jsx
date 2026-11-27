@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useGameLink, useArchiveDate } from '../../utils/archiveContext';
+import { formatDateFr } from '../../utils/dates';
 import { Trophy } from 'lucide-react';
 
 function Countdown() {
@@ -28,9 +30,14 @@ function Countdown() {
   );
 }
 
-function ShareBlock({ guesses, buildShareText, shareData }) {
+function ShareBlock({ guesses, buildShareText, shareData, archiveDate }) {
   const [copied, setCopied] = useState(false);
-  const text = buildShareText(guesses, shareData);
+  let text = buildShareText(guesses, shareData);
+  // En archive : on précise le jour du défi sous la première ligne
+  if (archiveDate) {
+    const [first, ...rest] = text.split('\n');
+    text = [first, `📅 Défi du ${formatDateFr(archiveDate, { day: 'numeric', month: 'long', year: 'numeric' })} (en décalé)`, ...rest].join('\n');
+  }
 
   const handleCopy = () => {
     navigator.clipboard?.writeText(text).then(() => {
@@ -69,6 +76,11 @@ function ShareBlock({ guesses, buildShareText, shareData }) {
 
 
 export default function VictoryCard({ name, label, guesses, nextTo, buildShareText, shareData, stats, link, avatarUrl, onLeaderboard }) {
+  // En archive : "Jeu suivant" reste dans le même jour
+  const archiveDate = useArchiveDate();
+  const archiveNext = useGameLink(nextTo, 'next');
+  if (archiveNext) nextTo = archiveNext.to;
+
   const ref = useRef(null);
 
   useEffect(() => {
@@ -134,17 +146,20 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
 
         <div className="flex items-center justify-center gap-4">
 
-          <div className="flex flex-col items-center gap-1">
-            <span className="font-body text-xs text-black/40 uppercase tracking-wide">
-              Prochain défi dans
-            </span>
+          {/* Compte à rebours : seulement pour le défi du jour (pas en archive) */}
+          {!archiveDate && (
+            <div className="flex flex-col items-center gap-1">
+              <span className="font-body text-xs text-black/40 uppercase tracking-wide">
+                Prochain défi dans
+              </span>
 
-            <Countdown />
+              <Countdown />
 
-            <span className="font-body text-[10px] text-black/30">
-              Europe · UTC+2
-            </span>
-          </div>
+              <span className="font-body text-[10px] text-black/30">
+                Europe · UTC+2
+              </span>
+            </div>
+          )}
 
           <button
             onClick={onLeaderboard}
@@ -179,7 +194,7 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
       {/* ── DROITE : partage ── */}
       <div className="flex-1">
         {buildShareText
-          ? <ShareBlock guesses={guesses} buildShareText={buildShareText} shareData={shareData} />
+          ? <ShareBlock guesses={guesses} buildShareText={buildShareText} shareData={shareData} archiveDate={archiveDate} />
           : null
         }
       </div>

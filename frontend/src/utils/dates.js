@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 // (doit rester aligné avec core/dates.py côté backend).
 export const ARCHIVE_DELAY_DAYS = 10;
 
+// Lancement officiel de Cubdle : rien d'antérieur n'est accessible (aligné avec le backend).
+export const ARCHIVE_START = '2026-08-01';
+
 // Date de lancement de la maj de décembre (aligné avec LAUNCH_DATE côté backend).
 // Surchargeable via VITE_LAUNCH_DATE pour tester en avance (ex : preview Vercel).
 export const LAUNCH_DATE = import.meta.env.VITE_LAUNCH_DATE || '2026-12-01';
@@ -35,6 +38,11 @@ export function addDays(dateStr, n) {
 /** Dernier jour jouable en archive. */
 export function getLastArchiveDate(today = getParisToday()) {
   return addDays(today, -ARCHIVE_DELAY_DAYS);
+}
+
+/** Un défi est jouable en archive entre ARCHIVE_START et J-10. */
+export function isArchivePlayable(date, today = getParisToday()) {
+  return isValidDateStr(date) && date >= ARCHIVE_START && date <= getLastArchiveDate(today);
 }
 
 export function isValidDateStr(value) {

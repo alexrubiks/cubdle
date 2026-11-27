@@ -26,6 +26,11 @@ def is_launched(ref=None):
 # Ex : le 23, on a accès aux défis jusqu'au 13 inclus.
 ARCHIVE_DELAY_DAYS = 10
 
+# Lancement officiel de Cubdle : rien d'antérieur n'est accessible
+# (ni en archive, ni dans les classements). Les données plus anciennes
+# en base sont des données de test.
+ARCHIVE_START = date_cls(2026, 8, 1)
+
 
 def today():
     """Date du jour à Paris."""
@@ -50,7 +55,7 @@ def last_archive_date(ref=None):
 def is_playable(day, ref=None):
     """Un défi est jouable s'il est celui du jour, ou s'il est assez ancien."""
     ref = ref or today()
-    return day == ref or day <= last_archive_date(ref)
+    return day == ref or ARCHIVE_START <= day <= last_archive_date(ref)
 
 
 class ChallengeDateError(Exception):

@@ -20,7 +20,7 @@ import math
 from collections import defaultdict
 from datetime import timedelta
 
-from .dates import today as paris_today
+from .dates import ARCHIVE_START, today as paris_today
 from .models import Score
 
 # Sens de tri des scores : "asc" = plus petit est meilleur
@@ -91,6 +91,7 @@ def period_bounds(period, day):
 
 def general_leaderboard(period, day):
     start, end = period_bounds(period, day)
+    start = max(start, ARCHIVE_START)  # rien avant le lancement de Cubdle
 
     scores = (
         Score.objects

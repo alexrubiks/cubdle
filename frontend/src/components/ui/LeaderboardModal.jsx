@@ -2,9 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { X, Trophy, Lock, ChevronLeft, ChevronRight, History, Coins } from 'lucide-react';
 import { API_URLS } from '../../utils';
-import { isLaunched, getParisToday, addDays, formatDateFr } from '../../utils/dates';
+import { isLaunched, getParisToday, addDays, formatDateFr, ARCHIVE_START } from '../../utils/dates';
 import { loadProgress } from '../../utils/localProgress';
 import LeaderboardModalLegacy from './LeaderboardModalLegacy';
+import { useArchiveDate } from '../../utils/archiveContext';
 
 /*
  * Classements : par jeu (avec rang et points) et général (jour / semaine / mois).
@@ -231,7 +232,9 @@ export default function LeaderboardModal(props) {
 
 function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
   const today = getParisToday();
-  const [date, setDate] = useState(today);
+  // Ouvert depuis un jeu en archive : on affiche directement le jour du défi
+  const archiveDate = useArchiveDate();
+  const [date, setDate] = useState(archiveDate ?? today);
   const [activeTab, setActiveTab] = useState(initialGame);
   const [period, setPeriod] = useState("day");
   const [showLate, setShowLate] = useState(() => readPref("cubdle_lb_late"));
@@ -331,7 +334,8 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
         <div className="mt-3 mb-5 max-[425px]:mb-3 flex items-center justify-center gap-3">
           <button
             onClick={() => setDate(addDays(date, -1))}
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30"
+            disabled={date <= ARCHIVE_START}
+            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30 disabled:opacity-30 disabled:hover:bg-white"
             title="Jour précédent"
           >
             <ChevronLeft size={16} strokeWidth={3} />

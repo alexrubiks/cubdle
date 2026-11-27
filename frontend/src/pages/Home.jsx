@@ -5,7 +5,11 @@ import HowToPlayModal from '../components/ui/HowToPlayModal';
 import MenuButton from '../components/ui/MenuButton';
 import CubdleLogo from '../components/ui/CubdleLogo';
 import { Link } from 'react-router-dom';
-import { isLaunched } from '../utils/dates';
+import { CalendarDays } from 'lucide-react';
+import { isLaunched, getParisToday } from '../utils/dates';
+import { loadProgress } from '../utils/localProgress';
+import { doneLabel } from '../utils/scoreLabels';
+import { gameByPath } from '../utils/games';
 
 const MENU_ITEMS = [
   {
@@ -64,6 +68,8 @@ function getMenuItems() {
 }
 
 export default function Home() {
+  const today = getParisToday();
+  const todayProgress = loadProgress(today);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
@@ -94,6 +100,8 @@ export default function Home() {
             <MenuButton
               key={item.to}
               {...item}
+              // Maj de décembre : bandeau "terminé" avec le score du jour
+              ribbon={isLaunched() ? doneLabel(gameByPath(item.to)?.slug, todayProgress, today) : null}
             />
           ))}
         </div>
@@ -103,6 +111,16 @@ export default function Home() {
           onLeaderboard={() => setShowLeaderboard(true)}
           onHowToPlay={() => setShowHowToPlay(true)}
         />
+
+        {isLaunched() && (
+          <Link
+            to="/archives"
+            className="mt-3 flex items-center justify-center gap-1.5 font-body text-sm font-bold text-white/80 underline-offset-4 hover:text-white hover:underline"
+          >
+            <CalendarDays size={16} strokeWidth={2.5} />
+            Rejouer les anciens défis
+          </Link>
+        )}
 
         {showLeaderboard && (
           <LeaderboardModal onClose={() => setShowLeaderboard(false)} />

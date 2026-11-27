@@ -17,6 +17,7 @@ export const API_URLS = {
   locationGuesses: `${API_BASE}location-guesses/`,
   leaderboard: `${API_BASE}leaderboard/`,
   leaderboardGeneral: `${API_BASE}leaderboard/general/`,
+  progressSummary: `${API_BASE}progress/summary/`,
 
   guessCubeur: `${API_BASE}guess/cubeur/`,
   guessRanking: `${API_BASE}guess/ranking/`,

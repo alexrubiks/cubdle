@@ -54,8 +54,19 @@ function getStorageKey(date = getActiveDate()) {
 }
 
 // On garde la progression des MAX_STORED_DAYS derniers jours joués
-// (aujourd'hui + archives), jamais celle du jour actif.
-const MAX_STORED_DAYS = 15;
+// (aujourd'hui + archives, pour le calendrier), jamais celle du jour actif.
+const MAX_STORED_DAYS = 150;
+
+/** Jeux terminés par date, d'après la progression locale : {date: [slugs]}. */
+export function getLocalDoneByDate() {
+  const result = {};
+  for (const key of getStoredDayKeys()) {
+    const date = key.slice(STORAGE_PREFIX.length + 1);
+    const progress = loadProgress(date);
+    result[date] = ["cubeur", "compet", "ranking", "podium", "nr", "location"].filter((g) => progress[`${g}_done`]);
+  }
+  return result;
+}
 
 function getStoredDayKeys() {
   return Object.keys(localStorage)

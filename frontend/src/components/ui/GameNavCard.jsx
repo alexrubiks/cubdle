@@ -1,8 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useGameLink } from '../../utils/archiveContext';
 
 function GameNavCard({ to, direction, color, prefix, title }) {
   const isPrev = direction === 'prev';
+
+  // En archive : lien et apparence du jeu réellement visé (même jour)
+  const archiveLink = useGameLink(to, direction);
+  if (archiveLink) {
+    ({ to, color, prefix, title } = archiveLink);
+  }
 
   return (
     <Link

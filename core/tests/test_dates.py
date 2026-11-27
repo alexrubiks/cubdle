@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import AccessToken
 
 from core.models import (
+    DailyProgress,
     Competition, Cubeur, CubeurRanking, DailyChallenge, Event, Game, Score, User,
 )
 
@@ -103,3 +104,34 @@ class DateFoundationsTests(TestCase):
             self.assertFalse(r.data["cubeur_done"])
             r = self.client.get("/api/progress/?date=2026-11-13")
             self.assertTrue(r.data["cubeur_done"])
+
+
+class ArchiveStartTests(TestCase):
+    """Rien avant le 1er août 2026 (lancement officiel) : ni archive, ni classement."""
+
+    def test_no_archive_before_launch_of_cubdle(self):
+        from core.dates import is_playable
+        ref = date(2026, 12, 1)
+        self.assertTrue(is_playable(date(2026, 8, 1), ref))
+        self.assertFalse(is_playable(date(2026, 7, 31), ref))
+        self.assertFalse(is_playable(date(2026, 1, 1), ref))
+
+    def test_no_leaderboard_before_launch_of_cubdle(self):
+        Game.objects.get_or_create(slug="cubeur", defaults={"name": "Cubeur"})
+        client = APIClient()
+        with at_paris(2026, 12, 1):
+            self.assertEqual(client.get("/api/leaderboard/?game=cubeur&date=2026-07-31").status_code, 403)
+            self.assertEqual(client.get("/api/leaderboard/general/?date=2026-07-31").status_code, 403)
+            r = client.get("/api/leaderboard/general/?period=month&date=2026-08-15")
+            self.assertEqual(r.data["start"], "2026-08-01")
+
+    def test_progress_summary(self):
+        user = User.objects.create(wca_id="2022TREM02", pseudo="Alexis")
+        DailyProgress.objects.create(user=user, date=date(2026, 11, 13), cubeur_done=True, nr_done=True)
+        DailyProgress.objects.create(user=user, date=date(2026, 7, 1), cubeur_done=True)  # avant le lancement
+        client = APIClient()
+        token = AccessToken(); token["user_id"] = user.id
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        r = client.get("/api/progress/summary/")
+        self.assertEqual(r.data, {"2026-11-13": ["cubeur", "nr"]})
+        self.assertEqual(APIClient().get("/api/progress/summary/").status_code, 401)

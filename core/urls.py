@@ -15,6 +15,7 @@ urlpatterns = [
     path('location-guesses/', views.location_guesses),
     path("leaderboard/", views.daily_leaderboard),
     path("leaderboard/general/", views.general_leaderboard_view),
+    path("progress/summary/", views.progress_summary),
 
     path('guess/cubeur/', views.guess_cubeur),
     path('guess/competition/', views.guess_compet),
