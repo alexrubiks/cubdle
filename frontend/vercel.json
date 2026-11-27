@@ -1,5 +1,13 @@
 {
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/((?!assets/|events-icons/|favicon|apple-touch-icon|cubdle-favicon|og-image|robots\\.txt|sitemap\\.xml|site\\.webmanifest).+)",
+      "headers": [
+        { "key": "X-Robots-Tag", "value": "noindex" }
+      ]
+    }
   ]
 }

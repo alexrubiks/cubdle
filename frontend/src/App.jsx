@@ -40,6 +40,24 @@ export default function App() {
   const today = useParisToday();
   const location = useLocation();
 
+  // Titre de l'onglet selon la page (l'accueil garde celui d'index.html, utilisé par Google)
+  useEffect(() => {
+    const path = location.pathname;
+    const TITLES = {
+      '/': 'Cubdle — Le jeu quotidien du speedcubing français',
+      '/cubeur': 'Devine le cubeur · Cubdle',
+      '/competition': 'Devine la compétition · Cubdle',
+      '/ranking': 'Devine le classement · Cubdle',
+      '/podium': 'Devine le podium · Cubdle',
+      '/nr': 'Devine le NR · Cubdle',
+      '/location': 'Devine la localisation · Cubdle',
+      '/archives': 'Anciens défis · Cubdle',
+      '/privacy': 'Politique de confidentialité · Cubdle',
+      '/legal': 'Mentions légales · Cubdle',
+    };
+    document.title = TITLES[path] ?? (path.startsWith('/archives/') ? 'Anciens défis · Cubdle' : 'Cubdle');
+  }, [location.pathname]);
+
   const syncProgress = async (token) => {
     const day = getParisToday();
     const localProgress = loadProgress(day);

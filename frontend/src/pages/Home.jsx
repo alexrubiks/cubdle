@@ -94,8 +94,8 @@ export default function Home() {
           <span className="whitespace-nowrap">et bien plus !</span>
         </div>
 
-        {/* MENU */}
-        <div className=" flex flex-col gap-[clamp(8px,1.5vh,12px)] items-center w-full">
+        {/* MENU (data-nosnippet : Google prend la meta description, pas le texte des boutons) */}
+        <div data-nosnippet className=" flex flex-col gap-[clamp(8px,1.5vh,12px)] items-center w-full">
           {getMenuItems().map((item) => (
             <MenuButton
               key={item.to}
