@@ -40,6 +40,7 @@ from .dates import (
     resolve_challenge_date,
     today as paris_today,
 )
+from .leaderboards import GAME_SORT_ORDER, effective_score, game_points, general_leaderboard
 from .progress import (
     add_guess,
     get_error_count,
@@ -1386,22 +1387,20 @@ def submit_score(request):
     return Response({"score": score.score, "is_late": score.is_late}, status=201)
 
 
-GAME_SORT_ORDER = {
-    "cubeur": "asc",
-    "compet": "asc",
-    "ranking": "asc",
-    "podium": "asc",
-    "location": "desc",
-    "nr": "asc",
-}
+# GAME_SORT_ORDER : voir core/leaderboards.py
+
+
+def _current_user_id(request):
+    return request.user.id if getattr(request.user, "is_authenticated", False) else None
 
 
 @api_view(["GET"])
 def daily_leaderboard(request):
     """
     ?game=<slug>&date=YYYY-MM-DD&include_late=1
-    Les parties jouées en décalé (archives) ne sont renvoyées que si
-    include_late=1, et sont marquées is_late=True (hors classement).
+    Chaque ligne "dans les temps" porte son rang et ses points (cf. core/leaderboards.py).
+    Les parties jouées en décalé (archives) ne sont renvoyées que si include_late=1 :
+    intercalées selon leur score, marquées is_late=True, sans rang ni points.
     """
     game_slug = request.GET.get("game")
 
@@ -1419,17 +1418,44 @@ def daily_leaderboard(request):
 
     include_late = request.GET.get("include_late") in ("1", "true")
     order = "score" if GAME_SORT_ORDER[game_slug] == "asc" else "-score"
+    me = _current_user_id(request)
 
     scores = Score.objects.filter(game=game, date=day).select_related("user")
     if not include_late:
         scores = scores.filter(is_late=False)
-    scores = scores.order_by("is_late", order, "played_at")
+    scores = list(scores.order_by(order, "is_late", "played_at"))
+
+    ranked = game_points(
+        [(s.id, effective_score(game_slug, s.score)) for s in scores if not s.is_late],
+        GAME_SORT_ORDER[game_slug],
+    )
 
     return Response([
         {
             "pseudo": s.user.pseudo,
             "score": s.score,
             "is_late": s.is_late,
+            "rank": ranked[s.id][0] if s.id in ranked else None,
+            "points": ranked[s.id][1] if s.id in ranked else None,
+            "is_me": s.user_id == me,
         }
         for s in scores
     ])
+
+
+@api_view(["GET"])
+def general_leaderboard_view(request):
+    """?period=day|week|month&date=YYYY-MM-DD : somme des points (cf. core/leaderboards.py)."""
+    period = request.GET.get("period", "day")
+    if period not in ("day", "week", "month"):
+        return Response({"error": "Période invalide."}, status=400)
+
+    day = parse_date(request.GET.get("date")) or paris_today()
+    if day > paris_today():
+        return Response({"error": "Pas encore de classement pour ce jour."}, status=403)
+
+    data = general_leaderboard(period, day)
+    me = _current_user_id(request)
+    for row in data["rows"]:
+        row["is_me"] = row.pop("user_id") == me
+    return Response(data)

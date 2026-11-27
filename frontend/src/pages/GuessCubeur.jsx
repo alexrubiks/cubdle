@@ -356,7 +356,7 @@ function GuessCubeur() {
         />
 
         {showLeaderboard && (
-          <LeaderboardModal onClose={() => setShowLeaderboard(false)} />
+          <LeaderboardModal onClose={() => setShowLeaderboard(false)} initialGame="cubeur" />
         )}
 
         {showHowToPlay && (

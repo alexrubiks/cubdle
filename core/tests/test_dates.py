@@ -93,7 +93,7 @@ class DateFoundationsTests(TestCase):
             r = self.client.get("/api/leaderboard/?game=cubeur&date=2026-11-13")
             self.assertEqual([x["pseudo"] for x in r.data], ["Alexis"])
             r = self.client.get("/api/leaderboard/?game=cubeur&date=2026-11-13&include_late=1")
-            self.assertEqual([(x["pseudo"], x["is_late"]) for x in r.data], [("Alexis", False), ("Late", True)])
+            self.assertEqual([(x["pseudo"], x["is_late"]) for x in r.data], [("Late", True), ("Alexis", False)])  # intercalé selon le score
 
     def test_progress_per_date(self):
         self.auth()
