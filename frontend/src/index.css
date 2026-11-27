@@ -25,3 +25,21 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* ── Page 404 : cases qui se retournent ─────────────────────────────── */
+@keyframes tile-flip-intro {
+  from { transform: rotateX(90deg); }
+  to   { transform: rotateX(0deg); }
+}
+@keyframes tile-flip-run {
+  0%   { transform: rotateX(0deg); }
+  50%  { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+.tile-flip-intro { animation: tile-flip-intro 320ms ease-out both; }
+.tile-flip-run   { animation: tile-flip-run 300ms ease-in-out; }
+/* la couleur change au milieu du retournement, quand la case est de profil */
+.tile-flip-run   { transition: background-color 0s linear 150ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tile-flip-intro, .tile-flip-run { animation: none; transition: none; }
+}

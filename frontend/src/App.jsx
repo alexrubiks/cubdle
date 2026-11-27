@@ -23,6 +23,7 @@ import GameRoute from './components/GameRoute';
 import GuessNR from './pages/GuessNR';
 import Archives from './pages/Archives';
 import ArchiveGame from './components/ArchiveGame';
+import NotFound from './pages/NotFound';
 import { isLaunched } from './utils/dates';
 
 
@@ -156,6 +157,8 @@ export default function App() {
           <Route path="/legal" element={<Legal />} />
 
           <Route path="/auth/callback" element={<AuthCallback />} />
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
 
