@@ -280,6 +280,8 @@ function GuessPodium() {
         credentials: "include",
         body: JSON.stringify({
           cubeur_id: cubeur.id,
+          // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
+          previous_ids: guesses.map((g) => g.id),
         }),
       });
 

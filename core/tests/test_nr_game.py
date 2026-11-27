@@ -127,3 +127,39 @@ class NRPickTests(TestCase):
         cmd._complete(ch)
         ch.refresh_from_db()
         self.assertEqual(ch.nr_record_id, a.id)
+
+
+class HintCounterTests(TestCase):
+    """
+    Bug : partie commencée sur un appareil puis continuée sur un autre (ou cookies perdus).
+    Le serveur ne connaissait pas les essais précédents -> indice vide à la 5e erreur.
+    Le navigateur envoie désormais ses essais précédents (previous_ids).
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        e = Event.objects.create(slug="333", name="3x3x3")
+        cls.target = Cubeur.objects.create(wca_id="2015GOLU01", first_name="Theo", last_name="Goluboff", wca_year=2015)
+        cls.others = [Cubeur.objects.create(wca_id=f"2015OTHE{i:02d}", first_name=f"O{i}", last_name="X", wca_year=2015) for i in range(6)]
+        comp = Competition.objects.create(wca_id="C1", name="Comp", month="1", year="2020", day_count=1,
+                                          latitude=48.8, longitude=2.3, date_from=date(2020, 1, 1))
+        DailyChallenge.objects.create(date=date(2026, 12, 1), cubeur=cls.target, competition=comp, ranking_cubeur=cls.target,
+                                      ranking_event=e, podium_competition=comp, podium_event=e, location_competition=comp)
+
+    def test_new_device_with_previous_guesses_gets_hint_on_time(self):
+        # 4 erreurs faites "ailleurs", 5e erreur sur un nouvel appareil (session vierge)
+        previous = [c.id for c in self.others[:4]]
+        with at_paris(2026, 12, 1):
+            r = APIClient().post("/api/guess/cubeur/", {"cubeur_id": self.others[4].id, "previous_ids": previous}, format="json")
+        self.assertEqual(r.data["hint"], "T")
+
+    def test_without_previous_ids_old_behaviour(self):
+        with at_paris(2026, 12, 1):
+            r = APIClient().post("/api/guess/cubeur/", {"cubeur_id": self.others[4].id}, format="json")
+        self.assertEqual(r.data["hint"], "")
+
+    def test_duplicates_and_garbage_not_counted(self):
+        previous = [self.others[0].id, self.others[0].id, "abc", None, self.target.id]
+        with at_paris(2026, 12, 1):
+            r = APIClient().post("/api/guess/cubeur/", {"cubeur_id": self.others[1].id, "previous_ids": previous}, format="json")
+        self.assertEqual(r.data["hint"], "")  # 2 erreurs seulement

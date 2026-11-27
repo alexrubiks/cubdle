@@ -44,12 +44,10 @@ from .dates import (
 from .leaderboards import GAME_SORT_ORDER, crowned_user_ids, effective_score, game_points, general_leaderboard, streak_for_user
 from .progress import (
     add_guess,
-    get_error_count,
     set_done,
     get_guesses,
-    get_error_count_from_dicts,
-    get_podium_wrong_count,
     get_podium_entries,
+    guessed_keys,
     get_podium_ranked_by,
     podium_display_score,
     get_done,
@@ -409,7 +407,7 @@ def guess_cubeur(request):
         "comparison": comparison,
         "hint": None if correct else build_hint(
             f"{target.first_name} {target.last_name}",
-            get_error_count(request, "cubeur_guesses", target.id),
+            len(guessed_keys(request, "cubeur_guesses") - {target.id}),
             first_at=5,
             every=5,
         ),
@@ -555,7 +553,7 @@ def guess_compet(request):
         "comparison": comparison,
         "hint": None if correct else build_hint(
             target.name,
-            get_error_count_from_dicts(request, "compet_guesses", target.id),
+            len(guessed_keys(request, "compet_guesses") - {target.id}),
             first_at=5,
             every=5,
         ),
@@ -956,7 +954,8 @@ def guess_podium(request):
     })
 
     # nombre d'essais qui n'ont touché aucune ligne du podium
-    wrong_count = get_podium_wrong_count(request, "podium_guesses")
+    podium_ids = {e.cubeur_id for e in entries}
+    wrong_count = len(guessed_keys(request, "podium_guesses") - podium_ids)
 
     # un indice par ligne du podium (même ordre que podium_positions)
     hints = [
@@ -1168,7 +1167,7 @@ def guess_nr(request):
     if correct:
         set_done(request, "nr_done")
 
-    mistakes = len([g for g in guessed_ids() if g not in accepted])
+    mistakes = len(guessed_keys(request, "nr_guesses", key="wca_id") - accepted)
 
     response = {
         "correct": correct,

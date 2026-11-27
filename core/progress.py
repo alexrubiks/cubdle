@@ -162,6 +162,42 @@ def get_error_count_from_dicts(request, field, target_id, id_key="id"):
         if guess.get(id_key) != target_id
     ])
 
+MAX_CLIENT_GUESSES = 300
+
+
+def guessed_keys(request, field, key="id"):
+    """
+    Identifiants de toutes les tentatives connues pour ce jeu :
+    celles enregistrées côté serveur (session ou base) + celles que le navigateur
+    déclare avoir déjà faites (`previous_ids`).
+
+    Pourquoi : le serveur ne voyait que les essais rattachés à SA session. Un joueur
+    qui commence sur un appareil et continue sur un autre (progression synchronisée),
+    ou qui perd ses cookies, avait alors un compteur d'erreurs en retard côté serveur
+    -> indice vide à la 5e erreur, première lettre à la 10e.
+    Le navigateur fixe déjà lui-même le score envoyé : lui faire confiance ici ne
+    donne aucun avantage de plus.
+    """
+    keys = set()
+    for g in get_guesses(request, field):
+        keys.add(g.get(key) if isinstance(g, dict) else g)
+
+    client = request.data.get("previous_ids") if isinstance(request.data, dict) else None
+    if isinstance(client, list):
+        for value in client[:MAX_CLIENT_GUESSES]:
+            if key == "wca_id":
+                if isinstance(value, str) and value.strip():
+                    keys.add(value.strip().upper())
+            else:
+                try:
+                    keys.add(int(value))
+                except (TypeError, ValueError):
+                    continue
+
+    keys.discard(None)
+    return keys
+
+
 def get_podium_wrong_count(request, field):
     """
     Nombre d'essais qui n'ont matché aucune des 3 positions du podium.

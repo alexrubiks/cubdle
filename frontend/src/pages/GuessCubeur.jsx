@@ -149,7 +149,11 @@ function GuessCubeur() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ cubeur_id: cubeur.id }),
+        body: JSON.stringify({
+          cubeur_id: cubeur.id,
+          // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
+          previous_ids: guesses.map((g) => g.id),
+        }),
       });
 
       const data = await res.json();

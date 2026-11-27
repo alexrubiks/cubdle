@@ -172,7 +172,9 @@ function GuessCompet() {
         },
         credentials: 'include',
         body: JSON.stringify({
-          competition_id: compet.id
+          competition_id: compet.id,
+          // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
+          previous_ids: guesses.map((g) => g.id),
         }),
       });
 

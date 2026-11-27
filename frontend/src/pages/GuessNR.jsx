@@ -180,7 +180,11 @@ export default function GuessNR() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ wca_id: person.wca_id }),
+        body: JSON.stringify({
+          wca_id: person.wca_id,
+          // essais déjà faits (éventuellement sur un autre appareil) : compteur d'indices juste
+          previous_ids: guesses.map((g) => g.wca_id),
+        }),
       });
 
       const data = await res.json();
