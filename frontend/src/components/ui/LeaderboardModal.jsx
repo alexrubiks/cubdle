@@ -216,7 +216,7 @@ function Row({ rank, pseudo, right, sub, isMe, faded }) {
         <div className="flex flex-col min-w-0">
           <span className="font-bold truncate max-[425px]:text-xs">{pseudo}</span>
           {sub && (typeof sub === "string"
-            ? <span className="text-xs text-black/50 truncate max-[425px]:text-[10px]">{sub}</span>
+            ? <span className="text-xs text-black/50 truncate max-[425px]:text-[0.625rem]">{sub}</span>
             : sub)}
         </div>
       </div>
@@ -395,7 +395,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
             <div className="flex items-center gap-2 font-body text-xs text-black/60">
               {periodLabel(json)}
               {json?.provisional && (
-                <span className="rounded-full border border-black/30 px-2 py-0.5 text-[10px] uppercase tracking-wide">
+                <span className="rounded-full border border-black/30 px-2 py-0.5 text-[0.625rem] uppercase tracking-wide">
                   provisoire
                 </span>
               )}
@@ -479,7 +479,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                           <span
                             key={g.slug}
                             title={g.label}
-                            className={`min-w-[1.75rem] rounded border border-black/60 px-1 text-center text-[10px] font-bold leading-4 ${
+                            className={`min-w-[1.75rem] rounded border border-black/60 px-1 text-center text-[0.625rem] font-bold leading-4 ${
                               row.games?.[g.slug] != null ? g.color : "bg-white/60 text-black/30"
                             }`}
                           >
@@ -514,7 +514,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                         {label}
                       </span>
                       {showPoints && entry.points != null && (
-                        <span className="font-body text-[11px] text-black/50">+{entry.points} pts</span>
+                        <span className="font-body text-[0.6875rem] text-black/50">+{entry.points} pts</span>
                       )}
                     </div>
                   }

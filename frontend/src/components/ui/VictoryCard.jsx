@@ -155,8 +155,8 @@ export default function VictoryCard({ name, label, guesses, nextTo, buildShareTe
 
               <Countdown />
 
-              <span className="font-body text-[10px] text-black/30">
-                Europe · UTC+2
+              <span className="font-body text-[0.625rem] text-black/30">
+                Heure de Paris
               </span>
             </div>
           )}

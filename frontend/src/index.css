@@ -7,6 +7,15 @@ body {
   height: 100%;
 }
 
+/*
+ * Grands écrans : la taille de base grandit avec la largeur à partir de 1600 px
+ * (16 px -> ~21 px sur un écran de 2560 px, plafond 24 px en 4K). Comme les tailles
+ * Tailwind sont en rem (textes, espacements, largeurs), toute l'interface suit.
+ */
+html {
+  font-size: clamp(16px, calc(16px + (100vw - 1600px) * 0.0052), 24px);
+}
+
 body {
   margin: 0;
 }

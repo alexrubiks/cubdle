@@ -45,9 +45,12 @@ function RecordInfos({ nr }) {
         <span className="font-title font-extrabold text-lg text-black uppercase">
           {formatRecordValue(nr.value, nr.event_id, nr.record_type)}
         </span>
+        {/* épreuve et type sur une ligne, date sur la suivante */}
         <span className="font-body text-sm text-black">
-          {nr.event_name} · {nr.record_type === 'average' ? 'moyenne' : 'single'} ·{' '}
-          {formatDateFr(nr.date, { day: 'numeric', month: 'long', year: 'numeric' })}
+          {nr.event_name} · {nr.record_type === 'average' ? 'moyenne' : 'single'}
+        </span>
+        <span className="font-body text-xs text-black/70">
+          le {formatDateFr(nr.date, { day: 'numeric', month: 'long', year: 'numeric' })}
         </span>
       </div>
     </div>
@@ -220,7 +223,7 @@ export default function GuessNR() {
 
   return (
     <div className="flex flex-col items-center px-5 pt-[clamp(8px,2vh,20px)] pb-8">
-      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[90.625rem] flex flex-col gap-4">
 
         <div className="flex flex-col items-center">
           {/* ── HEADER ── */}
@@ -230,7 +233,7 @@ export default function GuessNR() {
             </div>
 
             <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
-              <CubdleLogo className="text-[4em] md:text-[6em]" />
+              <CubdleLogo className="text-[4em] max-[360px]:text-[3.3em] md:text-[6em]" />
             </Link>
 
             <div className="absolute right-1 md:right-4">
@@ -238,7 +241,7 @@ export default function GuessNR() {
             </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-12">Devine le NR</span>
+          <span className="font-body text-2xl max-[360px]:text-xl text-white/80 mt-12">Devine le NR</span>
         </div>
 
         {/* ── VICTOIRE ── */}

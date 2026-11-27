@@ -239,7 +239,7 @@ function GuessLocation() {
           {popup.pseudo}
         </div>
       )}
-      <div className="w-full max-w-sm md:w-3/4 md:max-w-[1450px] flex flex-col gap-4">
+      <div className="w-full max-w-sm md:w-3/4 md:max-w-[90.625rem] flex flex-col gap-4">
 
         <div className="flex flex-col items-center">
 
@@ -260,7 +260,7 @@ function GuessLocation() {
             </div>
 
             <Link to="/" className="mx-auto flex items-center justify-center py-2 transition-transform hover:scale-105 active:scale-95">
-              <CubdleLogo className="text-[4em] md:text-[6em]" />
+              <CubdleLogo className="text-[4em] max-[360px]:text-[3.3em] md:text-[6em]" />
             </Link>
 
             <div className="absolute right-1 md:right-4">
@@ -274,7 +274,7 @@ function GuessLocation() {
             </div>
           </div>
 
-          <span className="font-body text-2xl text-white/60 mt-12">
+          <span className="font-body text-2xl max-[360px]:text-xl text-white/80 mt-12">
             Devine la localisation
           </span>
 
@@ -332,7 +332,7 @@ function GuessLocation() {
 
         {/* MAP */}
         <div className="mx-auto w-full px-1 md:px-0 flex justify-center">
-          <div className="w-full max-w-[900px] flex flex-col">
+          <div className="w-full max-w-[56.25rem] flex flex-col">
             <div className="relative w-full aspect-[3/4] md:aspect-[3/2] border-4 border-black rounded-2xl overflow-hidden bg-white">
 
               <LocationMap

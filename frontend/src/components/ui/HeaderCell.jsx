@@ -5,7 +5,7 @@ export function HeaderCell({ icon, label }) {
         {icon}
       </span>
       {label && (
-        <span className="font-body font-bold text-[9px] uppercase tracking-wide text-black">
+        <span className="font-body font-bold text-[0.5625rem] uppercase tracking-wide text-black">
           {label}
         </span>
       )}

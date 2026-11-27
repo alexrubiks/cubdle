@@ -97,7 +97,7 @@ export default function Archives() {
 
         {/* ── CALENDRIER (continu, scrollable) ── */}
         <div className="rounded-2xl border-4 border-black bg-[#FDFBD4] px-3 pb-3">
-          <div className="grid grid-cols-[2.75rem_repeat(7,1fr)] gap-1.5 border-b-2 border-black/10 py-2 text-center font-body text-[11px] font-bold text-black/40">
+          <div className="grid grid-cols-[2.75rem_repeat(7,1fr)] gap-1.5 border-b-2 border-black/10 py-2 text-center font-body text-[0.6875rem] font-bold text-black/40">
             <div />
             {WEEKDAYS.map((d, i) => <div key={i}>{d}</div>)}
           </div>
@@ -109,7 +109,7 @@ export default function Archives() {
                 const first = week.find((d) => d.endsWith('-01') && d >= ARCHIVE_START);
                 return (
                   <div key={week[0]} className="grid grid-cols-[2.75rem_repeat(7,1fr)] items-center gap-1.5">
-                    <span className="font-title text-[10px] font-extrabold text-black/50">
+                    <span className="font-title text-[0.625rem] font-extrabold text-black/50">
                       {first ? MONTHS_SHORT[Number(first.slice(5, 7)) - 1] : ''}
                     </span>
 

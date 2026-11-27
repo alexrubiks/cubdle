@@ -28,11 +28,11 @@ export function RubikCell({ color = 'tile-none', direction = null, width = null,
       style={{ width: width ?? '48px' }}
     >
       <div className={`w-full h-full rounded-lg ${COLOR_MAP[color] ?? 'bg-[#d4d4d4]'} flex flex-col items-center justify-center font-title font-bold text-xs leading-none tabular-nums`}>
-        <div className="h-[10px] flex items-center justify-center">
+        <div className="h-[0.625rem] flex items-center justify-center">
           {direction === 'up' ? <ChevronUp /> : null}
         </div>
         {children}
-        <div className="h-[10px] flex items-center justify-center">
+        <div className="h-[0.625rem] flex items-center justify-center">
           {direction === 'down' ? <ChevronDown /> : null}
         </div>
       </div>
@@ -58,7 +58,7 @@ export function PeriodCell({ color = 'tile-none', direction = null, width = null
           COLOR_MAP[color] ?? 'bg-[#d4d4d4]'
         } flex flex-col items-center justify-center font-title font-bold leading-none tabular-nums`}
       >
-        <div className="h-[10px] flex items-center justify-center text-[9px] font-bold text-black">
+        <div className="h-[0.625rem] flex items-center justify-center text-[0.5625rem] font-bold text-black">
           {directionText}
         </div>
 
@@ -66,7 +66,7 @@ export function PeriodCell({ color = 'tile-none', direction = null, width = null
           {children}
         </div>
 
-        <div className="h-[10px]" />
+        <div className="h-[0.625rem]" />
       </div>
     </div>
   );
@@ -130,13 +130,13 @@ export function ListCell({ color = 'tile-none', direction = null, width = null, 
             flex flex-col items-center justify-center
             font-title font-bold text-xs leading-none tabular-nums
           `}>
-            <div className="h-[10px] flex items-center justify-center">
+            <div className="h-[0.625rem] flex items-center justify-center">
               {direction === 'up' ? <ChevronUp /> : null}
             </div>
 
             {children}
 
-            <div className="h-[10px] flex items-center justify-center">
+            <div className="h-[0.625rem] flex items-center justify-center">
               {direction === 'down' ? <ChevronDown /> : null}
             </div>
           </div>
