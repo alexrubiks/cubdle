@@ -1,3 +1,4 @@
+import { useArchiveDate } from '../utils/archiveContext';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { isLaunched } from '../utils/dates';
@@ -40,6 +41,7 @@ function YesterdayCubeur() {
 
 
 function GuessCubeur() {
+  const archiveDate = useArchiveDate();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
@@ -347,7 +349,8 @@ function GuessCubeur() {
         )}
 
         {/* ── CUBEUR D'HIER ── */}
-        <YesterdayCubeur />
+        {/* Pas en archive : la réponse de la veille pourrait être un autre défi encore à jouer */}
+        {!archiveDate && <YesterdayCubeur />}
 
         {/* ── BOUTONS ── */}
         <ActionButtons

@@ -89,13 +89,15 @@ def period_bounds(period, day):
     raise ValueError(f"Période inconnue : {period}")
 
 
-def general_leaderboard(period, day):
+def general_leaderboard(period, day, game=None):
+    """Somme des points sur la période ; tous les jeux, ou un seul si `game` est donné."""
     start, end = period_bounds(period, day)
     start = max(start, ARCHIVE_START)  # rien avant le lancement de Cubdle
 
+    slugs = [game] if game else list(GAME_SORT_ORDER)
     scores = (
         Score.objects
-        .filter(date__gte=start, date__lte=end, is_late=False, game__slug__in=GAME_SORT_ORDER)
+        .filter(date__gte=start, date__lte=end, is_late=False, game__slug__in=slugs)
         .select_related("user", "game")
     )
 
@@ -135,6 +137,7 @@ def general_leaderboard(period, day):
 
     return {
         "period": period,
+        "game": game,
         "start": str(start),
         "end": str(end),
         "provisional": end >= paris_today(),

@@ -113,6 +113,13 @@ class LeaderboardApiTests(TestCase):
         self.assertTrue(r.data["provisional"])
         self.assertNotIn("games", rows["Chloé"])
 
+    def test_week_for_one_game(self):
+        r = self.get("/api/leaderboard/general/?period=week&date=2026-12-02&game=cubeur")
+        rows = {x["pseudo"]: x["points"] for x in r.data["rows"]}
+        self.assertEqual(rows, {"Alice": 100, "Bob": 55, "Chloé": 55})  # seulement le Cubeur
+        self.assertEqual(r.data["game"], "cubeur")
+        self.assertEqual(self.get("/api/leaderboard/general/?period=week&game=nope").status_code, 400)
+
     def test_general_rejects_future_and_bad_period(self):
         self.assertEqual(self.get("/api/leaderboard/general/?period=day&date=2026-12-10").status_code, 403)
         self.assertEqual(self.get("/api/leaderboard/general/?period=year").status_code, 400)

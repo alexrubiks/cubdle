@@ -108,18 +108,55 @@ function authHeaders() {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function periodLabel(data) {
-  if (!data) return "";
-  if (data.period === "week") {
-    const opts = { day: "numeric", month: "short" };
-    return `Semaine du ${formatDateFr(data.start, opts)} au ${formatDateFr(data.end, opts)}`;
-  }
-  if (data.period === "month") {
-    const label = formatDateFr(data.start, { month: "long", year: "numeric" });
-    return label.charAt(0).toUpperCase() + label.slice(1);
-  }
-  return "";
+const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+
+/** Lundi de la semaine qui contient `date`. */
+function weekStart(date) {
+  const [y, m, d] = date.split("-").map(Number);
+  const weekday = (new Date(Date.UTC(y, m - 1, d)).getUTCDay() + 6) % 7;
+  return addDays(date, -weekday);
 }
+
+function addMonths(date, n) {
+  const [y, m] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1 + n, 1));
+  return dt.toISOString().slice(0, 10);
+}
+
+function monthEnd(date) {
+  const [y, m] = date.split("-").map(Number);
+  return new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+}
+
+/** Bornes de la période qui contient `date`. */
+function periodBounds(period, date) {
+  if (period === "week") {
+    const start = weekStart(date);
+    return [start, addDays(start, 6)];
+  }
+  if (period === "month") return [`${date.slice(0, 7)}-01`, monthEnd(date)];
+  return [date, date];
+}
+
+function shortDate(date) {
+  return `${date.slice(8, 10)}/${date.slice(5, 7)}`;
+}
+
+/** Libellé du sélecteur : Aujourd'hui / Hier / dim. 15 nov. — Cette semaine / 16/11 – 22/11 — Novembre. */
+function periodLabel(period, date, today) {
+  const [start, end] = periodBounds(period, date);
+  const current = start <= today && today <= end;
+  if (period === "week") return current ? "Cette semaine" : `${shortDate(start)} – ${shortDate(end)}`;
+  if (period === "month") {
+    const name = MONTHS[Number(date.slice(5, 7)) - 1];
+    const label = name.charAt(0).toUpperCase() + name.slice(1);
+    return date.slice(0, 4) === today.slice(0, 4) ? label : `${label} ${date.slice(0, 4)}`;
+  }
+  if (date === today) return "Aujourd'hui";
+  if (date === addDays(today, -1)) return "Hier";
+  return formatDateFr(date, { weekday: "short", day: "numeric", month: "short" });
+}
+
 
 function readPref(key) {
   try {
@@ -234,6 +271,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
   const today = getParisToday();
   // Ouvert depuis un jeu en archive : on affiche directement le jour du défi
   const archiveDate = useArchiveDate();
+  // Date de référence : jour affiché, ou un jour de la semaine / du mois affiché
   const [date, setDate] = useState(archiveDate ?? today);
   const [activeTab, setActiveTab] = useState(initialGame);
   const [period, setPeriod] = useState("day");
@@ -241,6 +279,8 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
   const [showPoints, setShowPoints] = useState(() => readPref("cubdle_lb_points"));
   const [flash, setFlash] = useState(null);
   const flashTimer = useRef(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const showFlash = (text) => {
     setFlash(text);
@@ -261,48 +301,61 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
     writePref("cubdle_lb_points", next);
     showFlash(next ? "Points affichés" : "Points masqués");
   };
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   const games = getGames(date);
   const isToday = date === today;
   const todayProgress = loadProgress(today);
-  const isLocked = (slug) => isToday && !todayProgress[`${slug}_done`];
+  const [periodStart, periodEnd] = periodBounds(period, date);
+  const provisional = periodEnd >= today;
+
+  // Seul le classement "Jour" d'aujourd'hui d'un jeu pas encore joué est verrouillé
+  const isLocked = (slug) => period === "day" && isToday && !todayProgress[`${slug}_done`];
 
   // Si le jeu actif n'existe pas à cette date (NR avant le lancement), retour au général
   const currentGame = games.find((g) => g.slug === activeTab);
   const tab = activeTab === GENERAL || currentGame ? activeTab : GENERAL;
   const locked = tab !== GENERAL && isLocked(tab);
 
+  // Classement d'un jeu sur un jour (scores) ; sinon somme des points (général ou un jeu)
+  const isDayGame = tab !== GENERAL && period === "day";
+  const pointsMode = !isDayGame;
+
+  const step = (direction) => {
+    let next;
+    if (period === "week") next = addDays(date, 7 * direction);
+    else if (period === "month") next = addMonths(date, direction);
+    else next = addDays(date, direction);
+    if (next > today) next = today;
+    if (next < ARCHIVE_START) next = ARCHIVE_START;
+    setDate(next);
+  };
+
   useEffect(() => {
     if (locked) return;
 
-    const url = tab === GENERAL
-      ? `${API_URLS.leaderboardGeneral}?period=${period}&date=${date}`
-      : `${API_URLS.leaderboard}?game=${tab}&date=${date}${showLate && date !== today ? "&include_late=1" : ""}`;
+    const url = isDayGame
+      ? `${API_URLS.leaderboard}?game=${tab}&date=${date}${showLate && date !== today ? "&include_late=1" : ""}`
+      : `${API_URLS.leaderboardGeneral}?period=${period}&date=${date}${tab !== GENERAL ? `&game=${tab}` : ""}`;
+    const key = `${tab}|${period}`;
 
     const controller = new AbortController();
     setLoading(true);
     fetch(url, { headers: authHeaders(), signal: controller.signal })
       .then((res) => res.json())
-      .then((json) => setData({ tab, json }))
+      .then((json) => setData({ key, json }))
       .catch((err) => {
-        if (err.name !== "AbortError") setData({ tab, json: null });
+        if (err.name !== "AbortError") setData({ key, json: null });
       })
       .finally(() => setLoading(false));
 
     return () => controller.abort();
-  }, [tab, date, period, showLate, locked, today]);
+  }, [tab, date, period, showLate, locked, today, isDayGame]);
 
-  // On n'affiche que des données correspondant à l'onglet courant
-  const json = data?.tab === tab ? data.json : null;
-  const generalRows = tab === GENERAL ? json?.rows ?? [] : [];
-  const gameRows = tab !== GENERAL && Array.isArray(json) ? json : [];
-  const isEmpty = tab === GENERAL ? generalRows.length === 0 : gameRows.length === 0;
-
-  const dateLabel = isToday
-    ? "Aujourd'hui"
-    : formatDateFr(date, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  // On n'affiche que des données correspondant à l'onglet et à la période courants
+  const json = data?.key === `${tab}|${period}` ? data.json : null;
+  const pointRows = pointsMode ? json?.rows ?? [] : [];
+  const gameRows = isDayGame && Array.isArray(json) ? json : [];
+  const isEmpty = pointsMode ? pointRows.length === 0 : gameRows.length === 0;
 
   return (
     <div className="fixed inset-0 z-[9999] overflow-y-auto bg-black/50 px-5 py-5" onMouseDown={onClose}>
@@ -323,34 +376,11 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
         </button>
 
         {/* TITLE */}
-        <div className="mt-4 max-[425px]:mt-2 flex items-center justify-center gap-2">
+        <div className="mt-4 mb-5 max-[425px]:mt-2 max-[425px]:mb-3 flex items-center justify-center gap-2">
           <Trophy size={32} strokeWidth={3} className="fill-cubdle-yellow max-[425px]:w-6 max-[425px]:h-6" />
           <h2 className="font-title font-extrabold uppercase text-[clamp(12px,calc(8vw_-_13.6px),24px)]">
             Classements
           </h2>
-        </div>
-
-        {/* DATE */}
-        <div className="mt-3 mb-5 max-[425px]:mb-3 flex items-center justify-center gap-3">
-          <button
-            onClick={() => setDate(addDays(date, -1))}
-            disabled={date <= ARCHIVE_START}
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30 disabled:opacity-30 disabled:hover:bg-white"
-            title="Jour précédent"
-          >
-            <ChevronLeft size={16} strokeWidth={3} />
-          </button>
-          <span className="font-body font-bold text-sm min-w-[9.5rem] text-center first-letter:uppercase">
-            {dateLabel}
-          </span>
-          <button
-            onClick={() => setDate(addDays(date, 1))}
-            disabled={isToday}
-            className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30 disabled:opacity-30 disabled:hover:bg-white"
-            title="Jour suivant"
-          >
-            <ChevronRight size={16} strokeWidth={3} />
-          </button>
         </div>
 
         {/* TABS */}
@@ -376,31 +406,49 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
           ))}
         </div>
 
-        {/* OPTIONS */}
-        {tab === GENERAL && (
-          <div className="mt-4 max-[425px]:mt-3 flex flex-col items-center gap-2">
-            <div className="flex rounded-xl border-2 border-black overflow-hidden">
-              {PERIODS.map((p) => (
-                <button
-                  key={p.slug}
-                  onClick={() => setPeriod(p.slug)}
-                  className={`px-4 py-1 max-[425px]:px-3 font-body font-bold text-xs border-r-2 border-black last:border-r-0
-                    ${period === p.slug ? "bg-black text-white" : "bg-white hover:bg-cubdle-yellow/20"}`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
+        {/* PÉRIODE + SÉLECTEUR (communs à tous les onglets) */}
+        <div className="mt-4 max-[425px]:mt-3 flex flex-col items-center gap-2">
+          <div className="flex rounded-xl border-2 border-black overflow-hidden">
+            {PERIODS.map((p) => (
+              <button
+                key={p.slug}
+                onClick={() => setPeriod(p.slug)}
+                className={`px-4 py-1 max-[425px]:px-3 font-body font-bold text-xs border-r-2 border-black last:border-r-0
+                  ${period === p.slug ? "bg-black text-white" : "bg-white hover:bg-cubdle-yellow/20"}`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
 
-            <div className="flex items-center gap-2 font-body text-xs text-black/60">
-              {periodLabel(json)}
-              {json?.provisional && (
-                <span className="rounded-full border border-black/30 px-2 py-0.5 text-[0.625rem] uppercase tracking-wide">
-                  provisoire
-                </span>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={() => step(-1)}
+              disabled={periodStart <= ARCHIVE_START}
+              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30 disabled:opacity-30 disabled:hover:bg-white"
+              title="Période précédente"
+            >
+              <ChevronLeft size={16} strokeWidth={3} />
+            </button>
+            <div className="flex min-w-[10rem] flex-col items-center">
+              <span className="font-body font-bold text-sm text-center first-letter:uppercase">
+                {periodLabel(period, date, today)}
+              </span>
+              {provisional && (
+                <span className="font-body text-[0.625rem] uppercase tracking-wide text-black/40">provisoire</span>
               )}
             </div>
+            <button
+              onClick={() => step(1)}
+              disabled={provisional}
+              className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-black bg-white hover:bg-cubdle-yellow/30 disabled:opacity-30 disabled:hover:bg-white"
+              title="Période suivante"
+            >
+              <ChevronRight size={16} strokeWidth={3} />
+            </button>
+          </div>
 
+          {pointsMode && (
             <details className="w-full font-body text-xs text-black/60">
               <summary className="cursor-pointer text-center select-none">Comment sont calculés les points ?</summary>
               <p className="mt-2 text-center">
@@ -409,12 +457,13 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                 n'as pas joué. Les journées s'additionnent sur la semaine et le mois.
               </p>
             </details>
-          </div>
-        )}
+          )}
+        </div>
 
-        {tab !== GENERAL && !locked && (
+        {/* OPTIONS (classement d'un jeu sur un jour) */}
+        {isDayGame && !locked && (
           // Une seule ligne : message à gauche, icônes collées à droite
-          <div className="mt-4 max-[425px]:mt-3 flex min-h-7 items-center gap-3">
+          <div className="mt-3 flex min-h-7 items-center gap-3">
             <span
               className={`flex-1 font-body text-xs leading-4 text-black/60 transition-opacity ${flash ? "opacity-100" : "opacity-0"}`}
             >
@@ -463,8 +512,8 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
             <p className="font-body text-sm text-black/50 text-center py-4">
               Aucun score enregistré {isToday && period === "day" ? "aujourd'hui" : "sur cette période"}.
             </p>
-          ) : tab === GENERAL ? (
-            generalRows.map((row) => (
+          ) : pointsMode ? (
+            pointRows.map((row) => (
               <Row
                 key={row.pseudo}
                 rank={row.rank}
@@ -473,7 +522,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                 sub={
                   period === "day"
                     ? (
-                      // une pastille par jeu, à la couleur du jeu (vide si pas joué)
+                      // Général du jour : une pastille par jeu, à la couleur du jeu (vide si pas joué)
                       <div className="mt-1 flex gap-1">
                         {games.map((g) => (
                           <span
@@ -507,7 +556,6 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                   pseudo={entry.pseudo}
                   isMe={entry.is_me}
                   faded={entry.is_late}
-                  sub={entry.is_late ? "en décalé" : null}
                   right={
                     <div className="flex flex-col items-end">
                       <span className={`font-body font-bold text-base max-[425px]:text-xs ${scoreColor(label)}`}>

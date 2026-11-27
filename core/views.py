@@ -1468,10 +1468,17 @@ def progress_summary(request):
 
 @api_view(["GET"])
 def general_leaderboard_view(request):
-    """?period=day|week|month&date=YYYY-MM-DD : somme des points (cf. core/leaderboards.py)."""
+    """
+    ?period=day|week|month&date=YYYY-MM-DD[&game=<slug>] : somme des points
+    (tous les jeux, ou un seul jeu si `game` est donné). Cf. core/leaderboards.py.
+    """
     period = request.GET.get("period", "day")
     if period not in ("day", "week", "month"):
         return Response({"error": "Période invalide."}, status=400)
+
+    game = request.GET.get("game") or None
+    if game is not None and game not in GAME_SORT_ORDER:
+        return Response({"error": "Jeu invalide."}, status=400)
 
     day = parse_date(request.GET.get("date")) or paris_today()
     if day > paris_today():
@@ -1479,7 +1486,7 @@ def general_leaderboard_view(request):
     if day < ARCHIVE_START:
         return Response({"error": "Pas de classement avant le lancement de Cubdle."}, status=403)
 
-    data = general_leaderboard(period, day)
+    data = general_leaderboard(period, day, game)
     me = _current_user_id(request)
     for row in data["rows"]:
         row["is_me"] = row.pop("user_id") == me

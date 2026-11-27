@@ -1,3 +1,4 @@
+import { useArchiveDate } from '../utils/archiveContext';
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { API_URLS } from '../utils';
@@ -39,6 +40,7 @@ function YesterdayCompet() {
 
 
 function GuessCompet() {
+  const archiveDate = useArchiveDate();
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showHowToPlay, setShowHowToPlay] = useState(false);
 
@@ -378,7 +380,8 @@ function GuessCompet() {
         )}
 
         {/* ── COMPÉT D'HIER ── */}
-        <YesterdayCompet />
+        {/* Pas en archive : la réponse de la veille pourrait être un autre défi encore à jouer */}
+        {!archiveDate && <YesterdayCompet />}
 
         {/* ── BOUTONS ── */}
         <ActionButtons
