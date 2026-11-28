@@ -5,6 +5,7 @@ import { API_URLS } from '../../utils';
 import { isLaunched, getParisToday, addDays, formatDateFr, ARCHIVE_START } from '../../utils/dates';
 import { loadProgress } from '../../utils/localProgress';
 import LeaderboardModalLegacy from './LeaderboardModalLegacy';
+import SupporterBadge from './SupporterBadge';
 import { useArchiveDate } from '../../utils/archiveContext';
 
 /*
@@ -263,7 +264,7 @@ function CrownBadge() {
   );
 }
 
-function Row({ rank, pseudo, right, sub, isMe, faded, crowned }) {
+function Row({ rank, pseudo, right, sub, isMe, faded, crowned, supporter }) {
   return (
     <div
       className={`
@@ -282,6 +283,7 @@ function Row({ rank, pseudo, right, sub, isMe, faded, crowned }) {
           <span className="flex items-center gap-1 min-w-0 font-bold max-[425px]:text-xs">
             {crowned && <CrownBadge />}
             <span className="truncate">{pseudo}</span>
+            {supporter && <SupporterBadge />}
           </span>
           {sub && (typeof sub === "string"
             ? <span className="text-xs text-black/50 truncate max-[425px]:text-[0.625rem]">{sub}</span>
@@ -551,6 +553,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                 pseudo={row.pseudo}
                 isMe={row.is_me}
                 crowned={row.crowned}
+                supporter={row.is_supporter}
                 sub={
                   period === "day"
                     ? (
@@ -588,6 +591,7 @@ function LeaderboardModalV2({ onClose, initialGame = GENERAL }) {
                   pseudo={entry.pseudo}
                   isMe={entry.is_me}
                   crowned={entry.crowned}
+                  supporter={entry.is_supporter}
                   faded={entry.is_late}
                   right={
                     <div className="flex flex-col items-end">

@@ -104,9 +104,11 @@ def general_leaderboard(period, day, game=None):
     # (jour, jeu) -> [(user_id, score)]
     groups = defaultdict(list)
     pseudos = {}
+    supporters = {}
     for s in scores:
         groups[(s.date, s.game.slug)].append((s.user_id, effective_score(s.game.slug, s.score)))
         pseudos[s.user_id] = s.user.pseudo
+        supporters[s.user_id] = s.user.is_supporter
 
     totals = defaultdict(int)
     days_played = defaultdict(set)
@@ -126,6 +128,7 @@ def general_leaderboard(period, day, game=None):
         {
             "user_id": user_id,
             "pseudo": pseudos[user_id],
+            "is_supporter": supporters[user_id],
             "rank": ranks[user_id],
             "points": totals[user_id],
             "days_played": len(days_played[user_id]),

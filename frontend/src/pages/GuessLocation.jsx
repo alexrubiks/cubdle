@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { isLaunched } from '../utils/dates';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Heart } from 'lucide-react';
 import L from 'leaflet';
 import { API_URLS, formatDistance } from '../utils';
 import CubdleLogo from '../components/ui/CubdleLogo';
@@ -125,6 +125,7 @@ function LocationMap({
             click: (e) => {
               onOtherGuessClick({
                 pseudo: g.pseudo,
+                supporter: g.is_supporter,
                 x: e.originalEvent.clientX,
                 y: e.originalEvent.clientY,
               });
@@ -236,7 +237,10 @@ function GuessLocation() {
             transform: 'translate(-50%, -120%)',
           }}
         >
-          {popup.pseudo}
+          <span className="inline-flex items-center gap-1">
+            {popup.pseudo}
+            {popup.supporter && <Heart size={12} strokeWidth={2.5} className="text-white fill-cubdle-red" aria-label="A soutenu Cubdle" />}
+          </span>
         </div>
       )}
       <div className="w-full max-w-sm md:w-3/4 md:max-w-[90.625rem] flex flex-col gap-4">

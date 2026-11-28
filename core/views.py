@@ -14,6 +14,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework.permissions import AllowAny
 from .authentication import CubdleJWTAuthentication
 
+from core.pseudo import validate_pseudo
 from core.models import (
     ChampionshipResult,
     Competition,
@@ -68,6 +69,7 @@ def me(request):
     return Response({
         "wca_id": request.user.wca_id,
         "pseudo": request.user.pseudo,
+        "is_supporter": request.user.is_supporter,
     })
 
 def wca_login(request):
@@ -135,21 +137,18 @@ def wca_callback(request):
 
 @api_view(["PATCH"])
 def update_pseudo(request):
-    pseudo = request.data.get("pseudo", "").strip()
-
-    if not pseudo:
-        return Response({"error": "Le pseudo ne peut pas être vide."}, status=400)
-
-    if len(pseudo) > 30:
-        return Response({"error": "Le pseudo est trop long (30 caractères max)."}, status=400)
+    pseudo, error = validate_pseudo(request.data.get("pseudo", ""))
+    if error:
+        return Response({"error": error}, status=400)
 
     user = request.user
     user.pseudo = pseudo
-    user.save()
+    user.save(update_fields=["pseudo"])
 
     return Response({
         "wca_id": user.wca_id,
         "pseudo": user.pseudo,
+        "is_supporter": user.is_supporter,
     })
 
 ################################################################################
@@ -1061,15 +1060,16 @@ def location_guesses(request):
     if getattr(request.user, "is_authenticated", False):
         progresses = progresses.exclude(user=request.user)
 
-    progresses = progresses.select_related('user').values_list('user__pseudo', 'location_guess')
+    progresses = progresses.select_related('user').values_list('user__pseudo', 'user__is_supporter', 'location_guess')
 
     guesses = [
         {
             "pseudo": pseudo,
+            "is_supporter": is_supporter,
             "latitude": g["latitude"],
             "longitude": g["longitude"],
         }
-        for pseudo, g in progresses
+        for pseudo, is_supporter, g in progresses
         if g.get("latitude") is not None and g.get("longitude") is not None
     ]
 
@@ -1502,6 +1502,7 @@ def daily_leaderboard(request):
     return Response([
         {
             "pseudo": s.user.pseudo,
+            "is_supporter": s.user.is_supporter,
             "score": s.score,
             "is_late": s.is_late,
             "crowned": s.user_id in crowned,

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Pencil, Check } from 'lucide-react';
 import Modal from './Modal';
 import { API_URLS } from '../../utils';
+import { validatePseudo, PSEUDO_MAX_LENGTH } from '../../utils/pseudo';
+import SupporterBadge from './SupporterBadge';
 
 export default function AccountModal({ onClose, user, onLogin, onLogout, onUpdatePseudo }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -9,9 +11,9 @@ export default function AccountModal({ onClose, user, onLogin, onLogout, onUpdat
   const [error, setError] = useState(null);
 
   const handleSave = async () => {
-    const trimmed = pseudoInput.trim();
-    if (!trimmed) {
-      setError("Le pseudo ne peut pas être vide.");
+    const { pseudo: trimmed, error: invalid } = validatePseudo(pseudoInput);
+    if (invalid) {
+      setError(invalid);
       return;
     }
 
@@ -83,7 +85,7 @@ export default function AccountModal({ onClose, user, onLogin, onLogout, onUpdat
                       value={pseudoInput}
                       onChange={(e) => setPseudoInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      maxLength={30}
+                      maxLength={PSEUDO_MAX_LENGTH}
                       className="flex-1 px-2 py-1 border-2 border-black rounded-lg font-bold text-sm"
                     />
                     <button
@@ -97,6 +99,7 @@ export default function AccountModal({ onClose, user, onLogin, onLogout, onUpdat
                 ) : (
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-bold">{user.pseudo}</span>
+                    {user.is_supporter && <SupporterBadge />}
                     <button
                       onClick={() => {
                         setPseudoInput(user.pseudo);

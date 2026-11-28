@@ -10,7 +10,9 @@ from .models import (
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ("wca_id", "pseudo")
+    list_display = ("wca_id", "pseudo", "is_supporter")
+    list_editable = ("is_supporter",)
+    list_filter = ("is_supporter",)
     search_fields = ("wca_id", "pseudo")
 
 

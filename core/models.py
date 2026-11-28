@@ -3,6 +3,8 @@ from django.db import models
 class User(models.Model):
     wca_id = models.CharField(max_length=10, unique=True)
     pseudo = models.CharField(max_length=30)
+    # Badge ❤️ « A soutenu Cubdle » : coché à la main dans l'admin
+    is_supporter = models.BooleanField(default=False)
 
     # Compatibilité avec request.user.is_authenticated (DRF / progress.py)
     is_authenticated = True

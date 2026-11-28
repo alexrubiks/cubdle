@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X, Trophy } from 'lucide-react';
 import { API_URLS } from '../../utils';
+import SupporterBadge from './SupporterBadge';
 import { isLaunched } from '../../utils/dates';
 
 const NR_GAME = {
@@ -218,8 +219,9 @@ export default function LeaderboardModalLegacy({
                     {getRank(index)}
                   </span>
 
-                  <span className="font-bold max-[425px]:text-xs">
+                  <span className="flex items-center gap-1 font-bold max-[425px]:text-xs">
                     {entry.pseudo}
+                    {entry.is_supporter && <SupporterBadge />}
                   </span>
                 </div>
 
