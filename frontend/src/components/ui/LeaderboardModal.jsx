@@ -251,6 +251,7 @@ function CrownBadge() {
           timer.current = setTimeout(() => setOpen(false), 2000);
         }}
         aria-label="Gagnant de la semaine dernière"
+        title="Gagnant de la semaine dernière"
         className="leading-none transition-transform hover:scale-110"
       >
         👑
